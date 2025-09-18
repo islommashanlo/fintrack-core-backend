@@ -1,0 +1,13 @@
+log
+tmp
+vendor/bundle
+node_modules
+spec/tmp
+coverage
+pkg
+.bundle
+.git
+.gitignore
+.env
+
+

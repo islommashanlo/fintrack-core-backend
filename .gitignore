@@ -1,0 +1,12 @@
+/.bundle
+/log
+/tmp
+/db/*.sqlite3
+/db/*.sqlite3-journal
+/public/assets
+/node_modules
+/.byebug_history
+/vendor/bundle
+/.env
+
+
