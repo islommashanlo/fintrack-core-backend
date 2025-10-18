@@ -1,31 +1,48 @@
+# frozen_string_literal: true
+
 Rails.application.routes.draw do
-  get "/", to: "health#index"
-  get "/health", to: "health#health"
-  require "sidekiq/web"
-  mount Sidekiq::Web => "/sidekiq"
+  mount RailsAdmin::Engine => '/admin', as: 'rails_admin'
+  devise_for :users
+  get '/', to: 'health#index'
+  get '/health', to: 'health#health'
+  require 'sidekiq/web'
+  mount Sidekiq::Web => '/sidekiq'
+
+  # Authentication routes
+  post '/api/signup', to: 'api/auth#signup'
+  post '/api/login', to: 'api/auth#login'
+  delete '/api/logout', to: 'api/auth#logout'
+
   namespace :api do
-    resources :traders, only: [:index, :show] do
+    get 'alert_preferences/index'
+    get 'alert_preferences/create'
+    get 'alert_preferences/show'
+    get 'alert_preferences/update'
+    get 'alert_preferences/destroy'
+    get 'subscription_plans/index'
+    resources :subscription_plans, only: [:index]
+    resources :traders, only: %i[index show] do
       collection do
         get :politicians
         get :hedge_funds
         get :most_active
       end
     end
-    resources :trades, only: [:index, :show] do
+    resources :trades, only: %i[index show] do
       collection do
         get :recent
         get :search
       end
     end
-    get "profiles/:trader_id", to: "profiles#show"
-    get "profiles/:trader_id/stats", to: "profiles#stats"
-    get "stats", to: "stats#index"
-    get "stats/by-type", to: "stats#by_type"
-    get "stats/timeline", to: "stats#timeline"
-    get "stats/biggest-trades", to: "stats#biggest_trades"
-    resources :alerts, only: [:index, :create, :show, :update, :destroy]
-    post "ingest/trades", to: "ingest#trades"
+    get 'profiles/:trader_id', to: 'profiles#show'
+    get 'profiles/:trader_id/stats', to: 'profiles#stats'
+    get 'stats', to: 'stats#index'
+    get 'stats/by-type', to: 'stats#by_type'
+    get 'stats/timeline', to: 'stats#timeline'
+    get 'stats/biggest-trades', to: 'stats#biggest_trades'
+    resources :alert_preferences, only: %i[index create show update destroy]
+    resources :subscriptions, only: %i[index create show update destroy]
+    post 'ingest/trades', to: 'ingest#trades'
+    post 'stripe/webhooks', to: 'stripe#webhooks'
   end
 end
-
-

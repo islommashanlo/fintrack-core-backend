@@ -1,0 +1,25 @@
+<h1>New Trade Alert</h1>
+
+<p><%= @greeting %>,</p>
+
+<p>A new trade that matches your alert preferences has been recorded:</p>
+
+<div style="border: 1px solid #ddd; padding: 15px; margin: 20px 0; border-radius: 5px;">
+  <h2>Trade Details</h2>
+  <ul>
+    <li><strong>Source:</strong> <%= @trade.trade_source.name %> (<%= @trade.trade_source.source_type.titleize %>)</li>
+    <li><strong>Asset:</strong> <%= @trade.asset_name %> (<%= @trade.ticker %>)</li>
+    <li><strong>Transaction Type:</strong> <%= @trade.transaction_type.titleize %></li>
+    <li><strong>Amount:</strong> $<%= number_with_delimiter(@trade.amount) %></li>
+    <li><strong>Trade Date:</strong> <%= @trade.trade_date.strftime('%B %d, %Y') %></li>
+    <li><strong>Filing Date:</strong> <%= @trade.filing_date.strftime('%B %d, %Y') %></li>
+  </ul>
+
+  <% if @trade.disclosure_url.present? %>
+    <p><a href="<%= @trade.disclosure_url %>" style="color: #007bff;">View Disclosure Document</a></p>
+  <% end %>
+</div>
+
+<p>You received this alert because you have set up notifications for <%= @trade.ticker %> trades.</p>
+
+<p>Best regards,<br>The FinTrack Team</p>

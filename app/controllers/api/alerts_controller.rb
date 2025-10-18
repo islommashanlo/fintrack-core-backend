@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class AlertsController < ApplicationController
     include Authenticate
@@ -17,7 +19,7 @@ module Api
         transaction_type: attrs[:transaction_type],
         is_active: true
       ).first
-      return render json: { error: "Similar alert already exists" }, status: :bad_request if existing
+      return render json: { error: 'Similar alert already exists' }, status: :bad_request if existing
 
       alert = Current.user.alert_subscriptions.create!(attrs)
       render json: alert, status: :created
@@ -37,7 +39,7 @@ module Api
     def destroy
       alert = Current.user.alert_subscriptions.find(params[:id])
       alert.update!(is_active: false)
-      render json: { message: "Alert subscription deleted" }
+      render json: { message: 'Alert subscription deleted' }
     end
 
     private
@@ -47,5 +49,3 @@ module Api
     end
   end
 end
-
-

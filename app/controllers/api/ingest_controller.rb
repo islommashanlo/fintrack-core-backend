@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Api
   class IngestController < ActionController::API
     include IngestAuth
@@ -37,9 +39,7 @@ module Api
       end
       render json: { created: created }
     rescue ActionController::ParameterMissing
-      render json: { error: "Invalid payload" }, status: :bad_request
+      render json: { error: 'Invalid payload' }, status: :bad_request
     end
   end
 end
-
-

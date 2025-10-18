@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # PostgreSQL test database
+  test_db:
+    image: postgres:15-alpine
+    container_name: fintrack-postgres-test
+    environment:
+      POSTGRES_DB: fintrack_test
+      POSTGRES_USER: fintrack
+      POSTGRES_PASSWORD: fintrack
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5434:5432"  # Use different port for tests
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintrack -d fintrack_test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+  # Redis for testing (optional, if tests need it)
+  test_redis:
+    image: redis:7-alpine
+    container_name: fintrack-redis-test
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_test_data:/data
+    ports:
+      - "6381:6379"  # Use different port for tests
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Rails application for testing
+  test_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fintrack-rails-test
+    environment:
+      DATABASE_URL: postgresql://fintrack:fintrack@test_db:5432/fintrack_test
+      REDIS_URL: redis://test_redis:6379/0
+      RAILS_ENV: test
+      RAILS_LOG_TO_STDOUT: 1
+      # Disable some features for faster testing
+      WEB_CONCURRENCY: 0
+      RAILS_SERVE_STATIC_FILES: 0
+    volumes:
+      - .:/app:cached
+      - bundle_test_cache:/usr/local/bundle
+      - /app/vendor/bundle
+      - /app/tmp
+      - /app/log
+      - /app/.git
+      # Mount node_modules for asset compilation if needed
+      - /app/node_modules
+    depends_on:
+      test_db:
+        condition: service_healthy
+      test_redis:
+        condition: service_healthy
+    restart: "no"  # Don't restart test containers
+    stdin_open: true
+    tty: true
+    # Run tests command
+    command: >
+      bash -c "
+        echo 'Setting up test environment...' &&
+        bundle check || bundle install &&
+        bundle exec rails db:prepare &&
+        echo 'Running tests...' &&
+        bundle exec rspec
+      "
+
+  # Sidekiq for testing (if needed)
+  test_sidekiq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fintrack-sidekiq-test
+    command: bundle exec sidekiq -r ./config/environment.rb
+    environment:
+      DATABASE_URL: postgresql://fintrack:fintrack@test_db:5432/fintrack_test
+      REDIS_URL: redis://test_redis:6379/0
+      RAILS_ENV: test
+    volumes:
+      - .:/app:cached
+      - bundle_test_cache:/usr/local/bundle
+    depends_on:
+      test_db:
+        condition: service_healthy
+      test_redis:
+        condition: service_healthy
+      test_app:
+        condition: service_completed_successfully
+    restart: "no"
+    profiles:
+      - sidekiq  # Only run if explicitly requested
+
+volumes:
+  postgres_test_data:
+    driver: tmpfs  # Use tmpfs for faster tests
+  redis_test_data:
+    driver: tmpfs
+  bundle_test_cache:
+
+networks:
+  default:
+    name: fintrack-test-network

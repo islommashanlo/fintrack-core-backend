@@ -1,13 +1,166 @@
-log
-tmp
-vendor/bundle
-node_modules
-spec/tmp
-coverage
-pkg
-.bundle
+# Git
 .git
 .gitignore
+
+# Documentation
+README.md
+README.rdoc
+doc/
+docs/
+
+# Environment files
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
+# Logs
+log/
+logs/
+*.log
 
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript v1 declaration files
+typings/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.test
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Ruby/Rails specific
+# Gems
+vendor/bundle
+.bundle
+
+# Test coverage
+coverage/
+
+# Rails specific
+tmp/
+tmp/**/*
+public/assets/
+public/packs/
+public/packs-test/
+
+# RSpec
+rspec_examples.txt
+
+# Byebug
+.byebug_history
+
+# RubyMine
+.idea/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Local development
+.vscode/
+.idea/
+
+# Database
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.swp
+*.swo

@@ -1,0 +1,45 @@
+version: '3.8'
+
+# Override file for development customizations
+# This file is automatically loaded by docker-compose when present
+
+services:
+  web:
+    # Development overrides
+    environment:
+      # Enable more detailed logging for development
+      RAILS_LOG_LEVEL: debug
+      # Enable code reloading
+      RAILS_CACHE_CLASSES: false
+      # Enable eager loading for better error messages
+      RAILS_EAGER_LOAD: false
+    # Mount additional volumes for development
+    volumes:
+      - ./config/database.yml:/app/config/database.yml:ro
+      - ./config/environments:/app/config/environments:ro
+      # Mount .env file if it exists
+      - ./.env:/app/.env:ro
+
+  # Override for development database
+  db:
+    # Use a different database name for development
+    environment:
+      POSTGRES_DB: fintrack_development
+
+  # Override for development redis
+  redis:
+    # Enable Redis logging for development
+    command: redis-server --appendonly yes --loglevel verbose
+
+# Uncomment to add development tools
+# services:
+#   # Add development tools like guard, spring, etc.
+#   guard:
+#     build: .
+#     command: bundle exec guard
+#     volumes:
+#       - .:/app
+#     depends_on:
+#       - web
+#     profiles:
+#       - tools

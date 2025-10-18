@@ -1,0 +1,23 @@
+New Trade Alert
+
+<%= @greeting %>,
+
+A new trade that matches your alert preferences has been recorded:
+
+TRADE DETAILS
+=============
+Source: <%= @trade.trade_source.name %> (<%= @trade.trade_source.source_type.titleize %>)
+Asset: <%= @trade.asset_name %> (<%= @trade.ticker %>)
+Transaction Type: <%= @trade.transaction_type.titleize %>
+Amount: $<%= number_with_delimiter(@trade.amount) %>
+Trade Date: <%= @trade.trade_date.strftime('%B %d, %Y') %>
+Filing Date: <%= @trade.filing_date.strftime('%B %d, %Y') %>
+
+<% if @trade.disclosure_url.present? %>
+View Disclosure Document: <%= @trade.disclosure_url %>
+<% end %>
+
+You received this alert because you have set up notifications for <%= @trade.ticker %> trades.
+
+Best regards,
+The FinTrack Team

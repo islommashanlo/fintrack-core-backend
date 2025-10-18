@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    container_name: fintrack-postgres
+    environment:
+      POSTGRES_DB: fintrack
+      POSTGRES_USER: fintrack
+      POSTGRES_PASSWORD: fintrack
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintrack -d fintrack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and Sidekiq
+  redis:
+    image: redis:7-alpine
+    container_name: fintrack-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Rails application
+  web:
+    build: .
+    container_name: fintrack-rails
+    environment:
+      DATABASE_URL: postgresql://fintrack:fintrack@db:5432/fintrack
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+      RAILS_LOG_TO_STDOUT: 1
+      PORT: 3000
+    volumes:
+      - .:/app
+      - bundle_cache:/usr/local/bundle
+      - /app/vendor/bundle
+      - /app/tmp
+      - /app/log
+      - /app/.git
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  # Sidekiq for background jobs
+  sidekiq:
+    build: .
+    container_name: fintrack-sidekiq
+    command: bundle exec sidekiq
+    environment:
+      DATABASE_URL: postgresql://fintrack:fintrack@db:5432/fintrack
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+    volumes:
+      - .:/app
+      - bundle_cache:/usr/local/bundle
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Rails Admin (optional)
+  rails_admin:
+    image: dpage/pgadmin4:latest
+    container_name: fintrack-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fintrack.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  bundle_cache:
+
+networks:
+  default:
+    name: fintrack-network

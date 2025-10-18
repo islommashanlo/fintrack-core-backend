@@ -1,51 +1,63 @@
+# frozen_string_literal: true
+
 module Api
   class TradersController < ApplicationController
     def index
       limit = [params.fetch(:limit, 50).to_i, 100].min
       offset = [params.fetch(:offset, 0).to_i, 0].max
-      traders = Trader.where(is_active: true)
-      traders = traders.where(trader_type: params[:trader_type]) if params[:trader_type].present?
+      trade_sources = TradeSource.all
+      trade_sources = trade_sources.where(source_type: params[:source_type]) if params[:source_type].present?
       if params[:search].present?
         q = "%#{params[:search]}%"
-        traders = traders.where("name ILIKE ? OR company ILIKE ? OR fund_name ILIKE ?", q, q, q)
+        trade_sources = trade_sources.where('name ILIKE ?', q)
       end
-      traders = traders.order(id: :desc).limit(limit).offset(offset)
-      render json: traders
+      trade_sources = trade_sources.order(id: :desc).limit(limit).offset(offset)
+      render json: trade_sources.as_json(include: :trades)
     end
 
     def show
-      trader = Trader.find(params[:id])
-      render json: trader
+      trade_source = TradeSource.find(params[:id])
+      render json: trade_source.as_json(include: :trades)
     end
 
     def politicians
       limit = [params.fetch(:limit, 50).to_i, 100].min
-      traders = Trader.where(trader_type: "politician", is_active: true)
-      traders = traders.where("party ILIKE ?", "%#{params[:party]}%") if params[:party].present?
-      traders = traders.where("state ILIKE ?", "%#{params[:state]}%") if params[:state].present?
-      render json: traders.limit(limit)
+      trade_sources = TradeSource.politicians
+      if params[:search].present?
+        q = "%#{params[:search]}%"
+        trade_sources = trade_sources.where('name ILIKE ?', q)
+      end
+      render json: trade_sources.limit(limit)
     end
 
     def hedge_funds
       limit = [params.fetch(:limit, 50).to_i, 100].min
-      traders = Trader.where(trader_type: "hedge_fund", is_active: true)
-      render json: traders.limit(limit)
+      trade_sources = TradeSource.hedge_funds
+      if params[:search].present?
+        q = "%#{params[:search]}%"
+        trade_sources = trade_sources.where('name ILIKE ?', q)
+      end
+      render json: trade_sources.limit(limit)
     end
 
     def most_active
       limit = [params.fetch(:limit, 10).to_i, 50].min
       days = (params[:days] || 30).to_i
       cutoff = Time.now.utc - days.days
-      rows = Trader
-        .joins(:trades)
-        .where("trades.transaction_date >= ?", cutoff)
-        .group("traders.id")
-        .select("traders.*, COUNT(trades.id) AS trade_count, SUM(trades.value) AS total_value")
-        .order("COUNT(trades.id) DESC")
-        .limit(limit)
-      render json: rows.map { |t| { trader: t, trade_count: t.trade_count.to_i, total_value: t.total_value.to_f } }
+      rows = TradeSource
+             .joins(:trades)
+             .where('trades.trade_date >= ?', cutoff)
+             .group('trade_sources.id')
+             .select('trade_sources.*, COUNT(trades.id) AS trade_count, SUM(trades.amount) AS total_value')
+             .order('COUNT(trades.id) DESC')
+             .limit(limit)
+      render json: rows.map { |ts|
+        {
+          trade_source: ts,
+          trade_count: ts.trade_count.to_i,
+          total_value: ts.total_value.to_f
+        }
+      }
     end
   end
 end
-
-

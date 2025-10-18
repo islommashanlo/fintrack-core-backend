@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database (development)
+  db:
+    image: postgres:15-alpine
+    container_name: fintrack-postgres-dev
+    environment:
+      POSTGRES_DB: fintrack_development
+      POSTGRES_USER: fintrack
+      POSTGRES_PASSWORD: fintrack
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"  # Use different port for dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fintrack -d fintrack_development"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and Sidekiq (development)
+  redis:
+    image: redis:7-alpine
+    container_name: fintrack-redis-dev
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6380:6379"  # Use different port for dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Rails application (development)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: fintrack-rails-dev
+    environment:
+      DATABASE_URL: postgresql://fintrack:fintrack@db:5432/fintrack_development
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+      RAILS_LOG_TO_STDOUT: 1
+      PORT: 3000
+      # Enable hot reloading
+      WEB_CONCURRENCY: 1
+      RAILS_SERVE_STATIC_FILES: 1
+    volumes:
+      - .:/app:cached
+      - bundle_dev_cache:/usr/local/bundle
+      - /app/vendor/bundle
+      - /app/tmp
+      - /app/log
+      - /app/.git
+      # Mount node_modules for asset compilation
+      - /app/node_modules
+    ports:
+      - "3001:3000"  # Use different port for dev
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    # Enable hot reloading by watching for file changes
+    command: >
+      bash -c "
+        echo 'Starting Rails development server...' &&
+        bundle check || bundle install &&
+        bundle exec rails db:prepare &&
+        bundle exec rails server -b 0.0.0.0 -p 3000
+      "
+
+  # Sidekiq for background jobs (development)
+  sidekiq:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fintrack-sidekiq-dev
+    command: bundle exec sidekiq
+    environment:
+      DATABASE_URL: postgresql://fintrack:fintrack@db:5432/fintrack_development
+      REDIS_URL: redis://redis:6379/0
+      RAILS_ENV: development
+    volumes:
+      - .:/app:cached
+      - bundle_dev_cache:/usr/local/bundle
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    restart: unless-stopped
+
+  # Mailcatcher for email testing (development)
+  mailcatcher:
+    image: sj26/mailcatcher:latest
+    container_name: fintrack-mailcatcher
+    ports:
+      - "1080:1080"  # Web interface
+      - "1025:1025"  # SMTP server
+    restart: unless-stopped
+
+  # Redis Commander for Redis GUI (optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: fintrack-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  bundle_dev_cache:
+
+networks:
+  default:
+    name: fintrack-dev-network
