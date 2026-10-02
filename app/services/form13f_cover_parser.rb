@@ -9,7 +9,7 @@ class Form13fCoverParser
   class MalformedError < StandardError; end
 
   Cover = Data.define(
-    :submission_type, :period_of_report, :is_amendment, :amendment_type, :report_type,
+    :submission_type, :period_of_report, :is_amendment, :amendment_number, :amendment_type, :report_type,
     :filer, :other_managers, :included_managers, :other_included_managers_count,
     :table_entry_total, :table_value_total, :is_confidential_omitted
   )
@@ -40,6 +40,7 @@ class Form13fCoverParser
       submission_type: submission_type,
       period_of_report: date(required(root, "headerData/filerInfo/periodOfReport"), "periodOfReport"),
       is_amendment: boolean(text(cover_page, "isAmendment")) || submission_type.end_with?("/A"),
+      amendment_number: integer(text(cover_page, "amendmentNo"), "amendmentNo"),
       amendment_type: text(cover_page, "amendmentInfo/amendmentType"),
       report_type: required(cover_page, "reportType"),
       filer: filer(cover_page),

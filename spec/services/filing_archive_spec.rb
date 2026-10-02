@@ -35,4 +35,25 @@ RSpec.describe FilingArchive do
     expect(archive.exist?("0000000001/26/0000000001-26-000001.txt")).to be(false)
     expect { archive.read("0000000001/26/0000000001-26-000001.txt") }.to raise_error(FilingArchive::MissingError)
   end
+
+  it "archives 13F documents under manager, year, accession and original filename" do
+    path = archive.store_13f(
+      manager_cik: "2135539", year: 2026, accession_no: "0002135539-26-000001",
+      filename: "sima13fq12026.xml", body: form13f_information(:recent_2026_q1)
+    )
+
+    expect(path).to eq("13f/0002135539/2026/0002135539-26-000001/sima13fq12026.xml")
+    expect(archive.read(path)).to eq(form13f_information(:recent_2026_q1))
+  end
+
+  it "keeps 13F archives write-once and rejects unsafe filenames" do
+    arguments = {
+      manager_cik: "0002135539", year: 2026, accession_no: "0002135539-26-000001", filename: "cover.xml"
+    }
+    path = archive.store_13f(**arguments, body: "as first served")
+
+    expect(archive.store_13f(**arguments, body: "something else")).to eq(path)
+    expect(archive.read(path)).to eq("as first served")
+    expect { archive.store_13f(**arguments, filename: "../cover.xml", body: "x") }.to raise_error(ArgumentError)
+  end
 end

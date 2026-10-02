@@ -24,7 +24,7 @@ RSpec.describe Form13fCoverParser do
     combination = described_class.parse(form13f_cover(:post_cutoff_2023_q1))
 
     expect(amendment).to have_attributes(
-      submission_type: "13F-HR/A", is_amendment: true, amendment_type: "NEW HOLDINGS"
+      submission_type: "13F-HR/A", is_amendment: true, amendment_number: 1, amendment_type: "NEW HOLDINGS"
     )
     expect(combination.other_managers.length).to eq(5)
     expect(combination.included_managers.map(&:sequence_no)).to eq([ 1, 2 ])
