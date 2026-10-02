@@ -6,6 +6,7 @@ class Filing < ApplicationRecord
   ACCESSION_FORMAT = /\A\d{10}-\d{2}-\d{6}\z/
 
   has_many :insider_transactions, dependent: :restrict_with_exception
+  has_one :institutional_report, dependent: :restrict_with_exception
 
   validates :accession_no, presence: true, uniqueness: true, format: { with: ACCESSION_FORMAT }
   validates :cik, presence: true, format: { with: /\A\d{10}\z/ }

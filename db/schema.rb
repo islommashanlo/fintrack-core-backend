@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_02_170006) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_02_170007) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -115,6 +115,81 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_170006) do
     t.check_constraint "security_table::text = ANY (ARRAY['non_derivative'::character varying, 'derivative'::character varying]::text[])", name: "insider_transactions_security_table_check"
   end
 
+  create_table "institutional_filers", force: :cascade do |t|
+    t.string "cik", null: false
+    t.string "name", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cik"], name: "index_institutional_filers_on_cik", unique: true
+  end
+
+  create_table "institutional_holdings", force: :cascade do |t|
+    t.bigint "institutional_report_id", null: false
+    t.integer "row_seq", null: false
+    t.string "cusip"
+    t.string "name_of_issuer", null: false
+    t.string "title_of_class", null: false
+    t.decimal "value_reported", null: false
+    t.string "value_unit", null: false
+    t.decimal "value_usd"
+    t.decimal "shares", null: false
+    t.string "share_type", null: false
+    t.string "put_call"
+    t.string "investment_discretion"
+    t.string "other_manager"
+    t.decimal "voting_sole"
+    t.decimal "voting_shared"
+    t.decimal "voting_none"
+    t.string "figi"
+    t.boolean "suspect", default: false, null: false
+    t.string "suspect_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cusip"], name: "index_institutional_holdings_on_cusip"
+    t.index ["institutional_report_id", "row_seq"], name: "index_13f_holdings_on_report_and_row", unique: true
+    t.check_constraint "row_seq > 0", name: "institutional_holdings_row_sequence_positive"
+  end
+
+  create_table "institutional_report_managers", force: :cascade do |t|
+    t.bigint "institutional_report_id", null: false
+    t.integer "sequence_no", null: false
+    t.string "cik"
+    t.string "name"
+    t.string "form13f_file_number"
+    t.string "crd_number"
+    t.string "sec_file_number"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["institutional_report_id", "sequence_no"], name: "index_13f_report_managers_on_report_and_sequence", unique: true
+    t.check_constraint "sequence_no > 0", name: "institutional_report_managers_sequence_positive"
+  end
+
+  create_table "institutional_reports", force: :cascade do |t|
+    t.bigint "filing_id", null: false
+    t.bigint "institutional_filer_id", null: false
+    t.date "period_of_report", null: false
+    t.datetime "filed_at"
+    t.string "submission_type", null: false
+    t.string "report_type", null: false
+    t.string "amendment_type"
+    t.integer "amendment_number"
+    t.integer "other_included_managers_count"
+    t.integer "table_entry_total"
+    t.decimal "table_value_total"
+    t.string "cover_value_unit"
+    t.string "cover_raw_path"
+    t.string "information_raw_path"
+    t.string "status", default: "pending", null: false
+    t.boolean "suspect", default: false, null: false
+    t.string "suspect_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["filing_id"], name: "index_institutional_reports_on_filing_id", unique: true
+    t.index ["institutional_filer_id", "filed_at"], name: "index_institutional_reports_on_filer_and_filed_at"
+    t.index ["institutional_filer_id", "period_of_report"], name: "index_institutional_reports_on_filer_and_period"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'parsed'::character varying, 'failed'::character varying, 'skipped'::character varying]::text[])", name: "institutional_reports_status_check"
+  end
+
   create_table "parse_failures", force: :cascade do |t|
     t.string "accession_no", null: false
     t.text "error", null: false
@@ -127,4 +202,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_170006) do
   end
 
   add_foreign_key "insider_transactions", "filings"
+  add_foreign_key "institutional_holdings", "institutional_reports"
+  add_foreign_key "institutional_report_managers", "institutional_reports"
+  add_foreign_key "institutional_reports", "filings"
+  add_foreign_key "institutional_reports", "institutional_filers"
 end
