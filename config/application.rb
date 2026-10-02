@@ -21,6 +21,9 @@ require "action_view/railtie"
 Bundler.require(*Rails.groups)
 
 module FilingsIntel
+  # Shown wherever data is presented to a reader (brief section 1).
+  DISCLAIMER = "Data from public SEC filings. Not investment advice."
+
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 8.0
