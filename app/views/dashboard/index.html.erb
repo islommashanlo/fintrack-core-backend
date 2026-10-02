@@ -17,6 +17,18 @@
     </div>
   </section>
 
+  <section class="deadline-banner" aria-label="Next 13F filing deadline">
+    <div>
+      <p class="eyebrow">Next 13F deadline</p>
+      <strong><%= @next_13f_deadline.due_date.strftime("%A, %B %-d, %Y") %></strong>
+      <span>For the period ending <%= signal_date(@next_13f_deadline.period_end) %>. The date rolls forward when the statutory deadline falls on a weekend.</span>
+    </div>
+    <div class="deadline-banner__count">
+      <strong><%= @next_13f_deadline.days_remaining %></strong>
+      <span>days remaining</span>
+    </div>
+  </section>
+
   <% if Current.user %>
     <section class="section-block">
       <div class="section-heading">

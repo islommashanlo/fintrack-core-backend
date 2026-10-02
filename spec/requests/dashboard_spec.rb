@@ -27,10 +27,12 @@ RSpec.describe "Dashboard" do
   end
 
   it "shows the filing signals dashboard" do
-    get root_path
+    travel_to Time.utc(2026, 10, 2, 12, 0) do
+      get root_path
+    end
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Recent insider purchases", "Acme Corp", "Jane Doe", "$12,500.00")
+    expect(response.body).to include("Recent insider purchases", "Acme Corp", "Jane Doe", "$12,500.00", "Monday, November 16, 2026")
     expect(response.body).to include("FilingsIntel presents information as reported in SEC filings")
   end
 

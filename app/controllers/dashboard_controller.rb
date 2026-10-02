@@ -5,6 +5,7 @@ class DashboardController < ApplicationController
 
   def index
     @as_of = Time.current
+    @next_13f_deadline = Form13fDeadline.new(today: @as_of.to_date).next
     signals = InsiderSignals.new(as_of: @as_of)
 
     @followed_activity = if Current.user

@@ -676,6 +676,51 @@ h2 {
   margin-top: 6px;
 }
 
+.deadline-banner {
+  align-items: center;
+  background: var(--accent-light);
+  border: 1px solid #cde9e3;
+  border-radius: 14px;
+  display: flex;
+  gap: 28px;
+  justify-content: space-between;
+  margin-bottom: 42px;
+  padding: 18px 20px;
+}
+
+.deadline-banner strong,
+.deadline-banner span {
+  display: block;
+}
+
+.deadline-banner > div:first-child > strong {
+  font-size: 1.05rem;
+}
+
+.deadline-banner > div:first-child > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-top: 5px;
+}
+
+.deadline-banner__count {
+  border-left: 1px solid #b9dcd5;
+  padding-left: 28px;
+  text-align: right;
+}
+
+.deadline-banner__count strong {
+  color: var(--accent);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.deadline-banner__count span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin-top: 4px;
+}
+
 .section-block {
   margin-bottom: 42px;
 }
@@ -836,6 +881,20 @@ tbody tr:last-child td {
 
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .deadline-banner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .deadline-banner__count {
+    border-left: 0;
+    border-top: 1px solid #b9dcd5;
+    padding-left: 0;
+    padding-top: 16px;
+    text-align: left;
   }
 
   .profile-hero {
