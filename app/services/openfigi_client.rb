@@ -30,6 +30,8 @@ class OpenfigiClient
     normalized.each_slice(@batch_size).flat_map { |batch| request(batch) }
   end
 
+  attr_reader :batch_size
+
   private
 
   def request(cusips)

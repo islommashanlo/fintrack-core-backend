@@ -7,6 +7,9 @@ class InstitutionalReport < ApplicationRecord
   belongs_to :institutional_filer
   has_many :institutional_report_managers, dependent: :restrict_with_exception
   has_many :institutional_holdings, dependent: :restrict_with_exception
+  has_many :position_diffs, dependent: :restrict_with_exception
+  has_many :prior_position_diffs, class_name: "PositionDiff", foreign_key: :prior_institutional_report_id,
+                                    dependent: :restrict_with_exception, inverse_of: :prior_institutional_report
 
   validates :period_of_report, :submission_type, :report_type, presence: true
   validates :status, inclusion: { in: STATUSES }

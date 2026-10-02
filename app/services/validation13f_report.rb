@@ -8,7 +8,7 @@ class Validation13fReport
     @checks = [
       volume, missing_archives, cover_entry_mismatches, cover_value_mismatches,
       malformed_cusips, non_positive_shares, unknown_units, unit_jumps,
-      unresolved_amendments, unresolved_notices, parse_failures
+      unresolved_amendments, unresolved_notices, parse_failures, mapping_coverage, diff_coverage
     ]
   end
 
@@ -179,6 +179,56 @@ class Validation13fReport
 
     check(:fail, "#{count} unresolved 13F parse failures",
           "Deterministic failures need review; transient failures are retried by ParseForm13fJob.")
+  end
+
+  def mapping_coverage
+    total = scalar(<<~SQL)
+      SELECT COUNT(DISTINCT cusip)
+      FROM institutional_holdings
+      WHERE cusip ~ '^[0-9A-Z]{9}$'
+    SQL
+    return check(:info, "No valid CUSIPs are ready for enrichment") if total.zero?
+
+    latest = <<~SQL
+      SELECT DISTINCT ON (cusip) cusip, status
+      FROM cusip_security_mappings
+      WHERE source = 'openfigi'
+      ORDER BY cusip, last_checked_at DESC, id DESC
+    SQL
+    mapped = scalar("SELECT COUNT(*) FROM (#{latest}) current WHERE current.status = 'mapped'")
+    ambiguous = scalar("SELECT COUNT(*) FROM (#{latest}) current WHERE current.status = 'ambiguous'")
+    return check(:pass, "All valid 13F CUSIPs have an unambiguous OpenFIGI mapping") if mapped == total
+
+    check(:warn, "#{total - mapped} of #{total} valid 13F CUSIPs lack an unambiguous mapping",
+          "#{ambiguous} are ambiguous; unmapped and stale results remain stored for review. " \
+          "Run `rake enrich:cusips` to inspect the request count before enrichment.")
+  end
+
+  def diff_coverage
+    count = scalar(<<~SQL)
+      SELECT COUNT(*)
+      FROM institutional_reports current_report
+      WHERE current_report.status = 'parsed'
+        AND (current_report.amendment_type IS NULL OR current_report.amendment_type = 'RESTATEMENT')
+        AND EXISTS (
+          SELECT 1
+          FROM institutional_reports prior_report
+          WHERE prior_report.institutional_filer_id = current_report.institutional_filer_id
+            AND prior_report.period_of_report < current_report.period_of_report
+            AND prior_report.status = 'parsed'
+            AND (prior_report.amendment_type IS NULL OR prior_report.amendment_type = 'RESTATEMENT')
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM position_diffs d
+          WHERE d.institutional_filer_id = current_report.institutional_filer_id
+            AND d.period_of_report = current_report.period_of_report
+        )
+    SQL
+    return check(:pass, "Every multi-quarter 13F filer has materialized position diffs") if count.zero?
+
+    check(:warn, "#{count} multi-quarter 13F reports have no materialized position diffs",
+          "Run `rake position_diffs:materialize[FILER_ID,PERIOD]` for the affected filer and period.")
   end
 
   def scalar(sql)

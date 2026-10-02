@@ -13,6 +13,17 @@ RSpec.describe "institutional 13F schema" do
     expect(Filing.column_names).to include("accession_no", "filed_at", "period_of_report", "parse_status")
   end
 
+  it "creates separate enrichment and derived-diff tables" do
+    connection = ActiveRecord::Base.connection
+
+    expect(connection.data_source_exists?("securities")).to be(true)
+    expect(connection.data_source_exists?("cusip_security_mappings")).to be(true)
+    expect(connection.data_source_exists?("position_diffs")).to be(true)
+    expect(PositionDiff::NATURAL_KEY).to eq(
+      %i[institutional_filer_id period_of_report cusip put_call share_type]
+    )
+  end
+
   it "enforces one institutional report per shared filing" do
     report = create(:institutional_report)
 

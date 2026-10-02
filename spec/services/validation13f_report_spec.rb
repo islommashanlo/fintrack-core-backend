@@ -68,4 +68,29 @@ RSpec.describe Validation13fReport do
     expect(check_titled(/no resolvable original/).level).to eq(:warn)
     expect(check_titled(/unresolved 13F parse failures/).level).to eq(:fail)
   end
+
+  it "warns when valid CUSIPs or multi-quarter diffs are not covered" do
+    filer = create(:institutional_filer)
+    first_period = Date.new(2025, 12, 31)
+    second_period = Date.new(2026, 3, 31)
+    first = create_report(filer, first_period, Time.utc(2026, 2, 14))
+    second = create_report(filer, second_period, Time.utc(2026, 5, 15))
+    create(:institutional_holding, institutional_report: first, row_seq: 1, cusip: "037833100")
+    create(:institutional_holding, institutional_report: second, row_seq: 1, cusip: "037833100")
+
+    expect(check_titled(/lack an unambiguous mapping/).level).to eq(:warn)
+    expect(check_titled(/no materialized position diffs/).level).to eq(:warn)
+  end
+
+  private
+
+  def create_report(filer, period, filed_at)
+    create(
+      :institutional_report,
+      institutional_filer: filer,
+      period_of_report: period,
+      filed_at:,
+      filing: create(:filing, cik: filer.cik, form_type: "13F-HR", period_of_report: period, filed_at:)
+    )
+  end
 end

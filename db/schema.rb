@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_02_170007) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_02_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -26,6 +26,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_170007) do
     t.datetime "updated_at", null: false
     t.index ["day"], name: "index_backfill_runs_on_day", unique: true
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'running'::character varying, 'done'::character varying, 'no_index'::character varying, 'failed'::character varying]::text[])", name: "backfill_runs_status_check"
+  end
+
+  create_table "cusip_security_mappings", force: :cascade do |t|
+    t.string "cusip", null: false
+    t.bigint "security_id"
+    t.string "source", default: "openfigi", null: false
+    t.integer "result_seq", null: false
+    t.string "status", null: false
+    t.datetime "first_seen_at", null: false
+    t.datetime "last_checked_at", null: false
+    t.string "error"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["cusip", "source", "result_seq"], name: "index_cusip_mappings_on_cusip_source_sequence", unique: true
+    t.index ["cusip", "source", "status"], name: "index_cusip_mappings_on_cusip_source_status"
+    t.index ["security_id"], name: "index_cusip_security_mappings_on_security_id"
+    t.check_constraint "result_seq >= 0", name: "cusip_security_mappings_result_seq_nonnegative"
+    t.check_constraint "status::text = ANY (ARRAY['mapped'::character varying, 'unmapped'::character varying, 'ambiguous'::character varying, 'error'::character varying, 'stale'::character varying]::text[])", name: "cusip_security_mappings_status_check"
   end
 
   create_table "filers", force: :cascade do |t|
@@ -201,9 +219,57 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_170007) do
     t.index ["accession_no"], name: "index_parse_failures_on_accession_no", unique: true
   end
 
+  create_table "position_diffs", force: :cascade do |t|
+    t.bigint "institutional_filer_id", null: false
+    t.bigint "institutional_report_id", null: false
+    t.bigint "prior_institutional_report_id"
+    t.date "period_of_report", null: false
+    t.date "prior_period_of_report"
+    t.string "cusip", null: false
+    t.string "put_call", default: "", null: false
+    t.string "share_type", null: false
+    t.string "change_type", null: false
+    t.decimal "shares_before"
+    t.decimal "shares_after"
+    t.decimal "shares_delta", null: false
+    t.decimal "value_usd_before"
+    t.decimal "value_usd_after"
+    t.decimal "value_usd_delta"
+    t.string "name_of_issuer"
+    t.string "title_of_class"
+    t.boolean "current_suspect", default: false, null: false
+    t.boolean "prior_suspect", default: false, null: false
+    t.datetime "calculated_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["institutional_filer_id", "period_of_report", "change_type"], name: "index_position_diffs_on_filer_period_change"
+    t.index ["institutional_filer_id", "period_of_report", "cusip", "put_call", "share_type"], name: "index_position_diffs_on_natural_key", unique: true
+    t.check_constraint "change_type::text = ANY (ARRAY['new'::character varying, 'exit'::character varying, 'add'::character varying, 'trim'::character varying]::text[])", name: "position_diffs_change_type_check"
+    t.check_constraint "shares_delta <> 0::numeric", name: "position_diffs_nonzero_share_delta"
+  end
+
+  create_table "securities", force: :cascade do |t|
+    t.string "figi", null: false
+    t.string "ticker"
+    t.string "name"
+    t.string "security_type"
+    t.string "market_sector"
+    t.string "exchange_code"
+    t.string "share_class_figi"
+    t.string "composite_figi"
+    t.string "source", default: "openfigi", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["figi"], name: "index_securities_on_figi", unique: true
+  end
+
+  add_foreign_key "cusip_security_mappings", "securities"
   add_foreign_key "insider_transactions", "filings"
   add_foreign_key "institutional_holdings", "institutional_reports"
   add_foreign_key "institutional_report_managers", "institutional_reports"
   add_foreign_key "institutional_reports", "filings"
   add_foreign_key "institutional_reports", "institutional_filers"
+  add_foreign_key "position_diffs", "institutional_filers"
+  add_foreign_key "position_diffs", "institutional_reports"
+  add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"
 end
