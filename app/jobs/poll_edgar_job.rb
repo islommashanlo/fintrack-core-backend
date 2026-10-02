@@ -4,7 +4,7 @@
 # A failed poll is not retried: the next minute's run covers the same ground, and the
 # stale "last successful poll" time is what makes the failure visible.
 class PollEdgarJob < ApplicationJob
-  queue_as :default
+  queue_as :sec_live_form4
   sidekiq_options retry: 0 if respond_to?(:sidekiq_options)
 
   def perform

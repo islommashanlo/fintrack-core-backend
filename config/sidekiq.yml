@@ -1,0 +1,6 @@
+# Queue weights control priority within a worker; SecClient's lane limiters reserve
+# two requests/second for Form 4 and three for all 13F work over the shared five/sec cap.
+:queues:
+  - [sec_live_form4, 5]
+  - [sec_live_13f, 3]
+  - [sec_backfill_13f, 1]

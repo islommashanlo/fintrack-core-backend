@@ -6,7 +6,7 @@ RSpec.describe "Cron schedule" do
   let(:schedule) { CronSchedule.jobs }
 
   it "defines valid jobs that point at real job classes" do
-    expect(schedule.keys).to contain_exactly("poll_edgar", "reconcile_edgar")
+    expect(schedule.keys).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar")
 
     schedule.each do |name, attributes|
       job = Sidekiq::Cron::Job.new(attributes.merge("name" => name))
@@ -26,7 +26,7 @@ RSpec.describe "Cron schedule" do
     errors = Sidekiq::Cron::Job.load_from_hash!(schedule)
 
     expect(errors).to be_empty
-    expect(Sidekiq::Cron::Job.all.map(&:name)).to contain_exactly("poll_edgar", "reconcile_edgar")
+    expect(Sidekiq::Cron::Job.all.map(&:name)).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar")
     expect(Sidekiq::Cron::Job.all).to all(be_is_active_job)
   ensure
     Sidekiq::Cron::Job.destroy_all!

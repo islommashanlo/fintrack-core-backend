@@ -56,4 +56,42 @@ RSpec.describe "institutional 13F schema" do
     expect(report).to be_restatement
     expect(report).not_to be_new_holdings
   end
+
+  it "resolves the latest base plus later NEW HOLDINGS in SQL" do
+    filer = create(:institutional_filer)
+    period = Date.new(2026, 3, 31)
+    base = create(
+      :institutional_report,
+      institutional_filer: filer,
+      period_of_report: period,
+      filed_at: Time.utc(2026, 5, 15),
+      filing: create(:filing, cik: filer.cik, form_type: "13F-HR")
+    )
+    restatement = create(
+      :institutional_report,
+      institutional_filer: filer,
+      period_of_report: period,
+      filed_at: Time.utc(2026, 5, 20),
+      amendment_type: "RESTATEMENT",
+      submission_type: "13F-HR/A",
+      filing: create(:filing, cik: filer.cik, form_type: "13F-HR/A")
+    )
+    new_holdings = create(
+      :institutional_report,
+      institutional_filer: filer,
+      period_of_report: period,
+      filed_at: Time.utc(2026, 5, 21),
+      amendment_type: "NEW HOLDINGS",
+      submission_type: "13F-HR/A",
+      filing: create(:filing, cik: filer.cik, form_type: "13F-HR/A")
+    )
+    create(:institutional_holding, institutional_report: base, row_seq: 1)
+    replacement = create(:institutional_holding, institutional_report: restatement, row_seq: 1)
+    addition = create(:institutional_holding, institutional_report: new_holdings, row_seq: 1, cusip: "594918104")
+
+    effective = InstitutionalReport.effective_holdings_for(institutional_filer: filer, period_of_report: period)
+
+    expect(effective.map(&:id)).to contain_exactly(replacement.id, addition.id)
+    expect(effective.map(&:institutional_report_id)).not_to include(base.id)
+  end
 end

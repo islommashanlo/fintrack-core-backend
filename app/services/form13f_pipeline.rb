@@ -72,6 +72,6 @@ class Form13fPipeline
   end
 
   def client
-    @client ||= SecClient.new
+    @client ||= SecClient.new(lane: :form13f)
   end
 end

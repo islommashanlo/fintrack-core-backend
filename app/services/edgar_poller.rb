@@ -11,21 +11,24 @@ class EdgarPoller
   LAST_SUCCESS_KEY = "edgar:poller:last_success_at"
   SEEN_TOTAL_TTL = 3.days.to_i
 
-  def self.last_success_at(redis: FilingsIntel.redis)
-    value = redis.call("GET", LAST_SUCCESS_KEY)
+  def self.last_success_at(redis: FilingsIntel.redis, key: LAST_SUCCESS_KEY)
+    value = redis.call("GET", key)
     value && Time.iso8601(value)
   end
 
-  def initialize(search: Edgar::FullTextSearch.new, redis: FilingsIntel.redis)
-    @search = search
+  def initialize(search: nil, redis: FilingsIntel.redis, form: ROOT_FORM,
+                 last_success_key: LAST_SUCCESS_KEY)
+    @search = search || Edgar::FullTextSearch.new(client: SecClient.new(lane: :form4))
     @redis = redis
+    @form = form
+    @last_success_key = last_success_key
   end
 
   # Returns the accession numbers that were new. Dates default to today and yesterday
   # in EDGAR's time zone.
   def poll(dates = default_dates)
     added = dates.flat_map { |date| poll_day(date) }
-    @redis.call("SET", LAST_SUCCESS_KEY, Time.current.utc.iso8601)
+    @redis.call("SET", @last_success_key, Time.current.utc.iso8601)
     added
   end
 
@@ -37,7 +40,7 @@ class EdgarPoller
   end
 
   def poll_day(date)
-    first = @search.page(form: ROOT_FORM, date:)
+    first = @search.page(form: @form, date:)
     return [] if first.total == seen_total(date)
 
     refs = first.refs
@@ -65,6 +68,6 @@ class EdgarPoller
   end
 
   def total_key(date)
-    "edgar:poller:total:#{ROOT_FORM}:#{date.iso8601}"
+    "edgar:poller:total:#{@form}:#{date.iso8601}"
   end
 end

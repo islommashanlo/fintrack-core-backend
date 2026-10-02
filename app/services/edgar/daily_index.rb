@@ -35,8 +35,9 @@ module Edgar
     end
     private_class_method :ref
 
-    def initialize(client: SecClient.new)
-      @client = client
+    def initialize(client: nil, forms: Filing::FORM4_TYPES, lane: :form4)
+      @client = client || SecClient.new(lane:)
+      @forms = forms
       @listings = {}
     end
 
@@ -46,7 +47,7 @@ module Edgar
     end
 
     def fetch(date)
-      self.class.parse(@client.get("#{quarter_url(date)}/#{file_name(date)}"))
+      self.class.parse(@client.get("#{quarter_url(date)}/#{file_name(date)}"), forms: @forms)
     end
 
     private

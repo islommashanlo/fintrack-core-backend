@@ -4,6 +4,10 @@ shared:
     cron: "* * * * *"
     class: PollEdgarJob
     description: Look for new Form 4 filings through EDGAR full-text search
+  poll_13f:
+    cron: "* * * * *"
+    class: Poll13fJob
+    description: Look for new 13F filings through EDGAR full-text search
   reconcile_edgar:
     # 07:30 UTC is 02:30 or 03:30 US Eastern; the previous day's index is published around 22:00 Eastern.
     cron: "30 7 * * *"

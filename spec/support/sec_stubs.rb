@@ -10,8 +10,8 @@ module SecStubs
     SecClient.new(limiter: instance_double(SecRateLimiter, acquire: 0))
   end
 
-  def search_url(date, from: nil)
-    url = "https://efts.sec.gov/LATEST/search-index?q=&forms=4&dateRange=custom&startdt=#{date}&enddt=#{date}"
+  def search_url(date, from: nil, form: "4")
+    url = "https://efts.sec.gov/LATEST/search-index?q=&forms=#{form}&dateRange=custom&startdt=#{date}&enddt=#{date}"
     from ? "#{url}&from=#{from}" : url
   end
 

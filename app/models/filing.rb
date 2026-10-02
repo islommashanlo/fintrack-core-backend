@@ -2,6 +2,8 @@
 
 class Filing < ApplicationRecord
   FORM4_TYPES = %w[4 4/A].freeze
+  FORM13F_TYPES = %w[13F-HR 13F-HR/A 13F-NT].freeze
+  SEC_INGEST_TYPES = (FORM4_TYPES + FORM13F_TYPES).freeze
   PARSE_STATUSES = %w[pending parsed failed].freeze
   ACCESSION_FORMAT = /\A\d{10}-\d{2}-\d{6}\z/
 

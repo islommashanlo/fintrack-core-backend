@@ -38,6 +38,16 @@ RSpec.describe SecClient do
     expect(limiter).to have_received(:acquire).exactly(3).times
   end
 
+  it "takes both the shared slot and the selected lane slot" do
+    lane_limiter = instance_double(SecRateLimiter, acquire: 0)
+    lane_client = described_class.new(limiter:, lane_limiter:, lane: :form4)
+    stub_request(:get, url).to_return(status: 200, body: "ok")
+
+    expect(lane_client.get(url)).to eq("ok")
+    expect(limiter).to have_received(:acquire).once
+    expect(lane_limiter).to have_received(:acquire).once
+  end
+
   it "waits for the number of seconds in Retry-After before retrying" do
     stub_request(:get, url).to_return(
       { status: 429, headers: { "Retry-After" => "7" } },

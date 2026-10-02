@@ -30,13 +30,16 @@ class SecClient
   MAX_RETRY_AFTER = 120 # seconds; a longer hint is treated as a failure, not slept through
   OPEN_TIMEOUT = 5
   READ_TIMEOUT = 30
+  LANE_RATES = { form4: 2, form13f: 3 }.freeze
 
-  def initialize(limiter: SecRateLimiter.new, sleeper: Kernel.method(:sleep), email: ENV["SEC_USER_AGENT_EMAIL"])
+  def initialize(limiter: SecRateLimiter.new, sleeper: Kernel.method(:sleep), email: ENV["SEC_USER_AGENT_EMAIL"],
+                 lane: nil, lane_limiter: nil)
     raise ConfigurationError, "SEC_USER_AGENT_EMAIL must be set to a contact address" if email.blank?
 
     @limiter = limiter
     @sleeper = sleeper
     @user_agent = "FilingsIntel #{email}"
+    @lane_limiter = lane_limiter || build_lane_limiter(lane, sleeper)
   end
 
   # Returns the response body for a 200. Raises one of the errors above otherwise.
@@ -45,6 +48,7 @@ class SecClient
     retries = 0
 
     loop do
+      @lane_limiter&.acquire
       @limiter.acquire
       response = perform(url)
 
@@ -94,6 +98,16 @@ class SecClient
     return if uri.scheme == "https" && ALLOWED_HOSTS.include?(uri.host)
 
     raise ArgumentError, "SecClient only talks to #{ALLOWED_HOSTS.join(' and ')} over https: #{url}"
+  end
+
+  def build_lane_limiter(lane, sleeper)
+    return nil if lane.nil?
+
+    lane = lane.to_sym
+    rate = LANE_RATES.fetch(lane) { raise ConfigurationError, "unknown SEC request lane: #{lane.inspect}" }
+    SecRateLimiter.new(
+      rate:, key: "sec:rate_limiter:lane:#{lane}", sleeper:
+    )
   end
 
   # Retry-After may be a number of seconds or an HTTP date. Without it, back off 1s, 2s, 4s.

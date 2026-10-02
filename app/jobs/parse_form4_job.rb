@@ -8,7 +8,7 @@
 class ParseForm4Job < ApplicationJob
   MAX_RETRIES = 3
 
-  queue_as :default
+  queue_as :sec_live_form4
 
   retry_on SecClient::TransientError, attempts: MAX_RETRIES + 1, wait: :polynomially_longer do |job, error|
     job.record_failure(job.arguments.first, error)
