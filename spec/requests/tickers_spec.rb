@@ -23,6 +23,7 @@ RSpec.describe "Ticker profiles" do
     ])
     allow(profile).to receive(:institutional_holdings).and_return([])
     allow(profile).to receive(:institutional_changes).and_return([])
+    allow(profile).to receive(:institutional_history).and_return([])
   end
 
   it "shows insider activity and the institutional ownership sections" do
@@ -30,6 +31,7 @@ RSpec.describe "Ticker profiles" do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Acme Corp", "Insider activity", "Jane Doe",
-                                     "Institutional ownership", "Institutional ownership changes", "mapped CUSIP")
+                                     "Institutional ownership", "Institutional ownership history",
+                                     "Institutional ownership changes", "mapped CUSIP")
   end
 end

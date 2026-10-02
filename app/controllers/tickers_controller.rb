@@ -13,5 +13,6 @@ class TickersController < ApplicationController
     @transactions = profile.transactions(limit: 40)
     @institutional_holdings = profile.institutional_holdings(limit: 24)
     @institutional_changes = profile.institutional_changes(limit: 24)
+    @institutional_history = profile.institutional_history(periods: 4, limit: 48)
   end
 end

@@ -167,14 +167,85 @@ class TickerProfile
     SQL
   end
 
+  def institutional_history(periods: 4, limit: 48)
+    select(<<~SQL, since: Time.at(0), periods:, limit:)
+      WITH mapped_securities AS (
+        SELECT DISTINCT ON (m.cusip)
+               m.cusip, s.ticker, s.name AS security_name
+        FROM cusip_security_mappings m
+        INNER JOIN securities s ON s.id = m.security_id
+        WHERE m.status = 'mapped'
+          AND s.ticker ILIKE :ticker_pattern
+        ORDER BY m.cusip, m.last_checked_at DESC, m.result_seq
+      ), report_periods AS (
+        SELECT DISTINCT r.institutional_filer_id, r.period_of_report
+        FROM institutional_reports r
+        WHERE r.status = 'parsed'
+          AND (r.filed_at IS NULL OR r.filed_at <= :as_of)
+      ), selected_periods AS (
+        SELECT institutional_filer_id, period_of_report,
+               ROW_NUMBER() OVER (
+                 PARTITION BY institutional_filer_id
+                 ORDER BY period_of_report DESC
+               ) AS period_rank
+        FROM report_periods
+      ), latest_bases AS (
+        SELECT DISTINCT ON (r.institutional_filer_id, r.period_of_report)
+               r.id, r.institutional_filer_id, r.period_of_report,
+               COALESCE(r.filed_at, TIMESTAMP 'epoch') AS filed_at
+        FROM institutional_reports r
+        INNER JOIN selected_periods sp
+          ON sp.institutional_filer_id = r.institutional_filer_id
+         AND sp.period_of_report = r.period_of_report
+        WHERE sp.period_rank <= :periods
+          AND r.status = 'parsed'
+          AND (r.filed_at IS NULL OR r.filed_at <= :as_of)
+          AND (r.amendment_type IS NULL OR r.amendment_type = 'RESTATEMENT')
+        ORDER BY r.institutional_filer_id, r.period_of_report,
+                 r.filed_at DESC NULLS LAST, r.id DESC
+      ), effective_reports AS (
+        SELECT id, institutional_filer_id, period_of_report, filed_at
+        FROM latest_bases
+        UNION ALL
+        SELECT r.id, r.institutional_filer_id, r.period_of_report,
+               COALESCE(r.filed_at, TIMESTAMP 'epoch') AS filed_at
+        FROM institutional_reports r
+        INNER JOIN latest_bases b
+          ON b.institutional_filer_id = r.institutional_filer_id
+         AND b.period_of_report = r.period_of_report
+        WHERE r.status = 'parsed'
+          AND (r.filed_at IS NULL OR r.filed_at <= :as_of)
+          AND r.amendment_type = 'NEW HOLDINGS'
+          AND COALESCE(r.filed_at, TIMESTAMP 'epoch') > b.filed_at
+      )
+      SELECT i.name AS institution_name,
+             i.cik AS institution_cik,
+             er.period_of_report,
+             MAX(er.filed_at) AS filed_at,
+             ms.cusip,
+             ms.security_name,
+             SUM(h.shares) AS shares,
+             SUM(h.value_usd) AS value_usd,
+             BOOL_OR(h.suspect) AS suspect
+      FROM effective_reports er
+      INNER JOIN institutional_filers i ON i.id = er.institutional_filer_id
+      INNER JOIN institutional_holdings h ON h.institutional_report_id = er.id
+      INNER JOIN mapped_securities ms ON ms.cusip = h.cusip
+      GROUP BY i.id, i.name, i.cik, er.period_of_report, ms.cusip, ms.security_name
+      ORDER BY er.period_of_report DESC, value_usd DESC NULLS LAST, i.name, ms.cusip
+      LIMIT :limit
+    SQL
+  end
+
   private
 
-  def select(sql, since:, limit:)
+  def select(sql, since:, limit:, periods: 4)
     binds = {
       ticker_pattern: @ticker,
       since:,
       as_of: @as_of,
-      limit:
+      limit:,
+      periods:
     }
     binds[:ticker_pattern] = "%#{ApplicationRecord.sanitize_sql_like(@ticker)}%"
     ApplicationRecord.connection.select_all(ApplicationRecord.sanitize_sql([ sql, binds ])).to_a

@@ -38,6 +38,55 @@
   <section class="section-block">
     <div class="section-heading">
       <div>
+        <p class="eyebrow">Last four reported quarters</p>
+        <h2>Institutional ownership history</h2>
+      </div>
+      <span class="section-heading__count"><%= @institutional_history.size %> shown</span>
+    </div>
+
+    <% if @institutional_history.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Institution</th>
+                <th scope="col">Period</th>
+                <th scope="col">Filed</th>
+                <th scope="col">CUSIP</th>
+                <th scope="col" class="numeric">Shares</th>
+                <th scope="col" class="numeric">Value USD</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @institutional_history.each do |holding| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= holding["institution_name"] %></strong>
+                    <span class="table-secondary">CIK <%= holding["institution_cik"] %></span>
+                  </td>
+                  <td><%= signal_date(holding["period_of_report"]) %></td>
+                  <td><%= signal_date(holding["filed_at"]) %></td>
+                  <td><%= holding["cusip"] %></td>
+                  <td class="numeric"><%= signal_number(holding["shares"]) %></td>
+                  <td class="numeric">
+                    <%= signal_money(holding["value_usd"]) %>
+                    <% if holding["suspect"] %><span class="table-secondary">flagged</span><% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "Institutional ownership history is unavailable until a mapped CUSIP matches this ticker." %>
+    <% end %>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
         <p class="eyebrow">Last 365 days</p>
         <h2>Insider activity</h2>
       </div>
