@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:com="http://www.sec.gov/edgar/common">
+  <schemaVersion>X0202</schemaVersion>
+  <headerData>
+    <submissionType>13F-NT</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags>
+        <confirmingCopyFlag>false</confirmingCopyFlag>
+        <returnCopyFlag>true</returnCopyFlag>
+        <overrideInternetFlag>true</overrideInternetFlag>
+      </flags>
+      <filer>
+        <credentials>
+          <cik>0002124041</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>03-31-2026</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>03-31-2026</reportCalendarOrQuarter>
+      <filingManager>
+        <name>LY Corporation</name>
+        <address>
+          <com:street1>1-3 KIOICHO</com:street1>
+          <com:street2>CHIYODA-KU</com:street2>
+          <com:city>TOKYO</com:city>
+          <com:stateOrCountry>M0</com:stateOrCountry>
+          <com:zipCode>102-8282</com:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F NOTICE</reportType>
+      <form13FFileNumber>028-26946</form13FFileNumber>
+      <otherManagersInfo>
+        <otherManager>
+          <cik>0001065521</cik>
+          <form13FFileNumber>028-20337</form13FFileNumber>
+          <name>SOFTBANK GROUP CORP.</name>
+        </otherManager>
+      </otherManagersInfo>
+      <provideInfoForInstruction5>N</provideInfoForInstruction5>
+    </coverPage>
+    <signatureBlock>
+      <name>Sakaue Ryosuke</name>
+      <title>Executive Corporate Officer</title>
+      <phone>81368982407</phone>
+      <signature>/s/ Sakaue Ryosuke, Tokyo Japan, May 15, 2026</signature>
+      <city>Tokyo</city>
+      <stateOrCountry>M0</stateOrCountry>
+      <signatureDate>05-15-2026</signatureDate>
+    </signatureBlock>
+  </formData>
+</edgarSubmission>

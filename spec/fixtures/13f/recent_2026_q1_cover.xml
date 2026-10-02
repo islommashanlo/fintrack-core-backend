@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:com="http://www.sec.gov/edgar/common">
+  <schemaVersion>X0202</schemaVersion>
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags>
+        <confirmingCopyFlag>false</confirmingCopyFlag>
+        <returnCopyFlag>true</returnCopyFlag>
+        <overrideInternetFlag>false</overrideInternetFlag>
+      </flags>
+      <filer>
+        <credentials>
+          <cik>0002135539</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>03-31-2026</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>03-31-2026</reportCalendarOrQuarter>
+      <filingManager>
+        <name>SIMA Wealth Partners, LLC</name>
+        <address>
+          <com:street1>720 MOOREFIELD PARK DRIVE</com:street1>
+          <com:street2>STE 140</com:street2>
+          <com:city>NORTH CHESTERFIELD</com:city>
+          <com:stateOrCountry>VA</com:stateOrCountry>
+          <com:zipCode>23235</com:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F HOLDINGS REPORT</reportType>
+      <form13FFileNumber>028-26979</form13FFileNumber>
+      <crdNumber>000159943</crdNumber>
+      <secFileNumber>801-130711</secFileNumber>
+      <provideInfoForInstruction5>N</provideInfoForInstruction5>
+    </coverPage>
+    <signatureBlock>
+      <name>Teresa Douberly</name>
+      <title>Compliance Consultant</title>
+      <phone>512-881-2528</phone>
+      <signature>Teresa Douberly</signature>
+      <city>Austin</city>
+      <stateOrCountry>TX</stateOrCountry>
+      <signatureDate>05-15-2026</signatureDate>
+    </signatureBlock>
+    <summaryPage>
+      <otherIncludedManagersCount>0</otherIncludedManagersCount>
+      <tableEntryTotal>146</tableEntryTotal>
+      <tableValueTotal>131295241</tableValueTotal>
+      <isConfidentialOmitted>false</isConfidentialOmitted>
+    </summaryPage>
+  </formData>
+</edgarSubmission>

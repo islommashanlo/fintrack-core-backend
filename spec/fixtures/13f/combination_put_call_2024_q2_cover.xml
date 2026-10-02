@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xsi:schemaLocation="http://www.sec.gov/edgar/thirteenffiler eis_13F_Filer.xsd" xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:ns1="http://www.sec.gov/edgar/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <schemaVersion>X0202</schemaVersion>
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags>
+        <confirmingCopyFlag>false</confirmingCopyFlag>
+        <returnCopyFlag>false</returnCopyFlag>
+        <overrideInternetFlag>false</overrideInternetFlag>
+      </flags>
+      <filer>
+        <credentials>
+          <cik>0001603466</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>06-30-2024</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>06-30-2024</reportCalendarOrQuarter>
+      <isAmendment>false</isAmendment>
+      <filingManager>
+        <name>Point72 Asset Management, L.P.</name>
+        <address>
+          <ns1:street1>72 Cummings Point Road</ns1:street1>
+          <ns1:city>Stamford</ns1:city>
+          <ns1:stateOrCountry>CT</ns1:stateOrCountry>
+          <ns1:zipCode>06902</ns1:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F COMBINATION REPORT</reportType>
+      <form13FFileNumber>028-16256</form13FFileNumber>
+      <crdNumber>000283077</crdNumber>
+      <secFileNumber>801-107348</secFileNumber>
+      <otherManagersInfo>
+        <otherManager>
+          <cik>0001949771</cik>
+          <form13FFileNumber>028-23094</form13FFileNumber>
+          <crdNumber>000323525</crdNumber>
+          <name>Point72 Middle East FZE</name>
+        </otherManager>
+        <otherManager>
+          <cik>0001603465</cik>
+          <form13FFileNumber>028-16258</form13FFileNumber>
+          <crdNumber>000292081</crdNumber>
+          <name>Cubist Systematic Strategies, LLC</name>
+        </otherManager>
+        <otherManager>
+          <cik>0001599822</cik>
+          <form13FFileNumber>028-16027</form13FFileNumber>
+          <crdNumber>000292047</crdNumber>
+          <name>Point72 Hong Kong Ltd</name>
+        </otherManager>
+        <otherManager>
+          <cik>0001698051</cik>
+          <form13FFileNumber>028-17887</form13FFileNumber>
+          <crdNumber>000292074</crdNumber>
+          <name>Point72 Europe (London) LLP</name>
+        </otherManager>
+        <otherManager>
+          <cik>0001666791</cik>
+          <form13FFileNumber>028-17282</form13FFileNumber>
+          <crdNumber>000292069</crdNumber>
+          <name>Point72 Asia (Singapore) Pte. Ltd.</name>
+        </otherManager>
+        <otherManager>
+          <cik>0002006887</cik>
+          <form13FFileNumber>028-23927</form13FFileNumber>
+          <crdNumber>000329574</crdNumber>
+          <name>Point72 Italy, S.r.l.</name>
+        </otherManager>
+        <otherManager>
+          <cik>0002017863</cik>
+          <form13FFileNumber>028-24178</form13FFileNumber>
+          <crdNumber>000330656</crdNumber>
+          <name>Point72 (DIFC) Ltd</name>
+        </otherManager>
+      </otherManagersInfo>
+      <provideInfoForInstruction5>Y</provideInfoForInstruction5>
+      <additionalInformation>The Reporting Manager, Point72 Asset Management, L.P., is under common control with Cubist Systematic Strategies, LLC (Form 13F File Number 028-16258), 72 Investment Holdings, LLC (Form 13F File Number 028-20409), Point72 Hong Kong Ltd (Form 13F File Number 028-16027), Point72 Europe (London) LLP (Form 13F File Number 028-17887), Point72 Italy, S.r.l. (Form 13F File Number 028-23927), Point72 Middle East FZE (Form 13F File Number 028-23094), Point72 (DIFC) Limited (Form 13F File Number 028-24178), CPV Partners, LLC (Form 13F File Number 028-19347), Point72 Private Investments, LLC (Form 13F File Number 028-23092), and Point72 Asia (Singapore) Pte. Ltd. (Form 13F File Number 028-17282). * Positions that are exempt from reporting under Special Instruction 10 to the Form 13F are excluded from this report. However, positions that would not be exempt when aggregated with positions of the same security held by (i) the Other Included Managers or (ii) certain affiliates of the Reporting Manager and reported on their own Forms 13F, are listed herein.</additionalInformation>
+    </coverPage>
+    <signatureBlock>
+      <name>Jason M. Colombo</name>
+      <title>Authorized Person</title>
+      <phone>203-890-2000</phone>
+      <signature>/s/ Jason M. Colombo</signature>
+      <city>Stamford</city>
+      <stateOrCountry>CT</stateOrCountry>
+      <signatureDate>08-14-2024</signatureDate>
+    </signatureBlock>
+    <summaryPage>
+      <otherIncludedManagersCount>0</otherIncludedManagersCount>
+      <tableEntryTotal>1790</tableEntryTotal>
+      <tableValueTotal>38251735496</tableValueTotal>
+    </summaryPage>
+  </formData>
+</edgarSubmission>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:com="http://www.sec.gov/edgar/common">
+  <schemaVersion>X0202</schemaVersion>
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags>
+        <confirmingCopyFlag>false</confirmingCopyFlag>
+        <returnCopyFlag>false</returnCopyFlag>
+        <overrideInternetFlag>false</overrideInternetFlag>
+      </flags>
+      <filer>
+        <credentials>
+          <cik>0001965819</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>12-31-2022</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>12-31-2022</reportCalendarOrQuarter>
+      <filingManager>
+        <name>West Tower Group, LLC</name>
+        <address>
+          <com:street1>1021 E CARY STREET</com:street1>
+          <com:street2>SUITE 700</com:street2>
+          <com:city>RICHMOND</com:city>
+          <com:stateOrCountry>VA</com:stateOrCountry>
+          <com:zipCode>23219</com:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F COMBINATION REPORT</reportType>
+      <form13FFileNumber>028-23035</form13FFileNumber>
+      <otherManagersInfo>
+        <otherManager>
+          <cik>0001964400</cik>
+          <form13FFileNumber>028-22940</form13FFileNumber>
+          <name>FACT Capital, LP</name>
+        </otherManager>
+        <otherManager>
+          <cik>0001626220</cik>
+          <form13FFileNumber>028-17931</form13FFileNumber>
+          <name>Greenhouse Funds LLLP</name>
+        </otherManager>
+        <otherManager>
+          <cik>0001617201</cik>
+          <form13FFileNumber>028-18450</form13FFileNumber>
+          <name>Prosight Management, LP</name>
+        </otherManager>
+        <otherManager>
+          <cik>0001635663</cik>
+          <form13FFileNumber>028-17274</form13FFileNumber>
+          <name>Steamboat Capital Partners, LLC</name>
+        </otherManager>
+      </otherManagersInfo>
+      <provideInfoForInstruction5>N</provideInfoForInstruction5>
+    </coverPage>
+    <signatureBlock>
+      <name>Roland Vetter</name>
+      <title>Partner, CFO/CCO</title>
+      <phone>0018044209980</phone>
+      <signature>Roland Vetter</signature>
+      <city>Richmond</city>
+      <stateOrCountry>VA</stateOrCountry>
+      <signatureDate>02-14-2023</signatureDate>
+    </signatureBlock>
+    <summaryPage>
+      <otherIncludedManagersCount>2</otherIncludedManagersCount>
+      <tableEntryTotal>23</tableEntryTotal>
+      <tableValueTotal>36641288</tableValueTotal>
+      <otherManagers2Info>
+        <otherManager2>
+          <sequenceNumber>1</sequenceNumber>
+          <otherManager>
+            <name>GrizzlyRock Capital , LLC</name>
+          </otherManager>
+        </otherManager2>
+        <otherManager2>
+          <sequenceNumber>2</sequenceNumber>
+          <otherManager>
+            <cik>0001785043</cik>
+            <name>Half Moon Capital, LLC</name>
+          </otherManager>
+        </otherManager2>
+      </otherManagers2Info>
+    </summaryPage>
+  </formData>
+</edgarSubmission>

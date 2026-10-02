@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xsi:schemaLocation="http://www.sec.gov/edgar/thirteenffiler eis_13F_Filer.xsd" xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:ns1="http://www.sec.gov/edgar/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags>
+        <confirmingCopyFlag>false</confirmingCopyFlag>
+        <returnCopyFlag>true</returnCopyFlag>
+        <overrideInternetFlag>false</overrideInternetFlag>
+      </flags>
+      <filer>
+        <credentials>
+          <cik>0001508097</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>09-30-2022</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>09-30-2022</reportCalendarOrQuarter>
+      <isAmendment>false</isAmendment>
+      <filingManager>
+        <name>Sanders Capital, LLC</name>
+        <address>
+          <ns1:street1>777 S. Flagler Drive</ns1:street1>
+          <ns1:street2>Phillips Point East Tower, Suite 1100</ns1:street2>
+          <ns1:city>West Palm Beach</ns1:city>
+          <ns1:stateOrCountry>FL</ns1:stateOrCountry>
+          <ns1:zipCode>33401</ns1:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F COMBINATION REPORT</reportType>
+      <form13FFileNumber>028-14100</form13FFileNumber>
+      <otherManagersInfo>
+        <otherManager>
+          <cik>0001692234</cik>
+          <form13FFileNumber>028-17598</form13FFileNumber>
+          <name>Russell Investments Group, Ltd.</name>
+        </otherManager>
+      </otherManagersInfo>
+      <provideInfoForInstruction5>N</provideInfoForInstruction5>
+    </coverPage>
+    <signatureBlock>
+      <name>Eric Hansen</name>
+      <title>Senior Compliance Officer</title>
+      <phone>212-291-7911</phone>
+      <signature>/s/ Eric Hansen</signature>
+      <city>West Palm Beach</city>
+      <stateOrCountry>FL</stateOrCountry>
+      <signatureDate>11-14-2022</signatureDate>
+    </signatureBlock>
+    <summaryPage>
+      <otherIncludedManagersCount>0</otherIncludedManagersCount>
+      <tableEntryTotal>41</tableEntryTotal>
+      <tableValueTotal>36356798</tableValueTotal>
+    </summaryPage>
+  </formData>
+</edgarSubmission>
