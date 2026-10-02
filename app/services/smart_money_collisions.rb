@@ -8,9 +8,13 @@ class SmartMoneyCollisions
     @as_of = as_of
   end
 
-  def matches(days: 90, window_days: 45, limit: 8)
+  def matches(ticker: nil, days: 90, window_days: 45, limit: 8)
+    ticker_pattern = ticker.to_s.strip.presence
+    ticker_pattern = "%#{ApplicationRecord.sanitize_sql_like(ticker_pattern)}%" if ticker_pattern
     ApplicationRecord.connection.select_all(
-      ApplicationRecord.sanitize_sql([ sql, { as_of: @as_of, since: @as_of - days.days, window_days:, limit: } ])
+      ApplicationRecord.sanitize_sql(
+        [ sql, { as_of: @as_of, since: @as_of - days.days, ticker_pattern:, window_days:, limit: } ]
+      )
     ).to_a
   end
 
@@ -43,6 +47,7 @@ class SmartMoneyCollisions
           AND f.filed_at <= :as_of
           AND COALESCE(NULLIF(t.issuer_ticker, ''), f.issuer_ticker) IS NOT NULL
           AND COALESCE(NULLIF(t.issuer_ticker, ''), f.issuer_ticker) <> ''
+          AND (:ticker_pattern IS NULL OR COALESCE(NULLIF(t.issuer_ticker, ''), f.issuer_ticker) ILIKE :ticker_pattern)
           AND NOT EXISTS (
             SELECT 1
             FROM filings later

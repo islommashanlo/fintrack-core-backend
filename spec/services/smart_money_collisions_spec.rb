@@ -26,6 +26,7 @@ RSpec.describe SmartMoneyCollisions do
       include("ticker" => "ACME", "issuer_name" => "Acme Corp", "insiders" => 1,
               "institutions" => 1, "insider_filings" => 1, "institutional_reports" => 1)
     )
+    expect(described_class.new(as_of:).matches(ticker: "BETA")).to be_empty
   end
 
   it "excludes matches outside the filing-time window and future filings" do

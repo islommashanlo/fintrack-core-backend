@@ -38,6 +38,45 @@
   <section class="section-block">
     <div class="section-heading">
       <div>
+        <p class="eyebrow">Cross-filings · Last 90 days</p>
+        <h2>Smart-money overlap</h2>
+      </div>
+      <span class="section-heading__count"><%= @smart_money_collisions.size %> shown</span>
+    </div>
+
+    <% if @smart_money_collisions.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col" class="numeric">Insiders</th>
+                <th scope="col" class="numeric">Institutions</th>
+                <th scope="col">Latest insider filing</th>
+                <th scope="col">Latest 13F filing</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @smart_money_collisions.each do |collision| %>
+                <tr>
+                  <td class="numeric"><%= signal_number(collision["insiders"]) %></td>
+                  <td class="numeric"><%= signal_number(collision["institutions"]) %></td>
+                  <td><%= signal_date(collision["latest_insider_filed_at"]) %></td>
+                  <td><%= signal_date(collision["latest_institution_filed_at"]) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "No overlapping insider purchases and institutional additions were found for this ticker." %>
+    <% end %>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
         <p class="eyebrow">Last four reported quarters</p>
         <h2>Institutional ownership history</h2>
       </div>
