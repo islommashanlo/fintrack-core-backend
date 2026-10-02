@@ -43,6 +43,10 @@ RSpec.describe ParseForm13fJob do
     )
     expect(InstitutionalHolding.count).to eq(146)
     expect(filing.reload.parse_status).to eq("parsed")
+    report = InstitutionalReport.sole
+    expect(MaterializeInstitutionalPositionDiffsJob).to have_been_enqueued.with(
+      report.institutional_filer_id, report.period_of_report
+    )
     expect(EvaluateAlertsJob).to have_been_enqueued.with(filing.id)
   end
 
@@ -98,6 +102,7 @@ RSpec.describe ParseForm13fJob do
     expect(nt.reload.parse_status).to eq("parsed")
     expect(InstitutionalReport.find_by!(filing: nt)).to have_attributes(status: "parsed")
     expect(InstitutionalHolding.where(institutional_report: InstitutionalReport.find_by!(filing: nt))).to be_empty
+    expect(MaterializeInstitutionalPositionDiffsJob).not_to have_been_enqueued
   end
 
   it "skips a pre-XML directory without recording a parse failure" do

@@ -51,6 +51,7 @@ class Form13fPipeline
       filing:, cover:, holdings:, value_unit: @value_unit,
       raw_paths: { cover: cover_path, information: information_path }
     )
+    enqueue_position_diff_materialization(filing)
     ParseFailure.resolve!(filing.accession_no)
     EvaluateAlertsJob.perform_later(filing.id)
     filing
@@ -78,5 +79,12 @@ class Form13fPipeline
 
   def client
     @client ||= SecClient.new(lane: :form13f)
+  end
+
+  def enqueue_position_diff_materialization(filing)
+    report = filing.reload.institutional_report
+    return if report.submission_type == "13F-NT"
+
+    MaterializeInstitutionalPositionDiffsJob.perform_later(report.institutional_filer_id, report.period_of_report)
   end
 end
