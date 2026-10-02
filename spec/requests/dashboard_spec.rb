@@ -7,6 +7,13 @@ RSpec.describe "Dashboard" do
 
   before do
     allow(InsiderSignals).to receive(:new).and_return(signals)
+    collisions = instance_double(SmartMoneyCollisions)
+    allow(SmartMoneyCollisions).to receive(:new).and_return(collisions)
+    allow(collisions).to receive(:matches).and_return([
+      { "ticker" => "ACME", "issuer_name" => "Acme Corp", "insiders" => 2, "institutions" => 1,
+        "latest_insider_filed_at" => Time.zone.parse("2026-10-01 15:00"),
+        "latest_institution_filed_at" => Time.zone.parse("2026-08-14 15:00") }
+    ])
     allow(signals).to receive(:recent_purchases).and_return([
       {
         "issuer_ticker" => "ACME", "issuer_name" => "Acme Corp", "insider_name" => "Jane Doe",
@@ -33,7 +40,7 @@ RSpec.describe "Dashboard" do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Recent insider purchases", "Institutional whale flow", "Acme Corp", "Jane Doe",
-                                     "$12,500.00", "Monday, November 16, 2026")
+                                     "Smart-money collisions", "ACME", "$12,500.00", "Monday, November 16, 2026")
     expect(response.body).to include("FilingsIntel presents information as reported in SEC filings")
   end
 
