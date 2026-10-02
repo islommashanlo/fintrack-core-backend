@@ -115,7 +115,10 @@
                     <strong class="table-primary"><%= ticker_insider_label(transaction) %></strong>
                     <span class="table-secondary">CIK <%= transaction["insider_cik"] %></span>
                   </td>
-                  <td><span class="transaction-pill transaction-pill--<%= transaction_type_class(transaction["transaction_code"]) %>"><%= transaction_type_label(transaction["transaction_code"]) %></span></td>
+                  <td>
+                    <span class="transaction-pill transaction-pill--<%= transaction_type_class(transaction["transaction_code"]) %>"><%= transaction_type_label(transaction["transaction_code"]) %></span>
+                    <% if transaction["plan_status"].present? %><span class="table-secondary"><%= transaction["plan_status"] %></span><% end %>
+                  </td>
                   <td><%= signal_date(transaction["transaction_date"]) %></td>
                   <td><%= signal_date(transaction["filed_at"]) %></td>
                   <td class="numeric"><%= signal_number(transaction["shares"]) %></td>

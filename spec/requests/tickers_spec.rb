@@ -19,7 +19,7 @@ RSpec.describe "Ticker profiles" do
       { "insider_name" => "Jane Doe", "insider_cik" => "0000000456", "transaction_code" => "P",
         "transaction_date" => Date.new(2026, 9, 28), "filed_at" => Time.zone.parse("2026-10-01 15:00"),
         "shares" => 500, "price" => BigDecimal("25"), "price_suspect" => false,
-        "value" => BigDecimal("12500") }
+        "value" => BigDecimal("12500"), "plan_status" => "10b5-1 plan disclosed" }
     ])
     allow(profile).to receive(:institutional_holdings).and_return([])
     allow(profile).to receive(:institutional_changes).and_return([])
@@ -32,6 +32,6 @@ RSpec.describe "Ticker profiles" do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Acme Corp", "Insider activity", "Jane Doe",
                                      "Institutional ownership", "Institutional ownership history",
-                                     "Institutional ownership changes", "mapped CUSIP")
+                                     "Institutional ownership changes", "mapped CUSIP", "10b5-1 plan disclosed")
   end
 end

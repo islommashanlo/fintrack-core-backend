@@ -7,7 +7,8 @@ RSpec.describe InsiderProfile do
   let(:insider_cik) { "0000000456" }
 
   it "returns point-in-time purchases and sales for one insider" do
-    purchase_filing = create(:filing, filed_at: as_of - 1.day, issuer_name: "Acme Corp", issuer_ticker: "ACME")
+    purchase_filing = create(:filing, filed_at: as_of - 1.day, issuer_name: "Acme Corp", issuer_ticker: "ACME",
+                             aff10b5_one: true)
     create(:insider_transaction, filing: purchase_filing, insider_cik:, insider_name: "Jane Doe",
                                  transaction_code: "P", shares: 500, price: 25)
     sale_filing = create(:filing, filed_at: as_of - 2.days, issuer_cik: "0000000457",
@@ -21,6 +22,7 @@ RSpec.describe InsiderProfile do
     expect(profile.summary).to include("purchase_count" => 1, "sale_count" => 1, "issuer_count" => 2,
                                        "purchase_value" => BigDecimal("12500"))
     expect(profile.transactions.map { |row| row["transaction_code"] }).to eq(%w[P S])
+    expect(profile.transactions.first["plan_status"]).to eq("10b5-1 plan disclosed")
   end
 
   it "leaves suspect prices out of reported purchase value" do

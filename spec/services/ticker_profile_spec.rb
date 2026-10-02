@@ -7,7 +7,7 @@ RSpec.describe TickerProfile do
 
   it "returns issuer activity from the ticker's parsed Form 4 filings" do
     filing = create(:filing, filed_at: as_of - 1.day, issuer_cik: "0000000123",
-                             issuer_name: "Acme Corp", issuer_ticker: "ACME")
+                             issuer_name: "Acme Corp", issuer_ticker: "ACME", aff10b5_one: true)
     create(:insider_transaction, filing:, insider_cik: "0000000456", insider_name: "Jane Doe",
                                  transaction_code: "P", shares: 500, price: 25)
 
@@ -16,7 +16,8 @@ RSpec.describe TickerProfile do
     expect(profile.issuer).to include("issuer_name" => "Acme Corp", "issuer_ticker" => "ACME")
     expect(profile.summary).to include("purchase_count" => 1, "insider_count" => 1,
                                        "purchase_value" => BigDecimal("12500"))
-    expect(profile.transactions.first).to include("insider_name" => "Jane Doe", "transaction_code" => "P")
+    expect(profile.transactions.first).to include("insider_name" => "Jane Doe", "transaction_code" => "P",
+                                                  "plan_status" => "10b5-1 plan disclosed")
   end
 
   it "shows mapped institutional holdings without guessing unmapped CUSIPs" do
