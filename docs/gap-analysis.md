@@ -4,6 +4,58 @@
 - **Audited:** `fintrack-core-backend` at `3721797` (93 tracked files, 3 commits, last one 2026-06-28), plus the sibling `fintrack-scrapers` repo at `a98a6bf`, because that is where all SEC access currently lives.
 - **Brief:** `docs/project-brief.md`. Section numbers below refer to it.
 
+## Update: state after the rebuild (2026-10-02, branch `filingsintel-rails8`)
+
+Everything below this section is the audit of `main` as it was found. After it was written,
+the owner chose a clean Rails 8 rebuild on a branch of this repo, with the Python scraper,
+push-ingest endpoints, politician/HNWI data and the old auth, Stripe and alert code left
+behind. Phase 1 was then rebuilt. This section records where that leaves each gap.
+
+**Checked by running:** 163 specs pass and rubocop (rails-omakase plus the
+`frozen_string_literal` cop) is clean. 45 real filings went through the real job into the
+development database; a second run changed nothing. One search page, one directory listing,
+one daily index and one filing were fetched through `SecClient` from live EDGAR. A real
+Sidekiq 8 worker ran immediate and scheduled jobs. The production image builds and the app
+eager-loads in it. In total 61 requests were sent to the SEC. **Not run:** a backfill, the
+live poller on its schedule, or anything in production.
+
+### Invariants now
+
+| # | Invariant | Status | Evidence |
+| --- | --- | --- | --- |
+| 1 | All SEC HTTP through `SecClient` | Holds | `app/services/sec_client.rb`, `app/services/sec_rate_limiter.rb`; `spec/architecture/sec_http_boundary_spec.rb` fails if any other file names an HTTP client. |
+| 2 | Idempotent ingestion | Holds | `Form4Ingestor`, `FilingRegistrar`; unique indexes checked in `spec/models/schema_spec.rb`; re-ingesting all fixtures leaves every row identical. |
+| 3 | Raw archived, as-reported never overwritten | Holds locally | `FilingArchive` is write-once; numeric columns are unbounded so nothing is rounded; `PriceCheck` only flags. The archive is local disk, which Phase 2 must replace. |
+| 4 | Amendments supersede, nothing deleted | Holds, with a limit | `AmendmentMatcher`; the real 4/A and its original are linked in either ingest order. An amendment supersedes the whole original even if it restates one line. |
+| 5 | Point-in-time on `filed_at` | Holds | `InsiderSignals` windows and "as of" use `filings.filed_at`, taken from the submission's acceptance time. |
+| 6 | Deterministic failures not retried | Holds | `ParseForm4Job`; a real `PG::CardinalityViolation` is recorded once and not retried; a 500 is retried three times, then recorded. |
+| 7 | Parsers are pure | Holds | `Form4Parser`, `Edgar::Submission`; a spec asserts no SQL and no HTTP while parsing every fixture. |
+| 8 | Set logic in SQL | Holds | `InsiderSignals`, `ValidationReport`, `OpsMetrics`. |
+| 9 | Tests never hit the SEC | Holds | `WebMock.disable_net_connect!`. |
+
+### Phase 1 now
+
+| Item | Status | Note |
+| --- | --- | --- |
+| `SecClient` | done | |
+| `PollEdgarJob` on full-text search | done, not yet run on its schedule | Formats confirmed live. Polling is off unless `EDGAR_POLLING=on`. |
+| `ParseForm4Job`, `Form4Parser`, idempotent upsert | done | |
+| Tables from brief section 5, with the approved naming | done | `filings` also has issuer fields, `owner_ciks`, `filed_on`, amendment links and footnotes; `insider_transactions` has `owner_seq`, `price_suspect_reason` and `footnote_ids`. |
+| Amendment superseding, `unmatched_reason` | done | Reasons: `original_before_coverage`, `original_not_found`, `ambiguous_original`. |
+| Raw archive | done (local disk) | |
+| Real fixtures | done | Ten filings, not four, plus trimmed real search and index responses. |
+| sidekiq-cron schedule | done | Also schedules `ReconcileEdgarJob`, a nightly check against the daily index that the brief does not mention. |
+| Rake tasks | done | `validate:crosscheck` compares a day against the daily index; what the July version did is unknown, so this is an interpretation. |
+| `price_suspect`, `diagnose:prices` | done | |
+| Key-collision regression | done | A filing that lists the same owner twice produces exactly that Postgres error; the ingestor now collapses owners and a spec reproduces the error when the fix is removed. Whether this was the cause in July cannot be confirmed. |
+| "Done when": `validate:report` clean on real data | **not met** | On 45 filings: 0 FAIL, 2 WARN, both explained and both artefacts of the partial sample. It has not been run on a backfill, which needs the owner's go-ahead. |
+
+### Still open
+
+- Run a real backfill, then `validate:report`, to finish Phase 1. The July findings (prices over $50k, P/S rows with no price, nil codes, unmatched amendments) can only be re-examined then.
+- Push the branch to the remote. Nothing has been pushed.
+- Phase 2 decisions and work: `docs/plan-phase-2.md`.
+
 ## Summary
 
 The brief describes a Rails 8 Form 4 pipeline that was built and validated in July 2026. That work lived in a local `fintracker` repo that was never pushed and was lost in a Windows reinstall. **None of it exists here**, on any branch or remote.
