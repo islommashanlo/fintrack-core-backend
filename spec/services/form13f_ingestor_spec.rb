@@ -98,6 +98,31 @@ RSpec.describe Form13fIngestor do
     expect(InstitutionalHolding.count).to eq(0)
   end
 
+  it "retains NEW HOLDINGS and RESTATEMENT amendments as distinct report types" do
+    new_holdings = ingest(:amendment_2026_q1, value_unit: "whole_dollars")
+    new_report = InstitutionalReport.find_by!(filing: new_holdings)
+
+    restatement_cover = cover(:amendment_2026_q1).with(amendment_type: "RESTATEMENT")
+    restatement_filing = create(
+      :filing,
+      accession_no: "0002106181-26-000006",
+      cik: "0002106181",
+      form_type: "13F-HR/A",
+      filed_on: Date.new(2026, 5, 16),
+      filed_at: Time.utc(2026, 5, 16, 20, 0),
+      period_of_report: Date.new(2026, 3, 31),
+      parse_status: "pending"
+    )
+    described_class.call(
+      filing: restatement_filing, cover: restatement_cover,
+      holdings: holdings(:amendment_2026_q1), value_unit: "whole_dollars"
+    )
+
+    expect(new_report.reload).to be_new_holdings
+    expect(InstitutionalReport.find_by!(filing: restatement_filing)).to be_restatement
+    expect(InstitutionalReport.where(period_of_report: Date.new(2026, 3, 31)).count).to eq(2)
+  end
+
   it "flags anomalies while retaining reported values" do
     rows = holdings(:recent_2026_q1).first(1).map { |row| row.with(cusip: "bad", shares: BigDecimal("0")) }
     ingest(:recent_2026_q1, value_unit: "unresolved", rows: rows)
