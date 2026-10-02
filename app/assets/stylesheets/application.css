@@ -102,6 +102,10 @@ a {
   padding-bottom: 56px;
 }
 
+.insider-page {
+  padding-bottom: 56px;
+}
+
 .profile-hero {
   align-items: end;
   display: flex;
@@ -330,6 +334,24 @@ a {
 
 .change-pill--trim,
 .change-pill--exit {
+  background: #f8e9e5;
+  color: #9b493b;
+}
+
+.transaction-pill {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 4px 9px;
+}
+
+.transaction-pill--p {
+  background: var(--accent-light);
+  color: #05685f;
+}
+
+.transaction-pill--s {
   background: #f8e9e5;
   color: #9b493b;
 }

@@ -66,4 +66,12 @@ module ApplicationHelper
   def position_change_label(value)
     value.to_s.humanize
   end
+
+  def transaction_type_label(value)
+    { "P" => "Purchase", "S" => "Sale" }.fetch(value, value.presence || "Other")
+  end
+
+  def transaction_type_class(value)
+    value.to_s.downcase
+  end
 end

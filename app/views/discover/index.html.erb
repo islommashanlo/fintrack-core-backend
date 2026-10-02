@@ -62,7 +62,7 @@
           <% @insiders.each do |insider| %>
             <article class="entity-card">
               <div>
-                <h3><%= insider_label(insider) %></h3>
+                <h3><%= link_to insider_label(insider), insider_path(insider["insider_cik"]) %></h3>
                 <p class="entity-card__meta">CIK <%= insider["insider_cik"] %></p>
               </div>
               <dl class="entity-card__stats">

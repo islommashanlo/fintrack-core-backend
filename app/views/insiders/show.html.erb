@@ -1,0 +1,90 @@
+<% content_for :title, "#{@insider_name} | FilingsIntel" %>
+
+<div class="shell insider-page">
+  <section class="profile-hero">
+    <div>
+      <p class="eyebrow">Insider profile</p>
+      <h1><%= @insider_name %></h1>
+      <p class="profile-meta">CIK <%= @insider_cik %> · Activity shown from the last 90 days</p>
+    </div>
+    <div class="profile-period">
+      <span class="as-of-card__label">Last filed</span>
+      <strong><%= signal_date(@summary["last_filed_at"]) %></strong>
+      <span class="as-of-card__note">Based on SEC acceptance time</span>
+    </div>
+  </section>
+
+  <section class="profile-stats" aria-label="Insider activity summary">
+    <div class="profile-stat">
+      <span>Purchases</span>
+      <strong><%= signal_number(@summary["purchase_count"]) %></strong>
+      <small><%= signal_number(@summary["purchases_without_usable_price"]) %> without usable price</small>
+    </div>
+    <div class="profile-stat">
+      <span>Reported purchase value</span>
+      <strong><%= signal_money(@summary["purchase_value"]) %></strong>
+      <small>Usable reported prices only</small>
+    </div>
+    <div class="profile-stat">
+      <span>Issuers</span>
+      <strong><%= signal_number(@summary["issuer_count"]) %></strong>
+      <small><%= signal_number(@summary["sale_count"]) %> open-market sales</small>
+    </div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Last 365 days</p>
+        <h2>Transaction history</h2>
+      </div>
+      <span class="section-heading__count"><%= @transactions.size %> shown</span>
+    </div>
+
+    <% if @transactions.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Issuer</th>
+                <th scope="col">Type</th>
+                <th scope="col">Trade date</th>
+                <th scope="col">Filed</th>
+                <th scope="col" class="numeric">Shares</th>
+                <th scope="col" class="numeric">Price</th>
+                <th scope="col" class="numeric">Reported value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @transactions.each do |transaction| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= issuer_label(transaction) %></strong>
+                    <span class="table-secondary"><%= transaction["issuer_name"].presence || "Issuer name unavailable" %></span>
+                  </td>
+                  <td><span class="transaction-pill transaction-pill--<%= transaction_type_class(transaction["transaction_code"]) %>"><%= transaction_type_label(transaction["transaction_code"]) %></span></td>
+                  <td><%= signal_date(transaction["transaction_date"]) %></td>
+                  <td><%= signal_date(transaction["filed_at"]) %></td>
+                  <td class="numeric"><%= signal_number(transaction["shares"]) %></td>
+                  <td class="numeric">
+                    <%= signal_price(transaction["price"], suspect: transaction["price_suspect"]) %>
+                    <% if transaction["price_suspect"] %><span class="table-secondary">flagged</span><% end %>
+                  </td>
+                  <td class="numeric"><%= signal_money(transaction["value"]) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "No open-market purchases or sales were found in the last year." %>
+    <% end %>
+  </section>
+
+  <footer class="dashboard-footer">
+    <p>Transactions are shown as reported in Form 4 filings. Missing or flagged prices are not estimated.</p>
+    <p>Data from public SEC filings. Not investment advice.</p>
+  </footer>
+</div>
