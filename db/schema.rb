@@ -10,9 +10,33 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_02_205146) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_02_220001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "alert_deliveries", force: :cascade do |t|
+    t.bigint "alert_rule_id", null: false
+    t.bigint "filing_id", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "delivered_at"
+    t.text "error"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true
+    t.index ["alert_rule_id"], name: "index_alert_deliveries_on_alert_rule_id"
+    t.index ["filing_id"], name: "index_alert_deliveries_on_filing_id"
+  end
+
+  create_table "alert_rules", force: :cascade do |t|
+    t.bigint "follow_id", null: false
+    t.string "event_type", default: "new_filing", null: false
+    t.string "channel", default: "email", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["follow_id", "event_type", "channel"], name: "index_alert_rules_on_follow_id_and_event_type_and_channel", unique: true
+    t.index ["follow_id"], name: "index_alert_rules_on_follow_id"
+  end
 
   create_table "backfill_runs", force: :cascade do |t|
     t.date "day", null: false
@@ -290,6 +314,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_205146) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "alert_deliveries", "alert_rules"
+  add_foreign_key "alert_deliveries", "filings"
+  add_foreign_key "alert_rules", "follows"
   add_foreign_key "cusip_security_mappings", "securities"
   add_foreign_key "follows", "users"
   add_foreign_key "insider_transactions", "filings"

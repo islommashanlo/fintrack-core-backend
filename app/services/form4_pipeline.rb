@@ -14,6 +14,7 @@ class Form4Pipeline
 
     Form4Ingestor.call(filing:, document:, header: submission.header)
     ParseFailure.resolve!(filing.accession_no)
+    EvaluateAlertsJob.perform_later(filing.id)
     filing
   end
 

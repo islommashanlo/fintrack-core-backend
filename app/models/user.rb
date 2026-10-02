@@ -4,6 +4,8 @@ class User < ApplicationRecord
   has_secure_password
   has_many :sessions, dependent: :destroy
   has_many :follows, dependent: :destroy
+  has_many :alert_rules, through: :follows
+  has_many :alert_deliveries, through: :alert_rules
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 

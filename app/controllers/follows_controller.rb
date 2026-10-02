@@ -8,7 +8,8 @@ class FollowsController < ApplicationController
       return
     end
 
-    Current.user.follows.create_or_find_by!(target_type: target.type, target_key: target.key)
+    follow = Current.user.follows.create_or_find_by!(target_type: target.type, target_key: target.key)
+    follow.create_alert_rule!(event_type: "new_filing", channel: "email") unless follow.alert_rule
     redirect_back fallback_location: root_path, notice: "Following #{target.label}."
   rescue ActiveRecord::RecordNotUnique
     redirect_back fallback_location: root_path, notice: "You are already following that profile."

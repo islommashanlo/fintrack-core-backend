@@ -43,6 +43,7 @@ RSpec.describe ParseForm13fJob do
     )
     expect(InstitutionalHolding.count).to eq(146)
     expect(filing.reload.parse_status).to eq("parsed")
+    expect(EvaluateAlertsJob).to have_been_enqueued.with(filing.id)
   end
 
   it "reprocesses from the two archived XML documents without asking the SEC again" do

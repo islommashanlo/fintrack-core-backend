@@ -17,7 +17,11 @@ class Form13fPipeline
       information_xml = information_path && @archive.read(information_path)
     else
       directory = Form13fDirectoryIndex.parse(client.get(directory_url(filing)))
-      return Form13fIngestor.skip!(filing:, reason: "pre_xml_information_table") unless directory.xml_documents?
+      unless directory.xml_documents?
+        result = Form13fIngestor.skip!(filing:, reason: "pre_xml_information_table")
+        EvaluateAlertsJob.perform_later(filing.id)
+        return result
+      end
 
       cover_document = directory.cover
       cover_path = archive_document(filing, cover_document.filename, client.get(document_url(filing, cover_document.filename)))
@@ -48,6 +52,7 @@ class Form13fPipeline
       raw_paths: { cover: cover_path, information: information_path }
     )
     ParseFailure.resolve!(filing.accession_no)
+    EvaluateAlertsJob.perform_later(filing.id)
     filing
   end
 

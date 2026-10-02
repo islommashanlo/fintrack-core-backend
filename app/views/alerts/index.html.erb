@@ -1,0 +1,90 @@
+<% content_for :title, "Alerts | FilingsIntel" %>
+
+<div class="shell alerts-page">
+  <section class="watchlist-hero">
+    <div>
+      <p class="eyebrow">Your alerts</p>
+      <h1>Know when a followed profile files.</h1>
+      <p class="hero__copy">Email alerts are created with each follow and evaluated after a filing is parsed.</p>
+    </div>
+    <%= link_to "Manage watchlist", watchlist_path, class: "follow-button follow-button--link" %>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Rules</p>
+        <h2>Email alerts</h2>
+      </div>
+      <span class="section-heading__count"><%= @rules.count(&:active?) %> active</span>
+    </div>
+
+    <% if @rules.any? %>
+      <div class="alert-rule-list">
+        <% @rules.each do |rule| %>
+          <article class="alert-rule-card">
+            <div>
+              <p class="watchlist-card__type"><%= rule.follow.target_type.humanize %></p>
+              <h3><%= rule.follow.target_key %></h3>
+              <p class="watchlist-card__key"><%= rule.channel.humanize %> · <%= rule.event_type.humanize %></p>
+            </div>
+            <div class="alert-rule-card__actions">
+              <span class="alert-status alert-status--<%= rule.active? ? "active" : "paused" %>"><%= rule.active? ? "Active" : "Paused" %></span>
+              <%= button_to rule.active? ? "Pause" : "Resume", alert_rule_path(rule), method: :patch,
+                            params: { alert_rule: { active: !rule.active? } }, class: "follow-button follow-button--active" %>
+            </div>
+          </article>
+        <% end %>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "Follow an insider, institution, or ticker to create an email alert." %>
+    <% end %>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">History</p>
+        <h2>Recent deliveries</h2>
+      </div>
+      <span class="section-heading__count"><%= @deliveries.size %> shown</span>
+    </div>
+
+    <% if @deliveries.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Followed profile</th>
+                <th scope="col">Form</th>
+                <th scope="col">Filed</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @deliveries.each do |delivery| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= delivery.alert_rule.follow.target_key %></strong>
+                    <span class="table-secondary"><%= delivery.alert_rule.follow.target_type.humanize %></span>
+                  </td>
+                  <td><%= delivery.filing.form_type %></td>
+                  <td><%= signal_date(delivery.filing.filed_at) %></td>
+                  <td><span class="alert-status alert-status--<%= delivery.status %>"><%= delivery.status.humanize %></span></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "No alert deliveries yet." %>
+    <% end %>
+  </section>
+
+  <footer class="dashboard-footer">
+    <p>Alerts report parsed public SEC filings and do not provide investment advice.</p>
+    <p>Data from public SEC filings. Not investment advice.</p>
+  </footer>
+</div>

@@ -22,6 +22,7 @@ RSpec.describe ParseForm4Job do
     expect(archive.read(filing.raw_path)).to eq(form4_submission(:simple_purchase))
     expect(InsiderTransaction.count).to eq(1)
     expect(ParseFailure.count).to eq(0)
+    expect(EvaluateAlertsJob).to have_been_enqueued.with(filing.id)
   end
 
   it "re-processes from the archive without asking the SEC again" do

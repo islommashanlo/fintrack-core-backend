@@ -141,6 +141,10 @@ a {
   padding-bottom: 56px;
 }
 
+.alerts-page {
+  padding-bottom: 56px;
+}
+
 .profile-hero {
   align-items: end;
   display: flex;
@@ -273,6 +277,58 @@ a {
 
 .watchlist-card > .follow-button {
   align-self: flex-start;
+}
+
+.alert-rule-list {
+  display: grid;
+  gap: 10px;
+}
+
+.alert-rule-card {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 20px;
+}
+
+.alert-rule-card h3 {
+  font-size: 0.98rem;
+  margin: 0;
+}
+
+.alert-rule-card__actions {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+}
+
+.alert-status {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 4px 9px;
+}
+
+.alert-status--active,
+.alert-status--sent {
+  background: var(--accent-light);
+  color: #05685f;
+}
+
+.alert-status--paused,
+.alert-status--pending {
+  background: #f1f3f3;
+  color: var(--muted);
+}
+
+.alert-status--failed {
+  background: #f8e9e5;
+  color: #9b493b;
 }
 
 .auth-page {
@@ -913,6 +969,16 @@ tbody tr:last-child td {
 
   .watchlist-grid {
     grid-template-columns: 1fr;
+  }
+
+  .alert-rule-card {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .alert-rule-card__actions {
+    justify-content: space-between;
   }
 
   .profile-hero__actions {

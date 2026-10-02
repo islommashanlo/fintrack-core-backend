@@ -1,0 +1,11 @@
+<p>A new SEC filing matches your FilingsIntel alert.</p>
+
+<p>
+  Followed <strong><%= @follow.target_type.humanize %> <%= @follow.target_key %></strong><br>
+  Form: <%= @filing.form_type %><br>
+  Filed: <%= @filing.filed_at&.strftime("%B %-d, %Y") || "Unknown" %>
+</p>
+
+<p><%= link_to "View the filing at SEC.gov", @filing.edgar_url %></p>
+
+<p>Data from public SEC filings. Not investment advice.</p>
