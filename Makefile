@@ -19,7 +19,8 @@ build: ## Rebuild the dev image (needed after Gemfile changes)
 	$(COMPOSE) build web
 
 up: .env ## Start web and Sidekiq (the SEC poller stays off unless EDGAR_POLLING=on)
-	$(COMPOSE) up -d
+	$(COMPOSE) up -d db redis
+	$(COMPOSE) up -d --force-recreate web sidekiq
 
 down: ## Stop everything
 	$(COMPOSE) down

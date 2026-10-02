@@ -16,8 +16,10 @@ gem "bootsnap", require: false
 # which breaks every to_json call. Remove this pin once Rails no longer needs it.
 gem "json", "< 3"
 
-# Background jobs and the cron schedule for the EDGAR poller
-gem "sidekiq", "~> 7.3"
+# Background jobs and the cron schedule for the EDGAR poller.
+# Sidekiq 8, not 7: the 7.3 scheduler thread crashes against connection_pool 3,
+# which silently stops scheduled jobs (retries) and cron.
+gem "sidekiq", "~> 8.0"
 gem "sidekiq-cron", "~> 2.0"
 
 # Redis access for the SEC rate limiter (already a Sidekiq dependency)
