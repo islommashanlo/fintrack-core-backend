@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
 class ApplicationJob < ActiveJob::Base
-  # Automatically retry jobs that encountered a deadlock
-  # retry_on ActiveRecord::Deadlocked
-
-  # Most jobs are safe to ignore if the underlying records are no longer available
-  # discard_on ActiveJob::DeserializationError
+  # Jobs decide for themselves what is worth retrying (invariant 6). Anything that still
+  # escapes, such as the database being down, gets Sidekiq's retry, capped at three.
+  sidekiq_options retry: 3 if respond_to?(:sidekiq_options)
 end
