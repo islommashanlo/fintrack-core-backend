@@ -16,6 +16,7 @@ RSpec.describe "Institution profiles" do
         "suspect" => false }
     ])
     allow(profile).to receive(:position_changes).and_return([])
+    allow(profile).to receive(:report_history).and_return([])
   end
 
   it "shows the latest report and largest positions" do
@@ -23,6 +24,6 @@ RSpec.describe "Institution profiles" do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Acme Capital", "APPLE INC", "Largest reported positions",
-                                     "13F filings show long positions")
+                                     "13F reports", "13F filings show long positions")
   end
 end

@@ -16,6 +16,29 @@ class InstitutionalProfile
       .first
   end
 
+  def report_history(limit: 12)
+    select(<<~SQL, as_of: @as_of, limit:)
+      SELECT r.id,
+             r.period_of_report,
+             r.filed_at,
+             r.submission_type,
+             r.report_type,
+             r.amendment_type,
+             r.table_entry_total,
+             r.table_value_total,
+             r.cover_value_unit,
+             r.suspect,
+             f.accession_no
+      FROM institutional_reports r
+      INNER JOIN filings f ON f.id = r.filing_id
+      WHERE r.institutional_filer_id = :institutional_filer_id
+        AND r.status = 'parsed'
+        AND (r.filed_at IS NULL OR r.filed_at <= :as_of)
+      ORDER BY r.period_of_report DESC, r.filed_at DESC NULLS LAST, r.id DESC
+      LIMIT :limit
+    SQL
+  end
+
   def top_holdings(limit: 24)
     return [] unless latest_report
 

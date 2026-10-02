@@ -35,4 +35,34 @@ RSpec.describe InstitutionalProfile do
 
     expect(changes.map { |change| change["cusip"] }).to eq(%w[037833100 594918104])
   end
+
+  it "returns parsed reports in filing-time order, including amendments" do
+    institution = create(:institutional_filer)
+    original = create(:institutional_report, institutional_filer: institution,
+                      period_of_report: Date.new(2025, 12, 31), filed_at: Time.utc(2026, 2, 14, 20, 0),
+                      submission_type: "13F-HR", amendment_type: nil)
+    amendment = create(:institutional_report, institutional_filer: institution,
+                       period_of_report: original.period_of_report, filed_at: Time.utc(2026, 2, 16, 20, 0),
+                       submission_type: "13F-HR/A", amendment_type: "RESTATEMENT")
+    newer = create(:institutional_report, institutional_filer: institution,
+                   period_of_report: Date.new(2026, 3, 31), filed_at: Time.utc(2026, 5, 15, 20, 0))
+
+    history = described_class.new(institutional_filer: institution).report_history
+
+    expect(history.map { |report| report["id"] }).to eq([ newer.id, amendment.id, original.id ])
+    expect(history[1]).to include("amendment_type" => "RESTATEMENT", "accession_no" => amendment.filing.accession_no)
+  end
+
+  it "excludes reports filed after the point-in-time cutoff" do
+    institution = create(:institutional_filer)
+    visible = create(:institutional_report, institutional_filer: institution,
+                     filed_at: Time.utc(2026, 5, 15, 20, 0))
+    create(:institutional_report, institutional_filer: institution,
+           filed_at: Time.utc(2026, 8, 15, 20, 0), period_of_report: Date.new(2026, 6, 30))
+
+    history = described_class.new(institutional_filer: institution,
+                                  as_of: Time.utc(2026, 6, 1, 0, 0)).report_history
+
+    expect(history.map { |report| report["id"] }).to eq([ visible.id ])
+  end
 end

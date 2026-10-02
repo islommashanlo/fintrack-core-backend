@@ -127,6 +127,58 @@
       <% end %>
     </section>
 
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Filing history</p>
+          <h2>13F reports</h2>
+        </div>
+        <span class="section-heading__count"><%= @report_history.size %> shown</span>
+      </div>
+
+      <% if @report_history.any? %>
+        <div class="table-card table-card--wide">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Period</th>
+                  <th scope="col">Filed</th>
+                  <th scope="col">Submission</th>
+                  <th scope="col">Report</th>
+                  <th scope="col" class="numeric">Cover value</th>
+                  <th scope="col" class="numeric">Entries</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_history.each do |report| %>
+                  <tr>
+                    <td><%= signal_date(report["period_of_report"]) %></td>
+                    <td><%= signal_date(report["filed_at"]) %></td>
+                    <td>
+                      <strong class="table-primary"><%= report["submission_type"] %></strong>
+                      <span class="table-secondary"><%= report["accession_no"] %></span>
+                    </td>
+                    <td>
+                      <span class="table-primary"><%= report["amendment_type"].presence || "Original report" %></span>
+                      <% if report["suspect"] %><span class="table-secondary">flagged</span><% end %>
+                    </td>
+                    <td class="numeric">
+                      <%= signal_money(report["table_value_total"]) %>
+                      <span class="table-secondary"><%= report["cover_value_unit"].to_s.humanize %></span>
+                    </td>
+                    <td class="numeric"><%= signal_number(report["table_entry_total"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "No parsed report history is available." %>
+      <% end %>
+    </section>
+
     <footer class="dashboard-footer">
       <p>13F filings show long positions and listed options as reported. They can be up to 45 days stale.</p>
       <p>Data from public SEC filings. Not investment advice.</p>
