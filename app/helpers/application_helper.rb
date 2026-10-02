@@ -41,4 +41,29 @@ module ApplicationHelper
   def insider_label(row)
     row["insider_name"].presence || "Unknown insider"
   end
+
+  def holding_label(row)
+    row["name_of_issuer"].presence || row["cusip"].presence || "Unknown security"
+  end
+
+  def holding_detail(row)
+    [ row["title_of_class"], row["cusip"] ].compact_blank.join(" · ")
+  end
+
+  def signed_signal_money(value)
+    return "—" if value.blank?
+
+    value.positive? ? "+#{signal_money(value)}" : signal_money(value)
+  end
+
+  def signed_signal_number(value)
+    return "—" if value.blank?
+
+    rendered = signal_number(value)
+    value.positive? ? "+#{rendered}" : rendered
+  end
+
+  def position_change_label(value)
+    value.to_s.humanize
+  end
 end

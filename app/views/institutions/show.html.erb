@@ -1,0 +1,134 @@
+<% content_for :title, "#{@institution.name} | FilingsIntel" %>
+
+<div class="shell institution-page">
+  <% if @latest_report %>
+    <section class="profile-hero">
+      <div>
+        <p class="eyebrow">Institution profile</p>
+        <h1><%= @institution.name %></h1>
+        <p class="profile-meta">CIK <%= @institution.cik %> · Latest 13F filed <%= signal_date(@latest_report.filed_at) %></p>
+      </div>
+      <div class="profile-period">
+        <span class="as-of-card__label">Period of report</span>
+        <strong><%= signal_date(@latest_report.period_of_report) %></strong>
+        <span class="as-of-card__note"><%= @latest_report.submission_type %></span>
+      </div>
+    </section>
+
+    <section class="profile-stats" aria-label="Latest report summary">
+      <div class="profile-stat">
+        <span>Reported value</span>
+        <strong><%= signal_money(@latest_report.table_value_total) %></strong>
+        <small><%= @latest_report.cover_value_unit.to_s.humanize %></small>
+      </div>
+      <div class="profile-stat">
+        <span>Reported entries</span>
+        <strong><%= signal_number(@latest_report.table_entry_total) %></strong>
+        <small>Cover page total</small>
+      </div>
+      <div class="profile-stat">
+        <span>Report status</span>
+        <strong><%= @latest_report.report_type.to_s.humanize %></strong>
+        <small><%= @latest_report.amendment_type.presence || "Original report" %></small>
+      </div>
+    </section>
+
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Effective holdings</p>
+          <h2>Largest reported positions</h2>
+        </div>
+        <span class="section-heading__count"><%= @holdings.size %> shown</span>
+      </div>
+
+      <% if @holdings.any? %>
+        <div class="table-card table-card--wide">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Security</th>
+                  <th scope="col">CUSIP</th>
+                  <th scope="col" class="numeric">Shares</th>
+                  <th scope="col" class="numeric">Value USD</th>
+                  <th scope="col">Type</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @holdings.each do |holding| %>
+                  <tr>
+                    <td>
+                      <strong class="table-primary"><%= holding_label(holding) %></strong>
+                      <span class="table-secondary"><%= holding_detail(holding) %></span>
+                    </td>
+                    <td><%= holding["cusip"].presence || "—" %></td>
+                    <td class="numeric"><%= signal_number(holding["shares"]) %></td>
+                    <td class="numeric">
+                      <%= signal_money(holding["value_usd"]) %>
+                      <% if holding["suspect"] %><span class="table-secondary">flagged</span><% end %>
+                    </td>
+                    <td><%= holding["put_call"].presence || holding["share_type"] %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "No effective holdings are available for the latest parsed report." %>
+      <% end %>
+    </section>
+
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Quarter-over-quarter</p>
+          <h2>What changed</h2>
+        </div>
+        <span class="section-heading__count"><%= @changes.size %> shown</span>
+      </div>
+
+      <% if @changes.any? %>
+        <div class="table-card table-card--wide">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Security</th>
+                  <th scope="col">Change</th>
+                  <th scope="col" class="numeric">Share delta</th>
+                  <th scope="col" class="numeric">Value delta</th>
+                  <th scope="col">Prior period</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @changes.each do |change| %>
+                  <tr>
+                    <td>
+                      <strong class="table-primary"><%= holding_label(change) %></strong>
+                      <span class="table-secondary"><%= change["cusip"] %> · <%= change["title_of_class"] %></span>
+                    </td>
+                    <td><span class="change-pill change-pill--<%= change["change_type"] %>"><%= position_change_label(change["change_type"]) %></span></td>
+                    <td class="numeric"><%= signed_signal_number(change["shares_delta"]) %></td>
+                    <td class="numeric"><%= signed_signal_money(change["value_usd_delta"]) %></td>
+                    <td><%= signal_date(change["prior_period_of_report"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "Quarter-over-quarter changes will appear after another parsed period is available." %>
+      <% end %>
+    </section>
+
+    <footer class="dashboard-footer">
+      <p>13F filings show long positions and listed options as reported. They can be up to 45 days stale.</p>
+      <p>Data from public SEC filings. Not investment advice.</p>
+    </footer>
+  <% else %>
+    <%= render "shared/empty_state", message: "No parsed 13F report is available for this institution." %>
+  <% end %>
+</div>

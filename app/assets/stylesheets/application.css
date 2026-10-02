@@ -98,6 +98,81 @@ a {
   padding-bottom: 56px;
 }
 
+.institution-page {
+  padding-bottom: 56px;
+}
+
+.profile-hero {
+  align-items: end;
+  display: flex;
+  gap: 40px;
+  justify-content: space-between;
+  padding: 68px 0 34px;
+}
+
+.profile-hero h1 {
+  margin-bottom: 12px;
+}
+
+.profile-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.profile-period {
+  background: var(--accent-light);
+  border: 1px solid #cde9e3;
+  border-radius: 14px;
+  display: flex;
+  flex: 0 0 190px;
+  flex-direction: column;
+  gap: 3px;
+  padding: 18px;
+}
+
+.profile-period strong {
+  font-size: 1.1rem;
+}
+
+.profile-period .as-of-card__note {
+  margin-top: 6px;
+}
+
+.profile-stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 54px;
+}
+
+.profile-stat {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 126px;
+  padding: 18px;
+}
+
+.profile-stat span,
+.profile-stat small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.profile-stat strong {
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.profile-stat small {
+  margin-top: auto;
+}
+
 .discover-hero {
   padding: 68px 0 38px;
 }
@@ -199,6 +274,15 @@ a {
   margin: 0;
 }
 
+.entity-card h3 a {
+  text-decoration: none;
+}
+
+.entity-card h3 a:hover,
+.entity-card h3 a:focus {
+  color: var(--accent);
+}
+
 .entity-card__meta {
   color: var(--muted);
   font-size: 0.76rem;
@@ -228,6 +312,26 @@ a {
   font-size: 0.88rem;
   font-weight: 700;
   margin: 0;
+}
+
+.change-pill {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 4px 9px;
+}
+
+.change-pill--new,
+.change-pill--add {
+  background: var(--accent-light);
+  color: #05685f;
+}
+
+.change-pill--trim,
+.change-pill--exit {
+  background: #f8e9e5;
+  color: #9b493b;
 }
 
 .hero {
@@ -432,6 +536,22 @@ tbody tr:last-child td {
 
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+
+  .profile-hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 26px;
+    padding: 48px 0 32px;
+  }
+
+  .profile-period {
+    flex-basis: auto;
+  }
+
+  .profile-stats {
+    grid-template-columns: 1fr;
+    margin-bottom: 42px;
   }
 
   .discover-grid,

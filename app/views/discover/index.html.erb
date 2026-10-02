@@ -34,7 +34,7 @@
           <% @institutions.each do |institution| %>
             <article class="entity-card">
               <div>
-                <h3><%= institution["name"] %></h3>
+                <h3><%= link_to institution["name"], institution_path(institution["cik"]) %></h3>
                 <p class="entity-card__meta">CIK <%= institution["cik"] %></p>
               </div>
               <dl class="entity-card__stats">
