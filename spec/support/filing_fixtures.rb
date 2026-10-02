@@ -32,3 +32,22 @@ end
 RSpec.configure do |config|
   config.include FilingFixtures
 end
+
+# Runs real fixtures through the parser and ingestor without any HTTP.
+module Form4Ingestion
+  def pending_form4(name, **attributes)
+    Filing.find_by(accession_no: form4_accession(name)) ||
+      create(:filing, :pending, accession_no: form4_accession(name), **attributes)
+  end
+
+  def ingest_form4(name, document: nil)
+    submission = Edgar::Submission.parse(form4_submission(name))
+    document ||= Form4Parser.parse(submission.ownership_xml)
+
+    Form4Ingestor.call(filing: pending_form4(name), document:, header: submission.header)
+  end
+end
+
+RSpec.configure do |config|
+  config.include Form4Ingestion
+end

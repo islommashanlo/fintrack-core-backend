@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_02_170005) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_02_170006) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -59,10 +59,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_170005) do
     t.string "unmatched_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "owner_ciks", default: [], null: false, array: true
     t.index ["accession_no"], name: "index_filings_on_accession_no", unique: true
     t.index ["filed_at"], name: "index_filings_on_filed_at"
     t.index ["form_type", "filed_on"], name: "index_filings_on_form_type_and_filed_on"
     t.index ["issuer_cik", "period_of_report"], name: "index_filings_on_issuer_cik_and_period_of_report"
+    t.index ["owner_ciks"], name: "index_filings_on_owner_ciks", using: :gin
     t.index ["parse_status"], name: "index_filings_on_parse_status"
     t.check_constraint "parse_status::text = ANY (ARRAY['pending'::character varying, 'parsed'::character varying, 'failed'::character varying]::text[])", name: "filings_parse_status_check"
   end
