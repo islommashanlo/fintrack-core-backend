@@ -1,16 +1,21 @@
 # frozen_string_literal: true
 
-Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+require "sidekiq/web"
+require "sidekiq/cron/web"
 
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
+# Sidekiq Web is always behind HTTP basic auth; with OPS_USERNAME and OPS_PASSWORD unset it admits nobody.
+Sidekiq::Web.use(Rack::Auth::Basic, "FilingsIntel ops") { |user, password| OpsAuth.valid?(user, password) }
+
+Rails.application.routes.draw do
+  # Liveness: 200 if the app boots. Used by load balancers and uptime monitors.
   get "up" => "rails/health#show", as: :rails_health_check
 
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
+  # Readiness: also checks Postgres and Redis.
+  get "health" => "health#show"
 
-  # Defines the root path route ("/")
-  # root "posts#index"
+  namespace :ops do
+    get "metrics" => "metrics#show"
+  end
+
+  mount Sidekiq::Web => "/sidekiq"
 end

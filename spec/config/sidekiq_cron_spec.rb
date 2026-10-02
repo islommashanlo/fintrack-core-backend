@@ -22,6 +22,16 @@ RSpec.describe "Cron schedule" do
     expect(schedule.values.flat_map(&:keys)).to all(be_a(String))
   end
 
+  it "loads into Sidekiq the way the initializer does, as Active Job jobs" do
+    errors = Sidekiq::Cron::Job.load_from_hash!(schedule)
+
+    expect(errors).to be_empty
+    expect(Sidekiq::Cron::Job.all.map(&:name)).to contain_exactly("poll_edgar", "reconcile_edgar")
+    expect(Sidekiq::Cron::Job.all).to all(be_is_active_job)
+  ensure
+    Sidekiq::Cron::Job.destroy_all!
+  end
+
   it "polls EDGAR every minute" do
     expect(schedule.dig("poll_edgar", "cron")).to eq("* * * * *")
     expect(schedule.dig("poll_edgar", "class")).to eq("PollEdgarJob")
