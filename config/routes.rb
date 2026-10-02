@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   resources :passwords, param: :token
   get "signup" => "users#new", as: :signup
   post "signup" => "users#create"
+  get "watchlist" => "watchlist#index", as: :watchlist
   resources :follows, only: %i[create destroy]
   root "dashboard#index"
   get "discover" => "discover#index"

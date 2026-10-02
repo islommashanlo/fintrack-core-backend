@@ -96,4 +96,15 @@ module ApplicationHelper
       link_to "Sign in to follow", new_session_path, class: "follow-button follow-button--link"
     end
   end
+
+  def watchlist_target_path(entry)
+    case entry["target_type"]
+    when "Insider"
+      insider_path(entry["target_key"])
+    when "InstitutionalFiler"
+      institution_path(entry["target_key"])
+    when "Ticker"
+      ticker_path(entry["target_key"])
+    end
+  end
 end

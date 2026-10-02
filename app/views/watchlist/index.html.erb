@@ -1,0 +1,54 @@
+<% content_for :title, "Watchlist | FilingsIntel" %>
+
+<div class="shell watchlist-page">
+  <section class="watchlist-hero">
+    <div>
+      <p class="eyebrow">Your filing watchlist</p>
+      <h1>Keep the names you care about close.</h1>
+      <p class="hero__copy">Followed profiles are ordered by their latest parsed filing so new activity is easy to spot.</p>
+    </div>
+    <%= link_to "Find more profiles", discover_path, class: "follow-button follow-button--link" %>
+  </section>
+
+  <% if @entries.any? %>
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Following</p>
+          <h2>Profiles on your watchlist</h2>
+        </div>
+        <span class="section-heading__count"><%= @entries.size %> shown</span>
+      </div>
+
+      <div class="watchlist-grid">
+        <% @entries.each do |entry| %>
+          <article class="watchlist-card">
+            <div>
+              <p class="watchlist-card__type"><%= entry["target_type"].humanize %></p>
+              <h3><%= link_to entry["label"], watchlist_target_path(entry) %></h3>
+              <p class="watchlist-card__key"><%= entry["target_key"] %></p>
+            </div>
+            <dl class="watchlist-card__stats">
+              <div>
+                <dt>Latest filing</dt>
+                <dd><%= signal_date(entry["last_filed_at"]) %></dd>
+              </div>
+              <div>
+                <dt>Activity rows</dt>
+                <dd><%= signal_number(entry["activity_count"]) %></dd>
+              </div>
+            </dl>
+            <%= button_to "Unfollow", follow_path(entry["follow_id"]), method: :delete, class: "follow-button follow-button--active" %>
+          </article>
+        <% end %>
+      </div>
+    </section>
+  <% else %>
+    <%= render "shared/empty_state", message: "Your watchlist is empty. Search Discover to follow an insider, institution, or ticker." %>
+  <% end %>
+
+  <footer class="dashboard-footer">
+    <p>Data from public SEC filings. Not investment advice.</p>
+    <p>Activity counts include parsed filings currently available in this installation.</p>
+  </footer>
+</div>

@@ -137,6 +137,10 @@ a {
   padding-bottom: 56px;
 }
 
+.watchlist-page {
+  padding-bottom: 56px;
+}
+
 .profile-hero {
   align-items: end;
   display: flex;
@@ -180,6 +184,95 @@ a {
 .follow-button--active:hover,
 .follow-button--active:focus {
   background: var(--accent-light);
+}
+
+.watchlist-hero {
+  align-items: end;
+  display: flex;
+  gap: 40px;
+  justify-content: space-between;
+  padding: 68px 0 42px;
+}
+
+.watchlist-hero h1 {
+  margin-bottom: 16px;
+}
+
+.watchlist-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.watchlist-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 230px;
+  padding: 20px;
+}
+
+.watchlist-card h3 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.watchlist-card h3 a {
+  text-decoration: none;
+}
+
+.watchlist-card h3 a:hover,
+.watchlist-card h3 a:focus {
+  color: var(--accent);
+}
+
+.watchlist-card__type,
+.watchlist-card__key {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.watchlist-card__type {
+  letter-spacing: 0.08em;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.watchlist-card__key {
+  margin: 4px 0 0;
+}
+
+.watchlist-card__stats {
+  display: flex;
+  gap: 24px;
+  margin: 22px 0;
+}
+
+.watchlist-card__stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.watchlist-card__stats dt {
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.watchlist-card__stats dd {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.watchlist-card > .follow-button {
+  align-self: flex-start;
 }
 
 .auth-page {
@@ -729,6 +822,17 @@ tbody tr:last-child td {
     flex-direction: column;
     gap: 26px;
     padding: 48px 0 32px;
+  }
+
+  .watchlist-hero {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 26px;
+    padding: 48px 0 32px;
+  }
+
+  .watchlist-grid {
+    grid-template-columns: 1fr;
   }
 
   .profile-hero__actions {

@@ -8,6 +8,7 @@
       <%= link_to "Dashboard", root_path, class: "site-header__link" %>
       <%= link_to "Discover", discover_path, class: "site-header__link" %>
       <% if Current.user %>
+        <%= link_to "Watchlist", watchlist_path, class: "site-header__link" %>
         <span class="site-header__user"><%= Current.user.email_address %></span>
         <%= button_to "Sign out", session_path, method: :delete, class: "site-header__signout" %>
       <% else %>
