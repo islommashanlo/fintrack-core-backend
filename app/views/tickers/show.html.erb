@@ -117,7 +117,13 @@
                   </td>
                   <td>
                     <span class="transaction-pill transaction-pill--<%= transaction_type_class(transaction["transaction_code"]) %>"><%= transaction_type_label(transaction["transaction_code"]) %></span>
-                    <% if transaction["plan_status"].present? %><span class="table-secondary"><%= transaction["plan_status"] %></span><% end %>
+                    <% if transaction["plan_status"].present? %>
+                      <span class="table-secondary">
+                        <%= transaction["plan_status"] %>
+                        <% if transaction["plan_adoption_date"] %> · adopted <%= signal_date(transaction["plan_adoption_date"]) %><% end %>
+                        <% if transaction["plan_termination_date"] %> · terminated <%= signal_date(transaction["plan_termination_date"]) %><% end %>
+                      </span>
+                    <% end %>
                   </td>
                   <td><%= signal_date(transaction["transaction_date"]) %></td>
                   <td><%= signal_date(transaction["filed_at"]) %></td>

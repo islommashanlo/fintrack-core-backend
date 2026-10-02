@@ -55,4 +55,15 @@ RSpec.describe InsiderProfile do
     )
     expect(activity).not_to include(include("issuer_cik" => "0000000457"))
   end
+
+  it "classifies stored 10b5-1 footnotes on transaction rows" do
+    ingest_form4(:planned_sales)
+
+    rows = described_class.new(insider_cik: "0001489550", as_of: as_of).transactions
+
+    expect(rows).to all(include(
+      "plan_status" => "10b5-1 plan disclosed",
+      "plan_adoption_date" => Date.new(2026, 5, 19)
+    ))
+  end
 end

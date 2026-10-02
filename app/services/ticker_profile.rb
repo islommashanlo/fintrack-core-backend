@@ -54,12 +54,13 @@ class TickerProfile
   end
 
   def transactions(days: 365, limit: 40)
-    select(<<~SQL, since: @as_of - days.days, limit:)
+    Form4PlanClassifier.annotate_rows(select(<<~SQL, since: @as_of - days.days, limit:))
       SELECT f.filed_at, f.accession_no, f.issuer_cik, f.issuer_name,
              COALESCE(NULLIF(t.issuer_ticker, ''), f.issuer_ticker) AS issuer_ticker,
              t.insider_cik, t.insider_name, t.transaction_date, t.transaction_code,
              t.shares, t.price, t.price_suspect, t.acquired_disposed,
-             CASE WHEN f.aff10b5_one THEN '10b5-1 plan disclosed' END AS plan_status,
+             f.aff10b5_one AS plan_disclosed, f.footnotes AS filing_footnotes,
+             t.footnote_ids AS transaction_footnote_ids,
              CASE WHEN #{USABLE_PRICE} THEN #{VALUE} END AS value
       #{TRANSACTIONS}
       ORDER BY f.filed_at DESC, f.accession_no, t.txn_seq
