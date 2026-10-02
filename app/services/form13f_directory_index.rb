@@ -44,16 +44,29 @@ class Form13fDirectoryIndex
 
         document.description.match?(/13F(?:-HR|\s+NOTICE)|cover\s+page|primary/i)
       end
-      raise MalformedError, "filing index has no unambiguous 13F cover document" unless candidates.one?
+      return candidates.first if candidates.one?
 
-      candidates.first
+      xml_candidates = documents.select(&:xml?)
+      named_cover = xml_candidates.select { |document| document.filename.match?(/\A(?:primary(?:_document)?|cover|notice)\.xml\z/i) }
+      return named_cover.first if named_cover.one?
+      return xml_candidates.first if xml_candidates.one?
+
+      raise MalformedError, "filing index has no unambiguous 13F cover document"
     end
 
     def information_table
       candidates = documents.select(&:information_table?)
       raise MalformedError, "filing index has multiple information-table documents" if candidates.length > 1
 
-      candidates.first
+      return candidates.first if candidates.one?
+
+      xml_candidates = documents.select(&:xml?)
+      return xml_candidates.first if xml_candidates.one? && !xml_candidates.first.equal?(cover)
+
+      remaining = xml_candidates.reject { |document| document.equal?(cover) }
+      raise MalformedError, "filing index has multiple possible information-table documents" if remaining.length > 1
+
+      remaining.first
     end
   end
 

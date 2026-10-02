@@ -32,6 +32,21 @@ RSpec.describe Form13fDirectoryIndex do
     expect(index.information_table).to be_nil
   end
 
+  it "resolves the remaining XML document when SEC rows omit descriptions" do
+    body = <<~HTML
+      <html><body><table>
+        <tr><td><a href="0002012383-26-001841-index.html">0002012383-26-001841-index.html</a></td><td>2026-05-13</td></tr>
+        <tr><td><a href="form13fInfoTable.xml">form13fInfoTable.xml</a></td><td>2331413</td><td>2026-05-13</td></tr>
+        <tr><td><a href="primary_doc.xml">primary_doc.xml</a></td><td>13828</td><td>2026-05-13</td></tr>
+      </table></body></html>
+    HTML
+
+    index = described_class.parse(body)
+
+    expect(index.cover.filename).to eq("primary_doc.xml")
+    expect(index.information_table.filename).to eq("form13fInfoTable.xml")
+  end
+
   it "rejects an ambiguous or malformed index deterministically" do
     expect { described_class.parse("<html><body>no documents</body></html>").cover }
       .to raise_error(Form13fDirectoryIndex::MalformedError)
