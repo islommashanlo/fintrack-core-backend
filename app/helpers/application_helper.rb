@@ -74,4 +74,8 @@ module ApplicationHelper
   def transaction_type_class(value)
     value.to_s.downcase
   end
+
+  def ticker_insider_label(row)
+    row["insider_name"].presence || row["insider_cik"] || "Unknown insider"
+  end
 end

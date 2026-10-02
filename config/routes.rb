@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   get "discover" => "discover#index"
   get "institutions/:cik" => "institutions#show", as: :institution, constraints: { cik: /\d{10}/ }
   get "insiders/:cik" => "insiders#show", as: :insider, constraints: { cik: /\d{10}/ }
+  get "tickers/:ticker" => "tickers#show", as: :ticker, constraints: { ticker: /[A-Za-z0-9.-]+/ }
 
   # Liveness: 200 if the app boots. Used by load balancers and uptime monitors.
   get "up" => "rails/health#show", as: :rails_health_check

@@ -90,7 +90,13 @@
           <% @issuers.each do |issuer| %>
             <article class="entity-card">
               <div>
-                <h3><%= issuer_label(issuer) %></h3>
+                <h3>
+                  <% if issuer["issuer_ticker"].present? %>
+                    <%= link_to issuer_label(issuer), ticker_path(issuer["issuer_ticker"]) %>
+                  <% else %>
+                    <%= issuer_label(issuer) %>
+                  <% end %>
+                </h3>
                 <p class="entity-card__meta"><%= issuer["issuer_name"].presence || "Issuer name unavailable" %></p>
               </div>
               <dl class="entity-card__stats">

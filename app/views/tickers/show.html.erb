@@ -1,0 +1,137 @@
+<% content_for :title, "#{@ticker} | FilingsIntel" %>
+
+<div class="shell ticker-page">
+  <section class="profile-hero">
+    <div>
+      <p class="eyebrow">Ticker profile</p>
+      <h1><%= @issuer["issuer_name"].presence || @ticker %></h1>
+      <p class="profile-meta"><%= @ticker %> · CIK <%= @issuer["issuer_cik"] %></p>
+    </div>
+    <div class="profile-period">
+      <span class="as-of-card__label">Last insider filing</span>
+      <strong><%= signal_date(@summary["last_filed_at"]) %></strong>
+      <span class="as-of-card__note">Based on SEC acceptance time</span>
+    </div>
+  </section>
+
+  <section class="profile-stats" aria-label="Ticker activity summary">
+    <div class="profile-stat">
+      <span>Insider purchases</span>
+      <strong><%= signal_number(@summary["purchase_count"]) %></strong>
+      <small><%= signal_number(@summary["purchases_without_usable_price"]) %> without usable price</small>
+    </div>
+    <div class="profile-stat">
+      <span>Reported purchase value</span>
+      <strong><%= signal_money(@summary["purchase_value"]) %></strong>
+      <small>Usable reported prices only</small>
+    </div>
+    <div class="profile-stat">
+      <span>Active insiders</span>
+      <strong><%= signal_number(@summary["insider_count"]) %></strong>
+      <small><%= signal_number(@summary["sale_count"]) %> open-market sales</small>
+    </div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Last 365 days</p>
+        <h2>Insider activity</h2>
+      </div>
+      <span class="section-heading__count"><%= @transactions.size %> shown</span>
+    </div>
+
+    <% if @transactions.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Insider</th>
+                <th scope="col">Type</th>
+                <th scope="col">Trade date</th>
+                <th scope="col">Filed</th>
+                <th scope="col" class="numeric">Shares</th>
+                <th scope="col" class="numeric">Price</th>
+                <th scope="col" class="numeric">Reported value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @transactions.each do |transaction| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= ticker_insider_label(transaction) %></strong>
+                    <span class="table-secondary">CIK <%= transaction["insider_cik"] %></span>
+                  </td>
+                  <td><span class="transaction-pill transaction-pill--<%= transaction_type_class(transaction["transaction_code"]) %>"><%= transaction_type_label(transaction["transaction_code"]) %></span></td>
+                  <td><%= signal_date(transaction["transaction_date"]) %></td>
+                  <td><%= signal_date(transaction["filed_at"]) %></td>
+                  <td class="numeric"><%= signal_number(transaction["shares"]) %></td>
+                  <td class="numeric">
+                    <%= signal_price(transaction["price"], suspect: transaction["price_suspect"]) %>
+                    <% if transaction["price_suspect"] %><span class="table-secondary">flagged</span><% end %>
+                  </td>
+                  <td class="numeric"><%= signal_money(transaction["value"]) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "No open-market insider activity was found in the last year." %>
+    <% end %>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Mapped 13F holdings</p>
+        <h2>Institutional ownership</h2>
+      </div>
+      <span class="section-heading__count"><%= @institutional_holdings.size %> shown</span>
+    </div>
+
+    <% if @institutional_holdings.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Institution</th>
+                <th scope="col">Period</th>
+                <th scope="col">CUSIP</th>
+                <th scope="col" class="numeric">Shares</th>
+                <th scope="col" class="numeric">Value USD</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @institutional_holdings.each do |holding| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= holding["institution_name"] %></strong>
+                    <span class="table-secondary">CIK <%= holding["institution_cik"] %></span>
+                  </td>
+                  <td><%= signal_date(holding["period_of_report"]) %></td>
+                  <td><%= holding["cusip"] %></td>
+                  <td class="numeric"><%= signal_number(holding["shares"]) %></td>
+                  <td class="numeric">
+                    <%= signal_money(holding["value_usd"]) %>
+                    <% if holding["suspect"] %><span class="table-secondary">flagged</span><% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "Institutional ownership is unavailable until a mapped CUSIP matches this ticker." %>
+    <% end %>
+  </section>
+
+  <footer class="dashboard-footer">
+    <p>13F holdings can be up to 45 days stale and only cover securities reported by the institution.</p>
+    <p>Data from public SEC filings. Not investment advice.</p>
+  </footer>
+</div>
