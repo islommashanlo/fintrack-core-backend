@@ -10,7 +10,7 @@ class ParseForm13fJob < ApplicationJob
     job.record_failure(job.arguments.first, error)
   end
 
-  def perform(accession_no, value_unit: nil)
+  def perform(accession_no, value_unit: ENV["FORM13F_VALUE_UNIT"])
     filing = Filing.find_by(accession_no:)
     return record_failure(accession_no, "unknown filing: no filings row for this accession number") if filing.nil?
 

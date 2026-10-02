@@ -16,6 +16,7 @@ class Filing < ApplicationRecord
   validates :parse_status, inclusion: { in: PARSE_STATUSES }
 
   scope :form4, -> { where(form_type: FORM4_TYPES) }
+  scope :form13f, -> { where(form_type: FORM13F_TYPES) }
   scope :pending, -> { where(parse_status: "pending") }
   scope :parsed, -> { where(parse_status: "parsed") }
   scope :failed, -> { where(parse_status: "failed") }

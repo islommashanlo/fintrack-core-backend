@@ -15,7 +15,11 @@ class FilingRegistrar
     Filing.where(accession_no: inserted).pluck(:accession_no, :form_type).each do |accession_no, form_type|
       if Filing::FORM13F_TYPES.include?(form_type)
         job_class = source == "daily_index" ? ParseForm13fBackfillJob : ParseForm13fJob
-        job_class.perform_later(accession_no, value_unit:)
+        if value_unit.present?
+          job_class.perform_later(accession_no, value_unit:)
+        else
+          job_class.perform_later(accession_no)
+        end
       else
         ParseForm4Job.perform_later(accession_no)
       end

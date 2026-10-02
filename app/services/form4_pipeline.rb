@@ -30,6 +30,6 @@ class Form4Pipeline
   end
 
   def client
-    @client ||= SecClient.new
+    @client ||= SecClient.new(lane: :form4)
   end
 end
