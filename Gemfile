@@ -12,6 +12,10 @@ gem "tzinfo-data", platforms: %i[ windows jruby ]
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
 
+# json 3 dropped the quirks_mode option that Active Support 8.0's JSON encoder passes,
+# which breaks every to_json call. Remove this pin once Rails no longer needs it.
+gem "json", "< 3"
+
 # Background jobs and the cron schedule for the EDGAR poller
 gem "sidekiq", "~> 7.3"
 gem "sidekiq-cron", "~> 2.0"

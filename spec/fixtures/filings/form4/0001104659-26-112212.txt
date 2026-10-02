@@ -1,0 +1,161 @@
+<SEC-DOCUMENT>0001104659-26-112212.txt : 20260930
+<SEC-HEADER>0001104659-26-112212.hdr.sgml : 20260930
+<ACCEPTANCE-DATETIME>20260930113137
+ACCESSION NUMBER:		0001104659-26-112212
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20260929
+FILED AS OF DATE:		20260930
+DATE AS OF CHANGE:		20260930
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Baird Gordon A
+		CENTRAL INDEX KEY:			0001335891
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	811-23490
+		FILM NUMBER:		261426129
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O ABRDN
+		STREET 2:		1900 MARKET STREET, SUITE 200
+		CITY:			PHILADELPHIA
+		STATE:			PA
+		ZIP:			19103
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			abrdn Global Infrastructure Income Fund
+		CENTRAL INDEX KEY:			0001793855
+		ORGANIZATION NAME:           	
+		EIN:				000000000
+		STATE OF INCORPORATION:			MD
+
+	BUSINESS ADDRESS:	
+		STREET 1:		1900 MARKET STREET
+		STREET 2:		SUITE 200
+		CITY:			PHILDELPHIA
+		STATE:			PA
+		ZIP:			19103
+		BUSINESS PHONE:		215-405-5700
+
+	MAIL ADDRESS:	
+		STREET 1:		1900 MARKET STREET
+		STREET 2:		SUITE 200
+		CITY:			PHILDELPHIA
+		STATE:			PA
+		ZIP:			19103
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	Aberdeen Standard Global Infrastructure Income Fund
+		DATE OF NAME CHANGE:	20200508
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	Aberdeen Standard Global Infrastructure Public Private Income Fund
+		DATE OF NAME CHANGE:	20191112
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>tm2626683-1_4seq1.xml
+<DESCRIPTION>OWNERSHIP DOCUMENT
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-09-29</periodOfReport>
+
+    <notSubjectToSection16>0</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0001793855</issuerCik>
+        <issuerName>abrdn Global Infrastructure Income Fund</issuerName>
+        <issuerTradingSymbol>ASGI</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001335891</rptOwnerCik>
+            <rptOwnerName>Baird Gordon A</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>C/O ABRDN</rptOwnerStreet1>
+            <rptOwnerStreet2>1900 MARKET STREET, SUITE 200</rptOwnerStreet2>
+            <rptOwnerCity>PHILADELPHIA</rptOwnerCity>
+            <rptOwnerState>PA</rptOwnerState>
+            <rptOwnerZipCode>19103</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>0</isTenPercentOwner>
+            <isOther>0</isOther>
+            <officerTitle></officerTitle>
+            <otherText></otherText>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-09-29</value>
+            </transactionDate>
+            <deemedExecutionDate></deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionTimeliness></transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>32</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>19.13</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>545</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <ownerSignature>
+        <signatureName>/s/ Robert Stieger, by POA from Reporting Person</signatureName>
+        <signatureDate>2026-09-30</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

@@ -1,0 +1,163 @@
+<SEC-DOCUMENT>0001437749-26-031597.txt : 20260930
+<SEC-HEADER>0001437749-26-031597.hdr.sgml : 20260930
+<ACCEPTANCE-DATETIME>20260930160357
+ACCESSION NUMBER:		0001437749-26-031597
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20260928
+FILED AS OF DATE:		20260930
+DATE AS OF CHANGE:		20260930
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Barry Richard
+		CENTRAL INDEX KEY:			0001562371
+		ORGANIZATION NAME:           	
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-41905
+		FILM NUMBER:		261427166
+
+	MAIL ADDRESS:	
+		STREET 1:		285 MARGALITA DRIVE
+		CITY:			SAN RAFAEL
+		STATE:			CA
+		ZIP:			94901
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			FILANA THERAPEUTICS, INC.
+		CENTRAL INDEX KEY:			0001069530
+		STANDARD INDUSTRIAL CLASSIFICATION:	PHARMACEUTICAL PREPARATIONS [2834]
+		ORGANIZATION NAME:           	03 Life Sciences
+		EIN:				911911336
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		6801 N CAPITAL OF TEXAS HIGHWAY
+		STREET 2:		BUILDING 1; SUITE 300
+		CITY:			AUSTIN
+		STATE:			TX
+		ZIP:			78731
+		BUSINESS PHONE:		512-501-2444
+
+	MAIL ADDRESS:	
+		STREET 1:		6801 N CAPITAL OF TEXAS HIGHWAY
+		STREET 2:		BUILDING 1; SUITE 300
+		CITY:			AUSTIN
+		STATE:			TX
+		ZIP:			78731
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	CASSAVA SCIENCES INC
+		DATE OF NAME CHANGE:	20190326
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	PAIN THERAPEUTICS INC
+		DATE OF NAME CHANGE:	20000309
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>rdgdoc.xml
+<DESCRIPTION>FORM 4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-09-28</periodOfReport>
+
+    <issuer>
+        <issuerCik>0001069530</issuerCik>
+        <issuerName>FILANA THERAPEUTICS, INC.</issuerName>
+        <issuerTradingSymbol>FLNA</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001562371</rptOwnerCik>
+            <rptOwnerName>Barry Richard</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>false</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>6801 N CAPITAL OF TEXAS HWY, BLDG 1</rptOwnerStreet1>
+            <rptOwnerStreet2>SUITE 300</rptOwnerStreet2>
+            <rptOwnerCity>AUSTIN</rptOwnerCity>
+            <rptOwnerState>TX</rptOwnerState>
+            <rptOwnerZipCode>78731</rptOwnerZipCode>
+            <rptOwnerStateDescription></rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+            <isOfficer>1</isOfficer>
+            <officerTitle>President &amp; CEO</officerTitle>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-09-28</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>93091</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>0.84</value>
+                    <footnoteId id="F1"/>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>1031151</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>By Trust</value>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">The purchase reported in column 4 is a weighted average price. The shares were purchased in multiple open market transactions at prices ranging from $0.82 to $0.85 per share. The reporting person undertakes to provide to Filana, any security holder of Filana or the staff of the Securities and Exchange Commission, upon request, full information regarding the number of shares acquired at each price within the range set forth in this footnote.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>/s/ Eric J. Schoen by Power of Attorney</signatureName>
+        <signatureDate>2026-09-30</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

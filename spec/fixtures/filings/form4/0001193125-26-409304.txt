@@ -1,0 +1,423 @@
+<SEC-DOCUMENT>0001193125-26-409304.txt : 20260930
+<SEC-HEADER>0001193125-26-409304.hdr.sgml : 20260930
+<ACCEPTANCE-DATETIME>20260930173707
+ACCESSION NUMBER:		0001193125-26-409304
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		2
+CONFORMED PERIOD OF REPORT:	20260928
+FILED AS OF DATE:		20260930
+DATE AS OF CHANGE:		20260930
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Abu Dhabi Investment Authority
+		CENTRAL INDEX KEY:			0001362558
+		ORGANIZATION NAME:           	
+		STATE OF INCORPORATION:			C0
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	814-01782
+		FILM NUMBER:		261428236
+
+	BUSINESS ADDRESS:	
+		STREET 1:		211 CORNICHE STREET
+		STREET 2:		PO BOX 3600
+		CITY:			ABU DHABI
+		STATE:			C0
+		ZIP:			0000
+		BUSINESS PHONE:		971 2 4154242
+
+	MAIL ADDRESS:	
+		STREET 1:		211 CORNICHE STREET
+		STREET 2:		PO BOX 3600
+		CITY:			ABU DHABI
+		STATE:			C0
+		ZIP:			0000
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Platinum International Investment Holding RSC Ltd
+		CENTRAL INDEX KEY:			0001790748
+		ORGANIZATION NAME:           	
+		STATE OF INCORPORATION:			C0
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	814-01782
+		FILM NUMBER:		261428235
+
+	BUSINESS ADDRESS:	
+		STREET 1:		26TH FLOOR, AL KHATEM TOWER, ADGM SQUARE
+		STREET 2:		PO BOX 25642, AL MARYAH ISLAND
+		CITY:			ABU DHABI
+		STATE:			C0
+		ZIP:			NA
+		BUSINESS PHONE:		971-2-415-5838
+
+	MAIL ADDRESS:	
+		STREET 1:		26TH FLOOR, AL KHATEM TOWER, ADGM SQUARE
+		STREET 2:		PO BOX 25642, AL MARYAH ISLAND
+		CITY:			ABU DHABI
+		STATE:			C0
+		ZIP:			NA
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Platinum Bird C 2024 RSC Ltd
+		CENTRAL INDEX KEY:			0002042774
+		ORGANIZATION NAME:           	
+		STATE OF INCORPORATION:			C0
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	814-01782
+		FILM NUMBER:		261428233
+
+	BUSINESS ADDRESS:	
+		STREET 1:		LEVEL 26
+		STREET 2:		AL KHATEM TOWER
+		CITY:			AL MARYAH ISLAND, ABU DHABI
+		STATE:			C0
+		ZIP:			00000
+		BUSINESS PHONE:		971 2 415 5784
+
+	MAIL ADDRESS:	
+		STREET 1:		LEVEL 26
+		STREET 2:		AL KHATEM TOWER
+		CITY:			AL MARYAH ISLAND, ABU DHABI
+		STATE:			C0
+		ZIP:			00000
+
+REPORTING-OWNER:	
+
+	OWNER DATA:	
+		COMPANY CONFORMED NAME:			Platinum Falcon B 2018 RSC Ltd
+		CENTRAL INDEX KEY:			0001790749
+		ORGANIZATION NAME:           	
+		STATE OF INCORPORATION:			C0
+		FISCAL YEAR END:			1231
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	814-01782
+		FILM NUMBER:		261428234
+
+	BUSINESS ADDRESS:	
+		STREET 1:		26TH FLOOR, AL KHATEM TOWER, ADGM SQUARE
+		STREET 2:		PO BOX 25642, AL MARYAH ISLAND
+		CITY:			ABU DHABI
+		STATE:			C0
+		ZIP:			NA
+		BUSINESS PHONE:		971-2-415-5838
+
+	MAIL ADDRESS:	
+		STREET 1:		26TH FLOOR, AL KHATEM TOWER, ADGM SQUARE
+		STREET 2:		PO BOX 25642, AL MARYAH ISLAND
+		CITY:			ABU DHABI
+		STATE:			C0
+		ZIP:			NA
+
+ISSUER:		
+
+	COMPANY DATA:	
+		COMPANY CONFORMED NAME:			AGL Private Credit Income Fund
+		CENTRAL INDEX KEY:			0002011498
+		ORGANIZATION NAME:           	
+		EIN:				000000000
+		STATE OF INCORPORATION:			DE
+		FISCAL YEAR END:			1231
+
+	BUSINESS ADDRESS:	
+		STREET 1:		C/O AGL 535 MADISON AVENUE
+		STREET 2:		24TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10022
+		BUSINESS PHONE:		212-973-8600
+
+	MAIL ADDRESS:	
+		STREET 1:		C/O AGL 535 MADISON AVENUE
+		STREET 2:		24TH FLOOR
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10022
+
+	FORMER COMPANY:	
+		FORMER CONFORMED NAME:	AGL Private Credit Income Fund LP
+		DATE OF NAME CHANGE:	20240209
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>ownership.xml
+<DESCRIPTION>4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-09-28</periodOfReport>
+
+    <issuer>
+        <issuerCik>0002011498</issuerCik>
+        <issuerName>AGL Private Credit Income Fund</issuerName>
+        <issuerTradingSymbol>NONE</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001362558</rptOwnerCik>
+            <rptOwnerName>Abu Dhabi Investment Authority</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>true</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>211 CORNICHE STREET</rptOwnerStreet1>
+            <rptOwnerStreet2>PO BOX 3600</rptOwnerStreet2>
+            <rptOwnerCity>ABU DHABI</rptOwnerCity>
+            <rptOwnerNonUSStateTerritory></rptOwnerNonUSStateTerritory>
+            <rptOwnerCountry>C0</rptOwnerCountry>
+            <rptOwnerZipCode></rptOwnerZipCode>
+            <rptOwnerStateDescription>UNITED ARAB EMIRATES</rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>false</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>true</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001790748</rptOwnerCik>
+            <rptOwnerName>Platinum International Investment Holding RSC Ltd</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>true</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>LEVEL 26, AL KHATEM TOWER, ABU DHABI</rptOwnerStreet1>
+            <rptOwnerStreet2>GLOBAL MARKET SQUARE, AL MARYAH ISLAND</rptOwnerStreet2>
+            <rptOwnerCity>ABU DHABI</rptOwnerCity>
+            <rptOwnerNonUSStateTerritory></rptOwnerNonUSStateTerritory>
+            <rptOwnerCountry>C0</rptOwnerCountry>
+            <rptOwnerZipCode></rptOwnerZipCode>
+            <rptOwnerStateDescription>UNITED ARAB EMIRATES</rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>false</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>true</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001790749</rptOwnerCik>
+            <rptOwnerName>Platinum Falcon B 2018 RSC Ltd</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>true</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>LEVEL 26, AL KHATEM TOWER, ABU DHABI</rptOwnerStreet1>
+            <rptOwnerStreet2>GLOBAL MARKET SQUARE, AL MARYAH ISLAND</rptOwnerStreet2>
+            <rptOwnerCity>ABU DHABI</rptOwnerCity>
+            <rptOwnerNonUSStateTerritory></rptOwnerNonUSStateTerritory>
+            <rptOwnerCountry>C0</rptOwnerCountry>
+            <rptOwnerZipCode></rptOwnerZipCode>
+            <rptOwnerStateDescription>UNITED ARAB EMIRATES</rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>false</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>true</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0002042774</rptOwnerCik>
+            <rptOwnerName>Platinum Bird C 2024 RSC Ltd</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>true</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>LEVEL 26, AL KHATEM TOWER, ABU DHABI</rptOwnerStreet1>
+            <rptOwnerStreet2>GLOBAL MARKET SQUARE, AL MARYAH ISLAND</rptOwnerStreet2>
+            <rptOwnerCity>ABU DHABI</rptOwnerCity>
+            <rptOwnerNonUSStateTerritory></rptOwnerNonUSStateTerritory>
+            <rptOwnerCountry>C0</rptOwnerCountry>
+            <rptOwnerZipCode></rptOwnerZipCode>
+            <rptOwnerStateDescription>UNITED ARAB EMIRATES</rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>false</isDirector>
+            <isOfficer>false</isOfficer>
+            <isTenPercentOwner>true</isTenPercentOwner>
+            <isOther>false</isOther>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>false</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Shares of Beneficial Interest</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-09-28</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>false</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>955608.711</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>23.42</value>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>20319560.618</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>I</value>
+                </directOrIndirectOwnership>
+                <natureOfOwnership>
+                    <value>See Footnote</value>
+                    <footnoteId id="F1"/>
+                </natureOfOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">The Common Shares of Beneficial Interest, par value $0.001 per share (&quot;Common Shares&quot;) of AGL Private Credit Income Fund (the &quot;Issuer&quot;) reported herein are held directly by and beneficially owned by Platinum Bird C 2024 RSC Limited (&quot;Platinum Bird&quot;).  Platinum Falcon B 2018 RSC Limited (&quot;Platinum Falcon&quot;) is the sole owner of Platinum Bird.  Platinum International Investment Holdings RSC Limited (&quot;Platinum Holdings&quot;) is the sole owner of Platinum Falcon, and Abu Dhabi Investment Authority (&quot;ADIA&quot; and, together with Platinum Bird, Platinum Falcon and Platinum Holdings, the &quot;Reporting Persons&quot;) is the sole owner of Platinum Holdings. Therefore, Platinum Falcon, Platinum Holdings and ADIA may also be deemed to beneficially own the Common Shares reported herein.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>ABU DHABI INVESTMENT AUTHORITY, Name: /s/ Hamad Shahwan AlDhaheri, Title: Authorized Signatory, Name: /s/ Saif Surour AlMashghouni, Title: Authorized Signatory</signatureName>
+        <signatureDate>2026-09-30</signatureDate>
+    </ownerSignature>
+
+    <ownerSignature>
+        <signatureName>PLATINUM INTERNATIONAL INVESTMENT HOLDINGS RSC LIMITED, Name: /s/ Ahmed Salem Abdulla AlNeyadi, Title:  Authorized Signatory, Name: /s/ Mubarak Awad Qanazel AlAmeri, Title: Authorized Signatory</signatureName>
+        <signatureDate>2026-09-30</signatureDate>
+    </ownerSignature>
+
+    <ownerSignature>
+        <signatureName>PLATINUM FALCON B 2018 RSC LIMITED, Name: /s/ Ahmed Salem Abdulla AlNeyadi, Title: Authorized Signatory, Name: /s/ Mubarak Awad Qanazel AlAmeri, Title: Authorized Signatory</signatureName>
+        <signatureDate>2026-09-30</signatureDate>
+    </ownerSignature>
+
+    <ownerSignature>
+        <signatureName>PLATINUM BIRD C 2024 RSC LIMITED, Name: /s/ Ahmed Salem Abdulla AlNeyadi, Title: Authorized Signatory, Name: /s/ Mubarak Awad Qanazel AlAmeri, Title: Authorized Signatory</signatureName>
+        <signatureDate>2026-09-30</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+<DOCUMENT>
+<TYPE>EX-99.1
+<SEQUENCE>2
+<FILENAME>ck0002011498-ex99_1.htm
+<DESCRIPTION>EX-99.1
+<TEXT>
+<!-- DFIN ActiveDisclosure (SM) HTML Document - http://www.dfinsolutions.com/ --><!-- Creation Date :2026-09-30T16:32:07.8996+00:00 --><!-- Copyright (c) 2026 Donnelley Financial Solutions, Inc. All Rights Reserved. -->
+<html>
+ <head>
+  <title>EX-99.1</title>
+ </head>
+ <body style="padding:8px;margin:auto!important;z-index:0;-webkit-text-size-adjust:100%;position:relative;">
+  <div style="padding-top:0.5in;z-index:2;min-height:0.1in;position:relative;box-sizing:border-box;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:'Garamond',serif;margin-bottom:0;text-align:left;margin-left:0;margin-right:0;"><font style="color:#000000;white-space:pre-wrap;font-size:12pt;font-family:'Garamond',serif;font-kerning:none;min-width:fit-content;">						</font></p></div>
+  <div class="main-content-container" style="z-index:5;position:relative;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:right;"><font style="color:#000000;white-space:pre-wrap;font-weight:bold;font-size:12pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">Exhibit 99.1</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:center;"><font style="white-space:pre-wrap;font-size:12pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-weight:bold;font-size:12pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">                                                        </font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:center;"><font style="color:#000000;white-space:pre-wrap;font-weight:bold;font-size:12pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">Form 4 Joint Filer Information</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:center;"><font style="color:#000000;white-space:pre-wrap;font-weight:bold;font-size:12pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">					</font></p><p style="tab-size:26.66px;font-size:10.5pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:center;"><font style="color:#000000;white-space:pre-wrap;font-weight:bold;font-size:10.5pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">				</font></p>
+   <table style="margin-left:auto;border-spacing:0;table-layout:auto;width:100.0%;border-collapse:separate;margin-right:auto;">
+    <tr style="visibility:collapse;">
+     <td style="width:50%;box-sizing:content-box;"></td>
+     <td style="width:50%;box-sizing:content-box;"></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;text-align:right;">
+     <td style="border-top:0.5pt solid;padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Name:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="border-top:0.5pt solid;padding-top:0in;border-right:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Platinum International Investment Holdings RSC Limited</font></p></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;">
+     <td style="padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;text-align:right;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Address:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="padding-top:0in;border-right:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;text-align:left;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;"> </font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Level 26</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Al Khatem Tower</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Abu Dhabi Global Market Square</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Al Maryah Island</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Abu Dhabi, United Arab Emirates</font></p><p style="tab-size:26.66px;font-size:10pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;text-align:right;">
+     <td style="padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Date of Event Requiring Statement:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="padding-top:0in;border-right:0.5pt solid;text-indent:27pt;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">09/28/2026</font></p></td>
+    </tr>
+   </table><p style="tab-size:26.66px;font-size:10pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:left;"><font style="white-space:pre-wrap;font-size:10pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">&#160;</font></p>
+   <table style="margin-left:auto;border-spacing:0;table-layout:auto;width:100.0%;border-collapse:separate;margin-right:auto;">
+    <tr style="visibility:collapse;">
+     <td style="width:50%;box-sizing:content-box;"></td>
+     <td style="width:50%;box-sizing:content-box;"></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;text-align:right;">
+     <td style="border-top:0.5pt solid;padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Name:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="border-top:0.5pt solid;padding-top:0in;border-right:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Platinum Falcon B 2018 RSC Limited</font></p></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;">
+     <td style="padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;text-align:right;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Address:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="padding-top:0in;border-right:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;text-align:left;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;"> </font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Level 26</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Al Khatem Tower</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Abu Dhabi Global Market Square</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Al Maryah Island</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Abu Dhabi, United Arab Emirates</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;text-align:right;">
+     <td style="padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Date of Event Requiring Statement:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="padding-top:0in;border-right:0.5pt solid;text-indent:27pt;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">09/28/2026</font></p></td>
+    </tr>
+   </table><p style="tab-size:26.66px;font-size:10pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:center;"><font style="white-space:pre-wrap;font-size:10pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">&#160;</font></p></div>
+  <div style="z-index:2;flex-direction:column;display:flex;min-height:0.2in;justify-content:flex-end;position:relative;"></div>
+  <hr style="margin-inline-start:auto;margin-inline-end:auto;page-break-after:always;">
+  <div style="padding-top:0.5in;z-index:2;min-height:0.1in;position:relative;box-sizing:border-box;"><p style="tab-size:26.66px;font-size:10pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;margin-left:0;margin-right:0;"><font style="white-space:pre-wrap;font-size:10pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">&#160;</font></p></div>
+  <div class="main-content-container" style="z-index:5;position:relative;">
+   <table style="margin-left:auto;border-spacing:0;table-layout:auto;width:100.0%;border-collapse:separate;margin-right:auto;">
+    <tr style="visibility:collapse;">
+     <td style="width:50%;box-sizing:content-box;"></td>
+     <td style="width:50%;box-sizing:content-box;"></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;text-align:right;">
+     <td style="border-top:0.5pt solid;padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Name:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="border-top:0.5pt solid;padding-top:0in;border-right:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Platinum Bird C 2024 RSC Limited</font></p></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;">
+     <td style="padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;text-align:right;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Address:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="padding-top:0in;border-right:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;text-align:left;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Level 26</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Al Khatem Tower</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Abu Dhabi Global Market Square</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Al Maryah Island</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Abu Dhabi, United Arab Emirates</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+    </tr>
+    <tr style="height:12pt;white-space:pre-wrap;word-break:break-word;text-align:right;">
+     <td style="padding-top:0in;border-right:0.5pt solid;border-left:0.5pt solid;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">Date of Event Requiring Statement:</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="tab-size:26.66px;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p></td>
+     <td style="padding-top:0in;border-right:0.5pt solid;text-indent:27pt;padding-left:0.075in;vertical-align:top;padding-bottom:0in;border-bottom:0.5pt solid;padding-right:0.075in;"><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="white-space:pre-wrap;font-kerning:none;min-width:fit-content;">&#160;</font></p><p style="text-indent:-5.607%;tab-size:26.66px;padding-left:5%;font-size:12pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;margin-right:5.833%;text-align:justify;"><font style="color:#000000;white-space:pre-wrap;font-kerning:none;min-width:fit-content;">09/28/2026</font></p></td>
+    </tr>
+   </table><p style="tab-size:26.66px;font-size:10pt;margin-top:0;font-family:Times New Roman;margin-bottom:0;text-align:left;"><font style="white-space:pre-wrap;font-size:10pt;font-family:Times New Roman;font-kerning:none;min-width:fit-content;">&#160;</font></p></div>
+  <div style="z-index:2;flex-direction:column;display:flex;min-height:0.2in;justify-content:flex-end;position:relative;"></div>
+  <hr style="margin-inline-start:auto;margin-inline-end:auto;page-break-after:always;">
+ </body>
+</html>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>
