@@ -691,6 +691,18 @@ h2 {
   padding-bottom: 2px;
 }
 
+.section-heading__link {
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.section-heading__link:hover,
+.section-heading__link:focus {
+  text-decoration: underline;
+}
+
 .table-card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -746,6 +758,15 @@ tbody tr:last-child td {
 
 .table-primary {
   font-weight: 680;
+}
+
+.table-primary a {
+  text-decoration: none;
+}
+
+.table-primary a:hover,
+.table-primary a:focus {
+  color: var(--accent);
 }
 
 .table-secondary {

@@ -17,6 +17,65 @@
     </div>
   </section>
 
+  <% if Current.user %>
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Your watchlist</p>
+          <h2>Recent followed activity</h2>
+        </div>
+        <%= link_to "Manage watchlist", watchlist_path, class: "section-heading__link" %>
+      </div>
+
+      <% if @followed_activity.any? %>
+        <div class="table-card table-card--wide">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Profile</th>
+                  <th scope="col">Activity</th>
+                  <th scope="col">Filed</th>
+                  <th scope="col" class="numeric">Reported detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @followed_activity.each do |activity| %>
+                  <tr>
+                    <td>
+                      <strong class="table-primary"><%= link_to activity["label"], watchlist_target_path(activity) %></strong>
+                      <span class="table-secondary"><%= activity["target_type"].humanize %></span>
+                    </td>
+                    <td>
+                      <% if activity["activity_source"] == "Form 4" %>
+                        <span class="transaction-pill transaction-pill--<%= activity["activity_kind"].downcase %>"><%= transaction_type_label(activity["activity_kind"]) %></span>
+                        <span class="table-secondary"><%= issuer_label(activity) %></span>
+                      <% else %>
+                        <span class="change-pill change-pill--add"><%= activity["activity_kind"] %></span>
+                        <span class="table-secondary">Period <%= signal_date(activity["period_of_report"]) %></span>
+                      <% end %>
+                    </td>
+                    <td><%= signal_date(activity["filed_at"]) %></td>
+                    <td class="numeric">
+                      <% if activity["activity_source"] == "Form 4" %>
+                        <%= signal_money(activity["value"]) %>
+                        <% if activity["price_suspect"] %><span class="table-secondary">price flagged</span><% end %>
+                      <% else %>
+                        <%= activity["report_type"].to_s.humanize %>
+                      <% end %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "No followed activity was filed in the last 30 days." %>
+      <% end %>
+    </section>
+  <% end %>
+
   <section class="section-block">
     <div class="section-heading">
       <div>

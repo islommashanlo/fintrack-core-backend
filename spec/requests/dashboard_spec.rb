@@ -33,4 +33,21 @@ RSpec.describe "Dashboard" do
     expect(response.body).to include("Recent insider purchases", "Acme Corp", "Jane Doe", "$12,500.00")
     expect(response.body).to include("FilingsIntel presents information as reported in SEC filings")
   end
+
+  it "shows recent activity from the signed-in user's follows" do
+    user = create(:user, email_address: "reader@example.com", password: "password123")
+    followed = instance_double(FollowedActivity)
+    allow(FollowedActivity).to receive(:new).and_return(followed)
+    allow(followed).to receive(:recent).and_return([
+      { "label" => "Jane Doe", "target_type" => "Insider", "target_key" => "0000000456",
+        "activity_source" => "Form 4", "activity_kind" => "P", "filed_at" => Time.current,
+        "issuer_ticker" => "ACME", "value" => BigDecimal("1000"), "price_suspect" => false }
+    ])
+
+    post session_path, params: { email_address: user.email_address, password: "password123" }
+    get root_path
+
+    expect(response).to have_http_status(:ok)
+    expect(response.body).to include("Recent followed activity", "Jane Doe", "Manage watchlist")
+  end
 end
