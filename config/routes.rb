@@ -8,6 +8,7 @@ Sidekiq::Web.use(Rack::Auth::Basic, "FilingsIntel ops") { |user, password| OpsAu
 
 Rails.application.routes.draw do
   root "dashboard#index"
+  get "discover" => "discover#index"
 
   # Liveness: 200 if the app boots. Used by load balancers and uptime monitors.
   get "up" => "rails/health#show", as: :rails_health_check

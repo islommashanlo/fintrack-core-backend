@@ -4,6 +4,9 @@
       <span class="brand__mark">F</span>
       <span>FilingsIntel</span>
     <% end %>
-    <span class="site-header__context">SEC filing research</span>
+    <nav class="site-header__nav" aria-label="Primary navigation">
+      <%= link_to "Dashboard", root_path, class: "site-header__link" %>
+      <%= link_to "Discover", discover_path, class: "site-header__link" %>
+    </nav>
   </div>
 </header>

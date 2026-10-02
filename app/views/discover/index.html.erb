@@ -1,0 +1,113 @@
+<% content_for :title, "Discover | FilingsIntel" %>
+
+<div class="shell discover-page">
+  <section class="discover-hero">
+    <p class="eyebrow">Explore the filing universe</p>
+    <h1>Find the people and institutions behind the filings.</h1>
+    <p class="hero__copy">
+      Search the filers and issuers already covered by FilingsIntel. Results are based on
+      parsed public SEC filings and ordered by recent activity.
+    </p>
+
+    <%= form_with url: discover_path, method: :get, class: "discover-search", local: true do |form| %>
+      <%= form.label :q, "Search by name, ticker, or CIK", class: "visually-hidden" %>
+      <%= form.search_field :q, value: @query, placeholder: "Try Berkshire, AAPL, or a CIK", autocomplete: "off" %>
+      <%= form.submit "Search" %>
+    <% end %>
+  </section>
+
+  <% if @query.present? %>
+    <div class="search-result-label">Results for <strong><%= @query %></strong></div>
+  <% end %>
+
+  <div class="discover-grid">
+    <section class="discover-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">13F filings</p>
+          <h2>Institutions</h2>
+        </div>
+        <span class="section-heading__count"><%= @institutions.size %> shown</span>
+      </div>
+      <div class="entity-list">
+        <% if @institutions.any? %>
+          <% @institutions.each do |institution| %>
+            <article class="entity-card">
+              <div>
+                <h3><%= institution["name"] %></h3>
+                <p class="entity-card__meta">CIK <%= institution["cik"] %></p>
+              </div>
+              <dl class="entity-card__stats">
+                <div><dt>Reports</dt><dd><%= signal_number(institution["reports"]) %></dd></div>
+                <div><dt>Latest period</dt><dd><%= signal_date(institution["latest_period"]) %></dd></div>
+              </dl>
+            </article>
+          <% end %>
+        <% else %>
+          <%= render "shared/empty_state", message: "No institutions matched this search." %>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="discover-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Form 4 purchases</p>
+          <h2>Insiders</h2>
+        </div>
+        <span class="section-heading__count"><%= @insiders.size %> shown</span>
+      </div>
+      <div class="entity-list">
+        <% if @insiders.any? %>
+          <% @insiders.each do |insider| %>
+            <article class="entity-card">
+              <div>
+                <h3><%= insider_label(insider) %></h3>
+                <p class="entity-card__meta">CIK <%= insider["insider_cik"] %></p>
+              </div>
+              <dl class="entity-card__stats">
+                <div><dt>Purchases</dt><dd><%= signal_number(insider["purchases"]) %></dd></div>
+                <div><dt>Issuers</dt><dd><%= signal_number(insider["issuers"]) %></dd></div>
+              </dl>
+            </article>
+          <% end %>
+        <% else %>
+          <%= render "shared/empty_state", message: "No insiders matched this search." %>
+        <% end %>
+      </div>
+    </section>
+
+    <section class="discover-section discover-section--wide">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Companies in the filings</p>
+          <h2>Issuers</h2>
+        </div>
+        <span class="section-heading__count"><%= @issuers.size %> shown</span>
+      </div>
+      <div class="entity-list entity-list--columns">
+        <% if @issuers.any? %>
+          <% @issuers.each do |issuer| %>
+            <article class="entity-card">
+              <div>
+                <h3><%= issuer_label(issuer) %></h3>
+                <p class="entity-card__meta"><%= issuer["issuer_name"].presence || "Issuer name unavailable" %></p>
+              </div>
+              <dl class="entity-card__stats">
+                <div><dt>Insiders</dt><dd><%= signal_number(issuer["insiders"]) %></dd></div>
+                <div><dt>Purchases</dt><dd><%= signal_number(issuer["purchases"]) %></dd></div>
+              </dl>
+            </article>
+          <% end %>
+        <% else %>
+          <%= render "shared/empty_state", message: "No issuers matched this search." %>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
+  <footer class="dashboard-footer">
+    <p>Data from public SEC filings. Not investment advice.</p>
+    <p>Activity is shown as filed and may be incomplete or delayed.</p>
+  </footer>
+</div>
