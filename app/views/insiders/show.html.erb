@@ -2,15 +2,18 @@
 
 <div class="shell insider-page">
   <section class="profile-hero">
-    <div>
-      <p class="eyebrow">Insider profile</p>
-      <h1><%= @insider_name %></h1>
-      <p class="profile-meta">CIK <%= @insider_cik %> · Activity shown from the last 90 days</p>
-    </div>
-    <div class="profile-period">
-      <span class="as-of-card__label">Last filed</span>
-      <strong><%= signal_date(@summary["last_filed_at"]) %></strong>
-      <span class="as-of-card__note">Based on SEC acceptance time</span>
+      <div>
+        <p class="eyebrow">Insider profile</p>
+        <h1><%= @insider_name %></h1>
+        <p class="profile-meta">CIK <%= @insider_cik %> · Activity shown from the last 90 days</p>
+      </div>
+    <div class="profile-hero__actions">
+      <%= follow_button(target_type: "Insider", target_key: @insider_cik) %>
+      <div class="profile-period">
+        <span class="as-of-card__label">Last filed</span>
+        <strong><%= signal_date(@summary["last_filed_at"]) %></strong>
+        <span class="as-of-card__note">Based on SEC acceptance time</span>
+      </div>
     </div>
   </section>
 

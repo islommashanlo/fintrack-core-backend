@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class DashboardController < ApplicationController
+  allow_unauthenticated_access
+
   def index
     @as_of = Time.current
     signals = InsiderSignals.new(as_of: @as_of)

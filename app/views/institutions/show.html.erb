@@ -8,10 +8,13 @@
         <h1><%= @institution.name %></h1>
         <p class="profile-meta">CIK <%= @institution.cik %> · Latest 13F filed <%= signal_date(@latest_report.filed_at) %></p>
       </div>
-      <div class="profile-period">
-        <span class="as-of-card__label">Period of report</span>
-        <strong><%= signal_date(@latest_report.period_of_report) %></strong>
-        <span class="as-of-card__note"><%= @latest_report.submission_type %></span>
+      <div class="profile-hero__actions">
+        <%= follow_button(target_type: "InstitutionalFiler", target_key: @institution.cik) %>
+        <div class="profile-period">
+          <span class="as-of-card__label">Period of report</span>
+          <strong><%= signal_date(@latest_report.period_of_report) %></strong>
+          <span class="as-of-card__note"><%= @latest_report.submission_type %></span>
+        </div>
       </div>
     </section>
 

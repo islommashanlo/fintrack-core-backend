@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class TickersController < ApplicationController
+  allow_unauthenticated_access
+
   def show
     profile = TickerProfile.new(ticker: params[:ticker])
     raise ActiveRecord::RecordNotFound unless profile.issuer

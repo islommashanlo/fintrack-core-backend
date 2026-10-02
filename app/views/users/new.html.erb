@@ -1,0 +1,25 @@
+<% content_for :title, "Create account | FilingsIntel" %>
+
+<div class="shell auth-page">
+  <div class="auth-card">
+    <p class="eyebrow">Start your watchlist</p>
+    <h1>Create your account</h1>
+    <p class="auth-card__copy">Follow insiders, institutions, and tickers from one place.</p>
+
+    <% if @user.errors.any? %>
+      <div class="form-errors"><%= @user.errors.full_messages.to_sentence %></div>
+    <% end %>
+
+    <%= form_with model: @user, url: signup_path, class: "auth-form" do |form| %>
+      <%= form.label :email_address, "Email address" %>
+      <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "email" %>
+      <%= form.label :password, "Password" %>
+      <%= form.password_field :password, required: true, autocomplete: "new-password", minlength: 8, maxlength: 72 %>
+      <%= form.label :password_confirmation, "Confirm password" %>
+      <%= form.password_field :password_confirmation, required: true, autocomplete: "new-password", minlength: 8, maxlength: 72 %>
+      <%= form.submit "Create account" %>
+    <% end %>
+
+    <p class="auth-card__footer">Already have an account? <%= link_to "Sign in", new_session_path %>.</p>
+  </div>
+</div>

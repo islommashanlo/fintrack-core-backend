@@ -2,15 +2,18 @@
 
 <div class="shell ticker-page">
   <section class="profile-hero">
-    <div>
-      <p class="eyebrow">Ticker profile</p>
-      <h1><%= @issuer["issuer_name"].presence || @ticker %></h1>
-      <p class="profile-meta"><%= @ticker %> · CIK <%= @issuer["issuer_cik"] %></p>
-    </div>
-    <div class="profile-period">
-      <span class="as-of-card__label">Last insider filing</span>
-      <strong><%= signal_date(@summary["last_filed_at"]) %></strong>
-      <span class="as-of-card__note">Based on SEC acceptance time</span>
+      <div>
+        <p class="eyebrow">Ticker profile</p>
+        <h1><%= @issuer["issuer_name"].presence || @ticker %></h1>
+        <p class="profile-meta"><%= @ticker %> · CIK <%= @issuer["issuer_cik"] %></p>
+      </div>
+    <div class="profile-hero__actions">
+      <%= follow_button(target_type: "Ticker", target_key: @ticker) %>
+      <div class="profile-period">
+        <span class="as-of-card__label">Last insider filing</span>
+        <strong><%= signal_date(@summary["last_filed_at"]) %></strong>
+        <span class="as-of-card__note">Based on SEC acceptance time</span>
+      </div>
     </div>
   </section>
 

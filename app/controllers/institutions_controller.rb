@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class InstitutionsController < ApplicationController
+  allow_unauthenticated_access
+
   def show
     @institution = InstitutionalFiler.find_by!(cik: params[:cik])
     profile = InstitutionalProfile.new(institutional_filer: @institution)

@@ -6,7 +6,7 @@ RSpec.describe InstitutionalProfile do
   it "returns effective holdings for the institution's latest parsed period" do
     institution = create(:institutional_filer)
     report = create(:institutional_report, institutional_filer: institution)
-    create(:institutional_holding, institutional_report: report, name_of_issuer: "APPLE INC",
+    create(:institutional_holding, institutional_report: report, row_seq: 1, name_of_issuer: "APPLE INC",
                                    cusip: "037833100", shares: 100, value_usd: 25_000)
     create(:institutional_holding, institutional_report: report, row_seq: 2, name_of_issuer: "MICROSOFT CORP",
                                    cusip: "594918104", shares: 50, value_usd: 15_000)

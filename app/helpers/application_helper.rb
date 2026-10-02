@@ -78,4 +78,22 @@ module ApplicationHelper
   def ticker_insider_label(row)
     row["insider_name"].presence || row["insider_cik"] || "Unknown insider"
   end
+
+  def follow_for(target_type, target_key)
+    return unless Current.user
+
+    Current.user.follows.find_by(target_type:, target_key:)
+  end
+
+  def follow_button(target_type:, target_key:)
+    follow = follow_for(target_type, target_key)
+    if follow
+      button_to "Following", follow_path(follow), method: :delete, class: "follow-button follow-button--active"
+    elsif Current.user
+      button_to "Follow", follows_path, method: :post,
+                params: { follow: { target_type:, target_key: } }, class: "follow-button"
+    else
+      link_to "Sign in to follow", new_session_path, class: "follow-button follow-button--link"
+    end
+  end
 end

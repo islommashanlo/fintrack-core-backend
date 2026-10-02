@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class DiscoverController < ApplicationController
+  allow_unauthenticated_access
+
   def index
     @query = params[:q].to_s.strip
     search = DiscoverySearch.new(query: @query)

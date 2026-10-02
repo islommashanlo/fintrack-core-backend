@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_02_180000) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_02_205146) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -85,6 +85,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_180000) do
     t.index ["owner_ciks"], name: "index_filings_on_owner_ciks", using: :gin
     t.index ["parse_status"], name: "index_filings_on_parse_status"
     t.check_constraint "parse_status::text = ANY (ARRAY['pending'::character varying, 'parsed'::character varying, 'failed'::character varying]::text[])", name: "filings_parse_status_check"
+  end
+
+  create_table "follows", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "target_type", null: false
+    t.string "target_key", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "target_type", "target_key"], name: "index_follows_on_user_id_and_target_type_and_target_key", unique: true
+    t.index ["user_id"], name: "index_follows_on_user_id"
   end
 
   create_table "insider_transactions", force: :cascade do |t|
@@ -263,7 +273,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_180000) do
     t.index ["figi"], name: "index_securities_on_figi", unique: true
   end
 
+  create_table "sessions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "ip_address"
+    t.string "user_agent"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.string "email_address", null: false
+    t.string "password_digest", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email_address"], name: "index_users_on_email_address", unique: true
+  end
+
   add_foreign_key "cusip_security_mappings", "securities"
+  add_foreign_key "follows", "users"
   add_foreign_key "insider_transactions", "filings"
   add_foreign_key "institutional_holdings", "institutional_reports"
   add_foreign_key "institutional_report_managers", "institutional_reports"
@@ -272,4 +300,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_180000) do
   add_foreign_key "position_diffs", "institutional_filers"
   add_foreign_key "position_diffs", "institutional_reports"
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"
+  add_foreign_key "sessions", "users"
 end

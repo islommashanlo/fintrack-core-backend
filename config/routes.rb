@@ -7,6 +7,11 @@ require "sidekiq/cron/web"
 Sidekiq::Web.use(Rack::Auth::Basic, "FilingsIntel ops") { |user, password| OpsAuth.valid?(user, password) }
 
 Rails.application.routes.draw do
+  resource :session
+  resources :passwords, param: :token
+  get "signup" => "users#new", as: :signup
+  post "signup" => "users#create"
+  resources :follows, only: %i[create destroy]
   root "dashboard#index"
   get "discover" => "discover#index"
   get "institutions/:cik" => "institutions#show", as: :institution, constraints: { cik: /\d{10}/ }
