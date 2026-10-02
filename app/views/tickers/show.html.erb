@@ -133,6 +133,56 @@
     <% end %>
   </section>
 
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Latest parsed 13F quarter</p>
+        <h2>Institutional ownership changes</h2>
+      </div>
+      <span class="section-heading__count"><%= @institutional_changes.size %> shown</span>
+    </div>
+
+    <% if @institutional_changes.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Institution</th>
+                <th scope="col">Period</th>
+                <th scope="col">Change</th>
+                <th scope="col" class="numeric">Share delta</th>
+                <th scope="col" class="numeric">Value delta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @institutional_changes.each do |change| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= change["institution_name"] %></strong>
+                    <span class="table-secondary">CIK <%= change["institution_cik"] %> · <%= change["cusip"] %></span>
+                  </td>
+                  <td><%= signal_date(change["period_of_report"]) %></td>
+                  <td><span class="change-pill change-pill--<%= change["change_type"] %>"><%= position_change_label(change["change_type"]) %></span></td>
+                  <td class="numeric"><%= signed_signal_number(change["shares_delta"]) %></td>
+                  <td class="numeric">
+                    <% if change["suspect"] %>
+                      <%= tag.span("Flagged", class: "table-secondary") %>
+                    <% else %>
+                      <%= signed_signal_money(change["value_usd_delta"]) %>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "Institutional changes will appear after mapped CUSIP diffs are materialized." %>
+    <% end %>
+  </section>
+
   <footer class="dashboard-footer">
     <p>13F holdings can be up to 45 days stale and only cover securities reported by the institution.</p>
     <p>Data from public SEC filings. Not investment advice.</p>

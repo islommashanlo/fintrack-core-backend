@@ -34,4 +34,25 @@ RSpec.describe TickerProfile do
       include("institution_name" => "Acme Capital", "cusip" => "037833100", "value_usd" => BigDecimal("50000"))
     )
   end
+
+  it "shows mapped institutional ownership changes for the latest quarter" do
+    institution = create(:institutional_filer, name: "Acme Capital")
+    period = Date.new(2026, 6, 30)
+    report = create(:institutional_report, institutional_filer: institution, period_of_report: period,
+                                        filed_at: Time.utc(2026, 8, 14))
+    PositionDiff.create!(institutional_filer: institution, institutional_report: report,
+                         period_of_report: period, cusip: "037833100", put_call: "C", share_type: "SH",
+                         change_type: "add", shares_delta: 100, value_usd_delta: 50_000,
+                         name_of_issuer: "ACME CORP", title_of_class: "COM", calculated_at: Time.current)
+    security = Security.create!(figi: "BBG000000002", ticker: "ACME", name: "Acme Corp", source: "openfigi")
+    CusipSecurityMapping.create!(cusip: "037833100", security:, source: "openfigi", result_seq: 0,
+                                 status: "mapped", first_seen_at: Time.current, last_checked_at: Time.current)
+
+    changes = described_class.new(ticker: "ACME", as_of: as_of).institutional_changes
+
+    expect(changes).to include(
+      include("institution_name" => "Acme Capital", "change_type" => "add",
+              "shares_delta" => BigDecimal("100"), "value_usd_delta" => BigDecimal("50000"))
+    )
+  end
 end

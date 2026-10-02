@@ -128,6 +128,45 @@ class TickerProfile
     SQL
   end
 
+  def institutional_changes(limit: 24)
+    select(<<~SQL, since: Time.at(0), limit:)
+      WITH mapped_securities AS (
+        SELECT DISTINCT ON (m.cusip)
+               m.cusip, s.ticker, s.name AS security_name
+        FROM cusip_security_mappings m
+        INNER JOIN securities s ON s.id = m.security_id
+        WHERE m.status = 'mapped'
+          AND s.ticker ILIKE :ticker_pattern
+        ORDER BY m.cusip, m.last_checked_at DESC, m.result_seq
+      ), latest_periods AS (
+        SELECT DISTINCT ON (r.institutional_filer_id)
+               r.institutional_filer_id, r.period_of_report
+        FROM institutional_reports r
+        WHERE r.status = 'parsed'
+          AND (r.filed_at IS NULL OR r.filed_at <= :as_of)
+        ORDER BY r.institutional_filer_id, r.period_of_report DESC,
+                 r.filed_at DESC NULLS LAST, r.id DESC
+      )
+      SELECT i.name AS institution_name,
+             i.cik AS institution_cik,
+             d.period_of_report,
+             ms.cusip,
+             ms.security_name,
+             d.change_type,
+             d.shares_delta,
+             d.value_usd_delta,
+             (d.current_suspect OR d.prior_suspect) AS suspect
+      FROM position_diffs d
+      INNER JOIN latest_periods lp
+        ON lp.institutional_filer_id = d.institutional_filer_id
+       AND lp.period_of_report = d.period_of_report
+      INNER JOIN institutional_filers i ON i.id = d.institutional_filer_id
+      INNER JOIN mapped_securities ms ON ms.cusip = d.cusip
+      ORDER BY ABS(d.value_usd_delta) DESC NULLS LAST, i.name, d.cusip
+      LIMIT :limit
+    SQL
+  end
+
   private
 
   def select(sql, since:, limit:)

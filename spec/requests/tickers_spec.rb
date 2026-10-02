@@ -22,13 +22,14 @@ RSpec.describe "Ticker profiles" do
         "value" => BigDecimal("12500") }
     ])
     allow(profile).to receive(:institutional_holdings).and_return([])
+    allow(profile).to receive(:institutional_changes).and_return([])
   end
 
-  it "shows insider activity and the institutional ownership seam" do
+  it "shows insider activity and the institutional ownership sections" do
     get ticker_path("ACME")
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Acme Corp", "Insider activity", "Jane Doe",
-                                     "Institutional ownership", "mapped CUSIP")
+                                     "Institutional ownership", "Institutional ownership changes", "mapped CUSIP")
   end
 end
