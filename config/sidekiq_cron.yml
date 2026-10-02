@@ -1,0 +1,11 @@
+# Loaded by config/initializers/sidekiq.rb only when EDGAR_POLLING=on.
+shared:
+  poll_edgar:
+    cron: "* * * * *"
+    class: PollEdgarJob
+    description: Look for new Form 4 filings through EDGAR full-text search
+  reconcile_edgar:
+    # 07:30 UTC is 02:30 or 03:30 US Eastern; the previous day's index is published around 22:00 Eastern.
+    cron: "30 7 * * *"
+    class: ReconcileEdgarJob
+    description: Register anything in yesterday's daily index that the poller missed

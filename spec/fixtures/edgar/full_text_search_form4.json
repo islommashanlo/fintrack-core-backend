@@ -1,0 +1,282 @@
+{
+ "took": 160,
+ "timed_out": false,
+ "_shards": {
+  "total": 50,
+  "successful": 50,
+  "skipped": 0,
+  "failed": 0
+ },
+ "hits": {
+  "total": {
+   "value": 5,
+   "relation": "eq"
+  },
+  "max_score": null,
+  "hits": [
+   {
+    "_index": "edgar_file",
+    "_id": "0002148361-26-000004:wk-form4_1790800942.xml",
+    "_score": null,
+    "_source": {
+     "ciks": [
+      "0002148361",
+      "0001808997"
+     ],
+     "period_ending": "2026-09-28",
+     "file_num": [
+      "001-39366"
+     ],
+     "display_names": [
+      "Leary Kevin Daniel  (CIK 0002148361)",
+      "American Outdoor Brands, Inc.  (CIK 0001808997)"
+     ],
+     "xsl": "xslF345X06",
+     "schema_version": "X0609",
+     "sequence": 1,
+     "root_forms": [
+      "4"
+     ],
+     "file_date": "2026-09-30",
+     "biz_states": [
+      "MO"
+     ],
+     "sics": [
+      "3949"
+     ],
+     "form": "4",
+     "adsh": "0002148361-26-000004",
+     "film_num": [
+      "261427662"
+     ],
+     "biz_locations": [
+      "",
+      "Columbia, MO"
+     ],
+     "file_type": "4",
+     "ma_i_individual": null,
+     "file_description": "FORM 4",
+     "inc_states": [
+      "",
+      "DE"
+     ],
+     "items": []
+    },
+    "sort": [
+     1790726400000,
+     "0002148361-26-000004:wk-form4_1790800942.xml"
+    ]
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0002123975-26-000027:wk-form4_1790800195.xml",
+    "_score": null,
+    "_source": {
+     "ciks": [
+      "0002123975",
+      "0001776985"
+     ],
+     "period_ending": "2026-09-29",
+     "file_num": [
+      "001-39081"
+     ],
+     "display_names": [
+      "Sahin Ugur  (CIK 0002123975)",
+      "BioNTech SE  (CIK 0001776985)"
+     ],
+     "xsl": "xslF345X06",
+     "schema_version": "X0609",
+     "sequence": 1,
+     "root_forms": [
+      "4"
+     ],
+     "file_date": "2026-09-30",
+     "biz_states": [
+      "2M"
+     ],
+     "sics": [
+      "2836"
+     ],
+     "form": "4",
+     "adsh": "0002123975-26-000027",
+     "film_num": [
+      "261427478"
+     ],
+     "biz_locations": [
+      "",
+      "Mainz, 2M"
+     ],
+     "file_type": "4",
+     "ma_i_individual": null,
+     "file_description": "FORM 4",
+     "inc_states": [
+      "",
+      "2M"
+     ],
+     "items": []
+    },
+    "sort": [
+     1790726400000,
+     "0002123975-26-000027:wk-form4_1790800195.xml"
+    ]
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0002117905-26-000045:primary_doc.xml",
+    "_score": null,
+    "_source": {
+     "ciks": [
+      "0002117905",
+      "0001468642"
+     ],
+     "period_ending": "2026-09-29",
+     "file_num": [
+      "001-42744"
+     ],
+     "display_names": [
+      "Sousa Mauad Bruno  (CIK 0002117905)",
+      "Aura Minerals Inc.  (CIK 0001468642)"
+     ],
+     "xsl": "xslF345X06",
+     "schema_version": "X0609",
+     "sequence": 1,
+     "root_forms": [
+      "4"
+     ],
+     "file_date": "2026-09-30",
+     "biz_states": [
+      "D8"
+     ],
+     "sics": [
+      "1000"
+     ],
+     "form": "4",
+     "adsh": "0002117905-26-000045",
+     "film_num": [
+      "261427296"
+     ],
+     "biz_locations": [
+      "",
+      "Road Town Tortola, D8"
+     ],
+     "file_type": "4",
+     "ma_i_individual": null,
+     "file_description": "PRIMARY DOCUMENT",
+     "inc_states": [
+      "",
+      "D8"
+     ],
+     "items": []
+    },
+    "sort": [
+     1790726400000,
+     "0002117905-26-000045:primary_doc.xml"
+    ]
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0002102499-26-000002:primary_doc.xml",
+    "_score": null,
+    "_source": {
+     "ciks": [
+      "0002102499",
+      "0001815609"
+     ],
+     "period_ending": "2026-02-04",
+     "file_num": [
+      "811-23583"
+     ],
+     "display_names": [
+      "Hartt Steven Knut  (CIK 0002102499)",
+      "Primark Meketa Private Equity Investments Fund  (CIK 0001815609)"
+     ],
+     "xsl": "xslF345X06",
+     "schema_version": "X0609",
+     "sequence": 1,
+     "root_forms": [
+      "4"
+     ],
+     "file_date": "2026-09-30",
+     "biz_states": [
+      "OH"
+     ],
+     "sics": [],
+     "form": "4",
+     "adsh": "0002102499-26-000002",
+     "film_num": [
+      "261427582"
+     ],
+     "biz_locations": [
+      "",
+      "Cincinnati, OH"
+     ],
+     "file_type": "4",
+     "ma_i_individual": null,
+     "file_description": "PRIMARY DOCUMENT",
+     "inc_states": [
+      "",
+      "DE"
+     ],
+     "items": []
+    },
+    "sort": [
+     1790726400000,
+     "0002102499-26-000002:primary_doc.xml"
+    ]
+   },
+   {
+    "_index": "edgar_file",
+    "_id": "0001901839-26-000005:form4a-09302026_080916.xml",
+    "_score": null,
+    "_source": {
+     "ciks": [
+      "0001901839",
+      "0000882508"
+     ],
+     "period_ending": "2026-09-04",
+     "file_num": [
+      "000-22671"
+     ],
+     "display_names": [
+      "Kim Joyce  (CIK 0001901839)",
+      "QUICKLOGIC Corp  (CIK 0000882508)"
+     ],
+     "xsl": "xslF345X06",
+     "schema_version": "X0609",
+     "sequence": 1,
+     "root_forms": [
+      "4"
+     ],
+     "file_date": "2026-09-30",
+     "biz_states": [
+      "CA"
+     ],
+     "sics": [
+      "3674"
+     ],
+     "form": "4/A",
+     "adsh": "0001901839-26-000005",
+     "film_num": [
+      "261427755"
+     ],
+     "biz_locations": [
+      "",
+      "San Jose, CA"
+     ],
+     "file_type": "4/A",
+     "ma_i_individual": null,
+     "file_description": null,
+     "inc_states": [
+      "",
+      "CA"
+     ],
+     "items": []
+    },
+    "sort": [
+     1790726400000,
+     "0001901839-26-000005:form4a-09302026_080916.xml"
+    ]
+   }
+  ]
+ }
+}
