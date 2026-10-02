@@ -1,0 +1,14 @@
+#!/bin/bash -e
+
+# Wait for Postgres and Redis so one-off commands can run right after `up`.
+until pg_isready -q -h "${DB_HOST:-db}" -U "${DB_USER:-filings_intel}"; do
+  sleep 0.5
+done
+
+redis_host_port="${REDIS_URL#redis://}"
+redis_host_port="${redis_host_port%%/*}"
+until (exec 3<>"/dev/tcp/${redis_host_port%%:*}/${redis_host_port##*:}") 2>/dev/null; do
+  sleep 0.5
+done
+
+exec "$@"

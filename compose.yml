@@ -1,0 +1,51 @@
+# Local development stack. Written for podman-compose; docker compose reads it too.
+#   make setup   build the image and prepare the databases
+#   make test    run the spec suite
+# The SEC poller is off unless EDGAR_POLLING=on is set in .env.
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  image: filingsintel-dev
+  volumes:
+    - .:/app
+  env_file:
+    - .env
+  environment:
+    DB_HOST: db
+    REDIS_URL: redis://redis:6379/0
+  depends_on:
+    - db
+    - redis
+
+services:
+  db:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: filings_intel
+      POSTGRES_PASSWORD: filings_intel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    image: docker.io/library/redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+
+  web:
+    <<: *app
+    command: bash -c "rm -f tmp/pids/server.pid && bin/rails db:prepare && bin/rails server -b 0.0.0.0"
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  sidekiq:
+    <<: *app
+    command: bundle exec sidekiq
+
+volumes:
+  pgdata:
+  redisdata:

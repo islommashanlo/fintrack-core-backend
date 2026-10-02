@@ -1,12 +1,22 @@
+# Bundler and local environment
 /.bundle
-/log
-/tmp
-/db/*.sqlite3
-/db/*.sqlite3-journal
+/.env*
+!/.env.example
+
+# Logs and temp files
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+/tmp/pids/*
+!/tmp/pids/
+!/tmp/pids/.keep
+
+# Raw filing archive (local adapter) and other local storage
+/storage/*
+!/storage/.keep
+
 /public/assets
-/node_modules
-/.byebug_history
-/vendor/bundle
-/.env
-
-
+/config/master.key
+/spec/examples.txt
+/coverage

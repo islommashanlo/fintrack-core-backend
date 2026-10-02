@@ -4,11 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status: read this first
 
-The intended product is **FilingsIntel**, specified in `docs/project-brief.md`. The code in this repo is an older prototype (FinTrack) that predates the brief. The Rails 8 Form 4 pipeline the brief calls "built as of July 2026" lived in a local, unpushed `fintracker` repo that was lost; none of it is here. `docs/gap-analysis.md` (2026-10-02) has the full audit and the open decisions.
+The product is **FilingsIntel**, specified in `docs/project-brief.md`. This branch is a clean Rails 8 rebuild. The Form 4 pipeline the brief calls "built as of July 2026" lived in a local, unpushed `fintracker` repo that was lost, so Phase 1 is being rebuilt here from scratch. The earlier FinTrack prototype (Rails 7.1, different schema) is on `main` and is reference only; `docs/gap-analysis.md` (2026-10-02) audits it against the brief.
 
-- **Current phase:** Phase 1 (Form 4 pipeline), starting from scratch.
-- **Next step:** get the owner's answers to the open decisions in `docs/gap-analysis.md` (rebuild location, frontend, scraper retirement, gems, SEC contact email, local environment). Do not write pipeline code before that.
-- The top half of this file is the target; "The code in this repo today" describes what exists. Don't confuse the two.
+- **Current phase:** Phase 1 (Form 4 pipeline).
+- Decisions taken on 2026-10-02: rebuild on a clean branch of this repo; no frontend work for now; the Python scraper, push-ingest endpoints, politician/HNWI data and the old auth/Stripe/alert code are not carried over.
 
 ## Product
 
@@ -45,76 +44,21 @@ FilingsIntel is a public-filings intelligence platform. Users follow corporate i
 - Don't rename working code to match the brief. Don't write code for a later phase; write `docs/plan-<phase>.md` and wait for approval.
 - Each fix comes with a regression spec, a green suite, and one small commit. Push after every commit: the earlier work was lost because it existed on one disk only.
 
-## The code in this repo today
-
-FinTrack core backend: a Rails 7.1 **API-only** app (Ruby 3.4.7, module `BackendRuby`) on PostgreSQL + Redis/Sidekiq. It stores trades disclosed by politicians, hedge funds, insiders, institutions and HNWIs, serves them to a frontend over JSON, and handles user accounts, Stripe subscriptions and email trade alerts. A separate Python scraper service (`fintrack-scrapers`) calls the SEC and pushes data in through the ingest endpoints.
+## This branch
 
 ### Commands
 
-Everything runs through Docker Compose; the `Makefile` wraps it (`make help` lists all targets). Dev targets use `docker-compose.dev.yml` and `exec` into the running `web` container, so `make dev` must be up first.
+Development runs in containers through podman-compose; the `Makefile` wraps it (`make help`).
 
 | Task | Command |
 | --- | --- |
-| Start / stop dev stack | `make dev` / `make dev-down` (first time: `make setup`) |
-| Full test suite (isolated `docker-compose.test.yml` stack) | `make test` |
-| Tests inside the dev container | `make rspec` |
-| Single spec file | `make rspec-spec FILE=spec/models/trade_source_spec.rb` (append `:LINE` for one example) |
-| Lint / autofix | `make rubocop` / `make rubocop-fix` |
-| Migrate | `make migrate` |
-| Console / shell / routes | `make console` / `make shell` / `make routes` |
-| Logs | `make logs-web`, `make logs-sidekiq`, `make logs-db` |
+| First-time setup | `make setup` |
+| Spec suite | `make test` |
+| One file or example | `make test SPEC=spec/requests/health_spec.rb:6` |
+| Lint / safe autofix | `make lint` / `make lint-fix` |
+| Any rails or rake task | `make rails T="db:migrate"` |
+| Console / shell | `make console` / `make shell` |
+| Start web + Sidekiq | `make up` (web on `localhost:3000`) |
+| Rebuild image after Gemfile changes | `make build` |
 
-Dev ports: API `localhost:3001` (`/health`), Postgres `5433`, Redis `6380`, Mailcatcher `1080`, Redis Commander `8081`. The test stack uses Postgres `5434` / Redis `6381`.
-
-`docker-compose.yml` is the "production" stack (it still sets `RAILS_ENV=development`, port 3000). `docker-compose.override.yml` is only merged for plain `docker-compose` invocations, not for the `-f docker-compose.dev.yml` ones the Makefile uses, and it bind-mounts `./.env`.
-
-Environment variables read by the code (`.env` is loaded by dotenv-rails): `DATABASE_URL`, `DATABASE_TEST_URL`, `REDIS_URL`, `DEVISE_JWT_SECRET_KEY`, `INGEST_API_KEY`, `STRIPE_WEBHOOK_SECRET`, `SENDGRID_API_KEY`, `ALLOWED_ORIGINS` (comma-separated CORS origins).
-
-### Data flow
-
-1. **Ingest** (`Api::IngestController`) — scrapers POST batches to `/api/ingest/trades` and `/api/ingest/institutional_holdings`, authenticated by the `X-Ingest-Token` header matching `INGEST_API_KEY` (`IngestAuth` concern). Each row find-or-creates a `TradeSource` by `(name, source_type)`, skips duplicates, then inserts a `Trade` or `InstitutionalHolding`, all in one transaction. The scraper payload uses different names from the columns: `company_name`→`asset_name`, `value`→`amount`, `transaction_date`→`trade_date`, `filing_url`→`disclosure_url`, `trader_type`→`source_type`.
-2. **Read API** (`/api/traders`, `/api/trades`, `/api/institutional_holdings`, `/api/profiles`, `/api/stats`) — plain controllers that build ActiveRecord scopes from query params and render with `as_json` or hand-written hashes. There are no serializers or service objects on the read path.
-3. **Alerts** — `AlertPreference#matches_trade?` → `NotificationService.send_trade_alerts` → `TradeNotificationMailer.trade_alert(...).deliver_later`, wrapped by `TradeAlertJob`.
-4. **Billing** — `Api::SubscriptionsController` calls `StripeService` to create the Stripe customer/subscription and mirrors it into `UserSubscription`; `POST /api/stripe/webhooks` feeds `StripeService.handle_webhook_event`, which syncs status back by `stripe_subscription_id`.
-
-### Domain model: two generations
-
-- **Current:** `TradeSource` (enum `source_type`: `politician`, `hedge_fund`, `insider`, `institution`, `hnwi`) `has_many :trades` and `:institutional_holdings` (13F snapshots, one row per source × `period_of_report` × ticker). `AlertPreference`, `SubscriptionPlan`, `UserSubscription`.
-- **Legacy (from the first commit):** `Trader`, `AlertSubscription`, `Api::AlertsController`. "Trader" in URLs and params now means `TradeSource`: `/api/traders` serves `TradeSource` rows and `profiles/:trader_id` is a `TradeSource` id.
-
-When adding a new source type, update the `TradeSource` enum and scopes, `AlertPreference`'s separate `source_type` enum (currently missing `institution`/`hnwi`), and the `Api::TradersController` collection actions.
-
-### Authentication and authorization
-
-Devise and devise-jwt are installed, but request auth is hand-rolled and does not go through devise-jwt:
-
-- `Api::AuthController` (`/api/signup`, `/api/login`) issues tokens via `User#generate_jwt_token` — HS256, 24h expiry, payload carries `user_id`.
-- The `Authenticate` concern overrides Devise's `authenticate_user!` and `current_user`: it reads the `Authorization: Bearer` header, decodes with `JwtVerifier`, and stores the user in `Current.user`.
-- The secret (`DEVISE_JWT_SECRET_KEY` plus a hard-coded fallback) and algorithm are duplicated in `app/models/user.rb`, `app/services/jwt_verifier.rb` and `config/initializers/jwt.rb`; change them together.
-- `ApplicationController` applies `authenticate_user!` to everything except health and signup/login. `Api::IngestController` and `Api::InstitutionalHoldingsController` inherit from `ActionController::API` directly and include their own auth concern, so `ApplicationController` changes don't reach them.
-- Roles come from rolify (`:user` assigned on create, `:admin`); `Ability` (CanCanCan) is defined but API controllers don't call `authorize!`. In practice it only gates RailsAdmin.
-
-### Non-API surface
-
-`config/application.rb` re-adds cookie, session, flash and method-override middleware to the API-only stack so RailsAdmin can run at `/admin`. `Sidekiq::Web` is mounted at `/sidekiq` with no authentication.
-
-### Known gaps
-
-Found by reading the code; nothing here has been run (see `docs/gap-analysis.md` for evidence and the invariant-by-invariant check). Check whether each is still true before relying on, or working around, it.
-
-**Build and test tooling**
-- `docker-compose.dev.yml` builds `web` with `target: development`, but the `Dockerfile` is single-stage with no named stages.
-- The `Dockerfile` sets `BUNDLE_WITHOUT=development:test`, which excludes `rspec-rails` and `rubocop` from the image that `make test`, `make rspec` and `make rubocop` run in.
-- `spec/rails_helper.rb`, `spec/spec_helper.rb`, `.rspec`, `.rubocop.yml` and `config/environments/test.rb` don't exist, though every spec requires `rails_helper`. The existing specs are untouched generator scaffolds (pending model specs; request specs hitting the stray `get 'alert_preferences/index'`-style routes).
-
-**Database**
-- There is no `db/schema.rb` or `db/seeds.rb`. Migrations alter `users` and `trades` but nothing creates them, nor `traders`, `alert_subscriptions`, `roles` or `users_roles`; `db/migrate/20251017224529_rolify_create_roles.rb` is an empty file. The base tables come from the Python service's SQLAlchemy `create_all`, so a fresh database can't be built from the migrations alone.
-
-**Application code**
-- `Authenticate` rescues `Authenticate::Unauthorized`, but `JwtVerifier` raises its own `JwtVerifier::Unauthorized`, and a missing token reaches `find_user_by_jwt(nil)`. A token for a nonexistent user leaves `Current.user` nil and the request proceeds. The 401 path isn't wired up.
-- `User` lacks `has_many :alert_preferences` and `:user_subscriptions`, which `Api::AlertPreferencesController` and `Api::SubscriptionsController` call on `current_user`.
-- `Api::StatsController` still queries the legacy schema (`transaction_date`, `value`, `company_name`, a `trader` association on `Trade`, `Trader.joins(:trades)`), none of which match the current `Trade` model.
-- `config/routes.rb` routes `traders#institutions` and `traders#hnwis`, which `Api::TradersController` doesn't define; `Api::AlertsController` has no routes.
-- `Api::StripeController` skips `verify_authenticity_token`, which isn't a callback on an `ActionController::API` controller. `Stripe.api_key` is never set.
-- Nothing enqueues `TradeAlertJob` (ingest doesn't trigger alerts), and `config.active_job.queue_adapter` isn't set, so ActiveJob and `deliver_later` don't go through Sidekiq. Only `Sidekiq::Worker` classes in `app/workers/` do.
-- No ActionMailer delivery method is configured; `ApplicationMailer#sendgrid_client` is defined but unused, and Mailcatcher isn't wired in.
+`.env` (not committed; see `.env.example`) holds `SEC_USER_AGENT_EMAIL` and `EDGAR_POLLING`. Specs use Redis database 15 and flush it before every example.

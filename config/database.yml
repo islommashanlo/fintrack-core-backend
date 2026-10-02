@@ -1,17 +1,21 @@
 default: &default
   adapter: postgresql
   encoding: unicode
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
-  url: <%= ENV.fetch("DATABASE_URL", "postgresql://fintrack:fintrack@localhost:5432/fintrack") %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  host: <%= ENV.fetch("DB_HOST", "localhost") %>
+  username: <%= ENV.fetch("DB_USER", "filings_intel") %>
+  password: <%= ENV.fetch("DB_PASSWORD", "filings_intel") %>
 
 development:
   <<: *default
+  database: filings_intel_development
 
 test:
   <<: *default
-  url: <%= ENV.fetch("DATABASE_TEST_URL", ENV.fetch("DATABASE_URL", "postgresql://fintrack:fintrack@localhost:5432/fintrack_test")) %>
+  database: filings_intel_test
 
 production:
-  <<: *default
-
-
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  url: <%= ENV["DATABASE_URL"] %>

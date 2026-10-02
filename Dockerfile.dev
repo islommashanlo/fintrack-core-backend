@@ -1,0 +1,15 @@
+# Development and test image. The source tree is bind-mounted at /app by compose.yml;
+# rebuild (make build) after changing the Gemfile.
+FROM docker.io/library/ruby:3.4
+
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y postgresql-client && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY Gemfile Gemfile.lock ./
+RUN bundle install --jobs 4
+
+ENTRYPOINT ["bin/dev-entrypoint"]
+CMD ["bin/rails", "server", "-b", "0.0.0.0"]

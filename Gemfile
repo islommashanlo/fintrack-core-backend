@@ -1,48 +1,43 @@
 # frozen_string_literal: true
 
-source 'https://rubygems.org'
+source "https://rubygems.org"
 
-ruby '~> 3.4.7'
+gem "rails", "~> 8.0.5", ">= 8.0.5.1"
+gem "pg", "~> 1.1"
+gem "puma", ">= 5.0"
 
-gem 'jwt', '~> 2.8'
-gem 'pg', '~> 1.5'
-gem 'puma', '~> 6.4'
-gem 'rack-cors', '~> 2.0'
-gem 'rails', '~> 7.1'
-gem 'redis', '~> 5.0'
-gem 'sidekiq', '~> 7.2'
+# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
+gem "tzinfo-data", platforms: %i[ windows jruby ]
 
-# Authentication & Authorization
-gem 'cancancan', '~> 3.5'
-gem 'devise', '~> 4.9'
-gem 'devise-jwt', '~> 0.11'
-gem 'rolify', '~> 6.0'
+# Reduces boot times through caching; required in config/boot.rb
+gem "bootsnap", require: false
 
-# Payment Processing
-gem 'stripe', '~> 10.2'
+# Background jobs and the cron schedule for the EDGAR poller
+gem "sidekiq", "~> 7.3"
+gem "sidekiq-cron", "~> 2.0"
 
-# Email Service
-gem 'sendgrid-ruby', '~> 6.7'
+# Redis access for the SEC rate limiter (already a Sidekiq dependency)
+gem "redis-client"
 
-# Admin Interface
-gem 'rails_admin', '~> 3.1'
-
-# Environment Variables
-gem 'dotenv-rails', '~> 3.1'
-
-# API Documentation
-gem 'rswag', '~> 2.13'
-
-# Search and filtering
-gem 'ransack', '~> 4.1'
-
-# Rails Admin assets
-gem 'sassc-rails', '~> 2.1'
+# SEC HTTP (only through SecClient) and filing XML
+gem "faraday", "~> 2.0"
+gem "nokogiri", "~> 1.18"
 
 group :development, :test do
-  gem 'listen', '~> 3.8'
-  gem 'rspec-rails', '~> 6.1'
-  gem 'rubocop', require: false
-  gem 'ruby-lsp', require: false
-  gem 'ruby-lsp-rails', require: false
+  gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+
+  # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
+  gem "rubocop-rails-omakase", require: false
+
+  gem "rspec-rails", ">= 7.1"
+  gem "factory_bot_rails"
+end
+
+group :test do
+  # Blocks all real HTTP in specs; tests must never reach the SEC
+  gem "webmock"
+end
+
+group :development do
+  gem "web-console"
 end
