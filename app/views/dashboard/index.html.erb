@@ -91,6 +91,53 @@
   <section class="section-block">
     <div class="section-heading">
       <div>
+        <p class="eyebrow">Latest parsed 13F quarter</p>
+        <h2>Institutional whale flow</h2>
+      </div>
+      <span class="section-heading__count"><%= @institutional_flow.size %> shown</span>
+    </div>
+
+    <% if @institutional_flow.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Security</th>
+                <th scope="col">Flow</th>
+                <th scope="col" class="numeric">Institutions</th>
+                <th scope="col" class="numeric">Moves</th>
+                <th scope="col" class="numeric">Net value delta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @institutional_flow.each do |flow| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= flow["name_of_issuer"].presence || "Unknown security" %></strong>
+                    <span class="table-secondary"><%= [ flow["cusip"], flow["title_of_class"] ].compact_blank.join(" · ") %></span>
+                  </td>
+                  <td><span class="change-pill change-pill--<%= institutional_flow_class(flow["net_value_usd_delta"]) %>"><%= institutional_flow_label(flow["net_value_usd_delta"]) %></span></td>
+                  <td class="numeric"><%= signal_number(flow["institutions"]) %></td>
+                  <td class="numeric"><%= signal_number(flow["moves"]) %></td>
+                  <td class="numeric">
+                    <%= signed_signal_money(flow["net_value_usd_delta"]) %>
+                    <% if flow["suspect"] %><span class="table-secondary">some values flagged</span><% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "Institutional flow will appear after quarter-over-quarter 13F diffs are available." %>
+    <% end %>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
         <p class="eyebrow">Last 7 days</p>
         <h2>Recent insider purchases</h2>
       </div>

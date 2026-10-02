@@ -107,4 +107,12 @@ module ApplicationHelper
       ticker_path(entry["target_key"])
     end
   end
+
+  def institutional_flow_class(value)
+    value.to_d.negative? ? "trim" : "add"
+  end
+
+  def institutional_flow_label(value)
+    value.to_d.negative? ? "Net trim" : "Net add"
+  end
 end
