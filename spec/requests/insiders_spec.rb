@@ -20,12 +20,14 @@ RSpec.describe "Insider profiles" do
         "shares" => 500, "price" => BigDecimal("25"), "price_suspect" => false,
         "value" => BigDecimal("12500") }
     ])
+    allow(profile).to receive(:issuer_activity).and_return([])
   end
 
   it "shows the insider activity profile" do
     get insider_path("0000000456")
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Jane Doe", "Transaction history", "Acme Corp", "Reported purchase value")
+    expect(response.body).to include("Jane Doe", "Issuer activity", "Transaction history", "Acme Corp",
+                                     "Reported purchase value")
   end
 end

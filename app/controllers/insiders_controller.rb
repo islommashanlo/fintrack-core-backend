@@ -11,5 +11,6 @@ class InsidersController < ApplicationController
     @insider_name = profile.name
     @summary = profile.summary
     @transactions = profile.transactions(limit: 40)
+    @issuer_activity = profile.issuer_activity(days: 730, limit: 12)
   end
 end

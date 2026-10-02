@@ -32,4 +32,25 @@ RSpec.describe InsiderProfile do
       "purchase_count" => 1, "purchase_value" => nil, "purchases_without_usable_price" => 1
     )
   end
+
+  it "aggregates issuer activity with point-in-time purchase values" do
+    recent = create(:filing, filed_at: as_of - 1.day, issuer_cik: "0000000123",
+                             issuer_name: "Acme Corp", issuer_ticker: "ACME")
+    create(:insider_transaction, filing: recent, insider_cik:, insider_name: "Jane Doe",
+                                 transaction_code: "P", shares: 500, price: 25)
+    create(:insider_transaction, filing: recent, insider_cik:, insider_name: "Jane Doe",
+                                 transaction_code: "S", shares: 100, price: 30)
+    older = create(:filing, filed_at: as_of - 400.days, issuer_cik: "0000000457",
+                            issuer_name: "Beta Corp", issuer_ticker: "BETA")
+    create(:insider_transaction, filing: older, insider_cik:, insider_name: "Jane Doe",
+                                 transaction_code: "P", shares: 200, price: 10)
+
+    activity = described_class.new(insider_cik:, as_of:).issuer_activity(days: 365)
+
+    expect(activity).to include(
+      include("issuer_cik" => "0000000123", "issuer_ticker" => "ACME", "purchase_count" => 1,
+              "sale_count" => 1, "purchase_value" => BigDecimal("12500"))
+    )
+    expect(activity).not_to include(include("issuer_cik" => "0000000457"))
+  end
 end

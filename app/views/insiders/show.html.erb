@@ -38,6 +38,50 @@
   <section class="section-block">
     <div class="section-heading">
       <div>
+        <p class="eyebrow">Last 730 days</p>
+        <h2>Issuer activity</h2>
+      </div>
+      <span class="section-heading__count"><%= @issuer_activity.size %> shown</span>
+    </div>
+
+    <% if @issuer_activity.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Issuer</th>
+                <th scope="col" class="numeric">Purchases</th>
+                <th scope="col" class="numeric">Sales</th>
+                <th scope="col" class="numeric">Purchase value</th>
+                <th scope="col">Last filed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @issuer_activity.each do |issuer| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= issuer_label(issuer) %></strong>
+                    <span class="table-secondary"><%= issuer["issuer_name"].presence || "Issuer name unavailable" %> · CIK <%= issuer["issuer_cik"] %></span>
+                  </td>
+                  <td class="numeric"><%= signal_number(issuer["purchase_count"]) %></td>
+                  <td class="numeric"><%= signal_number(issuer["sale_count"]) %></td>
+                  <td class="numeric"><%= signal_money(issuer["purchase_value"]) %></td>
+                  <td><%= signal_date(issuer["last_filed_at"]) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "No issuer activity was found in the last two years." %>
+    <% end %>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
         <p class="eyebrow">Last 365 days</p>
         <h2>Transaction history</h2>
       </div>

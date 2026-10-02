@@ -62,6 +62,23 @@ class InsiderProfile
     SQL
   end
 
+  def issuer_activity(days: 730, limit: 12)
+    select(<<~SQL, since: @as_of - days.days, limit:)
+      SELECT t.issuer_cik,
+             (array_agg(f.issuer_name ORDER BY f.filed_at DESC NULLS LAST))[1] AS issuer_name,
+             (array_agg(COALESCE(NULLIF(t.issuer_ticker, ''), f.issuer_ticker)
+                        ORDER BY f.filed_at DESC NULLS LAST))[1] AS issuer_ticker,
+             COUNT(*) FILTER (WHERE t.transaction_code = 'P') AS purchase_count,
+             COUNT(*) FILTER (WHERE t.transaction_code = 'S') AS sale_count,
+             SUM(#{VALUE}) FILTER (WHERE t.transaction_code = 'P' AND #{USABLE_PRICE}) AS purchase_value,
+             MAX(f.filed_at) AS last_filed_at
+      #{TRANSACTIONS}
+      GROUP BY t.issuer_cik
+      ORDER BY last_filed_at DESC NULLS LAST, purchase_count DESC, t.issuer_cik
+      LIMIT :limit
+    SQL
+  end
+
   private
 
   def select(sql, since:, limit:)
