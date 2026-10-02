@@ -1,0 +1,161 @@
+<% content_for :title, "Dashboard | FilingsIntel" %>
+
+<div class="shell dashboard">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">Public filing signals</p>
+      <h1>See where insiders are putting money.</h1>
+      <p class="hero__copy">
+        A focused view of recent Form 4 purchases, coordinated buying, and the insiders
+        filing the strongest purchase activity.
+      </p>
+    </div>
+    <div class="as-of-card">
+      <span class="as-of-card__label">Data viewed as of</span>
+      <strong><%= @as_of.strftime("%b %-d, %Y") %></strong>
+      <span class="as-of-card__note">Windows use SEC filing time.</span>
+    </div>
+  </section>
+
+  <section class="section-block">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Last 7 days</p>
+        <h2>Recent insider purchases</h2>
+      </div>
+      <span class="section-heading__count"><%= @recent_purchases.size %> shown</span>
+    </div>
+
+    <% if @recent_purchases.any? %>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Issuer</th>
+                <th scope="col">Insider</th>
+                <th scope="col">Filed</th>
+                <th scope="col" class="numeric">Shares</th>
+                <th scope="col" class="numeric">Price</th>
+                <th scope="col" class="numeric">Reported value</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @recent_purchases.each do |purchase| %>
+                <tr>
+                  <td>
+                    <strong class="table-primary"><%= issuer_label(purchase) %></strong>
+                    <span class="table-secondary"><%= purchase["issuer_name"].presence || "Issuer name unavailable" %></span>
+                  </td>
+                  <td>
+                    <strong class="table-primary"><%= insider_label(purchase) %></strong>
+                    <span class="table-secondary"><%= signal_role(purchase) %></span>
+                  </td>
+                  <td><%= signal_date(purchase["filed_at"]) %></td>
+                  <td class="numeric"><%= signal_number(purchase["shares"]) %></td>
+                  <td class="numeric">
+                    <%= signal_price(purchase["price"], suspect: purchase["price_suspect"]) %>
+                    <% if purchase["price_suspect"] %>
+                      <span class="table-secondary">flagged</span>
+                    <% end %>
+                  </td>
+                  <td class="numeric"><%= signal_money(purchase["value"]) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% else %>
+      <%= render "shared/empty_state", message: "No purchase filings were found in the last 7 days." %>
+    <% end %>
+  </section>
+
+  <div class="dashboard-grid">
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Last 30 days</p>
+          <h2>Cluster buying</h2>
+        </div>
+        <span class="section-heading__count"><%= @cluster_buys.size %> shown</span>
+      </div>
+
+      <% if @cluster_buys.any? %>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Issuer</th>
+                  <th scope="col" class="numeric">Insiders</th>
+                  <th scope="col" class="numeric">Purchases</th>
+                  <th scope="col" class="numeric">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @cluster_buys.each do |cluster| %>
+                  <tr>
+                    <td>
+                      <strong class="table-primary"><%= issuer_label(cluster) %></strong>
+                      <span class="table-secondary"><%= cluster["issuer_name"].presence || "Issuer name unavailable" %></span>
+                    </td>
+                    <td class="numeric"><%= signal_number(cluster["insiders"]) %></td>
+                    <td class="numeric"><%= signal_number(cluster["purchases"]) %></td>
+                    <td class="numeric"><%= signal_money(cluster["value"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "No multi-insider buying clusters were found." %>
+      <% end %>
+    </section>
+
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Last 90 days</p>
+          <h2>Top active insiders</h2>
+        </div>
+        <span class="section-heading__count"><%= @top_insiders.size %> shown</span>
+      </div>
+
+      <% if @top_insiders.any? %>
+        <div class="table-card">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Insider</th>
+                  <th scope="col" class="numeric">Purchases</th>
+                  <th scope="col" class="numeric">Issuers</th>
+                  <th scope="col" class="numeric">Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @top_insiders.each do |insider| %>
+                  <tr>
+                    <td><strong class="table-primary"><%= insider_label(insider) %></strong></td>
+                    <td class="numeric"><%= signal_number(insider["purchases"]) %></td>
+                    <td class="numeric"><%= signal_number(insider["issuers"]) %></td>
+                    <td class="numeric"><%= signal_money(insider["value"]) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "No insider activity was found in the last 90 days." %>
+      <% end %>
+    </section>
+  </div>
+
+  <footer class="dashboard-footer">
+    <p>FilingsIntel presents information as reported in SEC filings. It is a research tool, not investment advice.</p>
+    <p>Values with missing or flagged prices are shown without an estimated transaction value.</p>
+  </footer>
+</div>
