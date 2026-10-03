@@ -14,10 +14,11 @@ RSpec.describe "Alerts" do
   it "shows and pauses the user's alert rule" do
     post session_path, params: { email_address: user.email_address, password: "password123" }
     rule = create(:follow, user:, target_type: "Ticker", target_key: "ACME").alert_rule
+    delivery = create(:alert_delivery, alert_rule: rule)
 
     get alerts_path
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Email alerts", "ACME", "Active")
+    expect(response.body).to include("Email alerts", "ACME", "Active", "Recent deliveries", delivery.filing.edgar_url)
 
     patch alert_rule_path(rule), params: { alert_rule: { active: false } }
 

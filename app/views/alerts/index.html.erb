@@ -70,7 +70,13 @@
                     <span class="table-secondary"><%= delivery.alert_rule.follow.target_type.humanize %></span>
                   </td>
                   <td><%= delivery.filing.form_type %></td>
-                  <td><%= signal_date(delivery.filing.filed_at) %></td>
+                  <td>
+                    <%= link_to signal_date(delivery.filing.filed_at), delivery.filing.edgar_url,
+                                target: "_blank", rel: "noopener" %>
+                    <% if delivery.status == "failed" && delivery.error.present? %>
+                      <span class="table-secondary"><%= delivery.error %></span>
+                    <% end %>
+                  </td>
                   <td><span class="alert-status alert-status--<%= delivery.status %>"><%= delivery.status.humanize %></span></td>
                 </tr>
               <% end %>
