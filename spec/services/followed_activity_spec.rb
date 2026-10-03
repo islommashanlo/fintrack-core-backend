@@ -25,6 +25,21 @@ RSpec.describe FollowedActivity do
     expect(rows.last).to include("label" => "Jane Doe", "activity_kind" => "P", "value" => 1000)
   end
 
+  it "includes 10b5-1 status and dates for followed Form 4 activity" do
+    user = create(:user)
+    filing = create(:filing, filed_at: as_of - 1.day, issuer_ticker: "ACME", issuer_name: "Acme Corp",
+                             aff10b5_one: true,
+                             footnotes: { "F1" => "These shares were purchased pursuant to a Rule 10b5-1 trading plan adopted on May 19, 2026." })
+    create(:insider_transaction, filing:, insider_cik: "0000000456", insider_name: "Jane Doe",
+                                 transaction_code: "P", shares: 100, price: 10, footnote_ids: %w[F1])
+    create(:follow, user:, target_type: "Insider", target_key: "0000000456")
+
+    expect(described_class.new(user:, as_of:).recent.first).to include(
+      "plan_status" => "10b5-1 plan disclosed",
+      "plan_adoption_date" => Date.new(2026, 5, 19)
+    )
+  end
+
   it "only returns activity for the requested user and filing window" do
     user = create(:user)
     other_user = create(:user, email_address: "other@example.com")

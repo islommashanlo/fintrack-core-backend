@@ -53,13 +53,14 @@ RSpec.describe "Dashboard" do
     allow(followed).to receive(:recent).and_return([
       { "label" => "Jane Doe", "target_type" => "Insider", "target_key" => "0000000456",
         "activity_source" => "Form 4", "activity_kind" => "P", "filed_at" => Time.current,
-        "issuer_ticker" => "ACME", "value" => BigDecimal("1000"), "price_suspect" => false }
+        "issuer_ticker" => "ACME", "value" => BigDecimal("1000"), "price_suspect" => false,
+        "plan_status" => "10b5-1 plan disclosed", "plan_adoption_date" => Date.new(2026, 5, 19) }
     ])
 
     post session_path, params: { email_address: user.email_address, password: "password123" }
     get root_path
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Recent followed activity", "Jane Doe", "Manage watchlist")
+    expect(response.body).to include("Recent followed activity", "Jane Doe", "10b5-1 plan disclosed", "Manage watchlist")
   end
 end

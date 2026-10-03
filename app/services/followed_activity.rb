@@ -15,6 +15,9 @@ class FollowedActivity
            t.shares,
            t.price,
            t.price_suspect,
+           f.aff10b5_one AS plan_disclosed,
+           f.footnotes AS filing_footnotes,
+           t.footnote_ids AS transaction_footnote_ids,
            CASE WHEN t.price IS NOT NULL AND NOT t.price_suspect THEN t.shares * t.price END AS value
     FROM insider_transactions t
     INNER JOIN filings f ON f.id = t.filing_id
@@ -40,7 +43,13 @@ class FollowedActivity
 
   def recent(days: 30, limit: 20)
     binds = { user_id: @user.id, since: @as_of - days.days, as_of: @as_of, limit: }
-    ApplicationRecord.connection.select_all(ApplicationRecord.sanitize_sql([ sql, binds ])).to_a
+    rows = ApplicationRecord.connection.select_all(ApplicationRecord.sanitize_sql([ sql, binds ])).to_a
+
+    rows.map do |row|
+      next row unless row["activity_source"] == "Form 4"
+
+      Form4PlanClassifier.annotate(row)
+    end
   end
 
   private
@@ -63,6 +72,9 @@ class FollowedActivity
                form4_activity.shares,
                form4_activity.price,
                form4_activity.price_suspect,
+               form4_activity.plan_disclosed,
+               form4_activity.filing_footnotes,
+               form4_activity.transaction_footnote_ids,
                form4_activity.value,
                NULL::date AS period_of_report,
                NULL::text AS report_type
@@ -88,6 +100,9 @@ class FollowedActivity
                NULL::numeric AS shares,
                NULL::numeric AS price,
                NULL::boolean AS price_suspect,
+               NULL::boolean AS plan_disclosed,
+               NULL::jsonb AS filing_footnotes,
+               NULL::text[] AS transaction_footnote_ids,
                NULL::numeric AS value,
                reports.period_of_report,
                reports.report_type

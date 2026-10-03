@@ -62,6 +62,13 @@
                       <% if activity["activity_source"] == "Form 4" %>
                         <span class="transaction-pill transaction-pill--<%= activity["activity_kind"].downcase %>"><%= transaction_type_label(activity["activity_kind"]) %></span>
                         <span class="table-secondary"><%= issuer_label(activity) %></span>
+                        <% if activity["plan_status"].present? %>
+                          <span class="table-secondary">
+                            <%= activity["plan_status"] %>
+                            <% if activity["plan_adoption_date"] %> · adopted <%= signal_date(activity["plan_adoption_date"]) %><% end %>
+                            <% if activity["plan_termination_date"] %> · terminated <%= signal_date(activity["plan_termination_date"]) %><% end %>
+                          </span>
+                        <% end %>
                       <% else %>
                         <span class="change-pill change-pill--add"><%= activity["activity_kind"] %></span>
                         <span class="table-secondary">Period <%= signal_date(activity["period_of_report"]) %></span>
