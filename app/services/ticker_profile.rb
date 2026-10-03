@@ -55,7 +55,7 @@ class TickerProfile
 
   def transactions(days: 365, limit: 40)
     Form4PlanClassifier.annotate_rows(select(<<~SQL, since: @as_of - days.days, limit:))
-      SELECT f.filed_at, f.accession_no, f.issuer_cik, f.issuer_name,
+      SELECT f.filed_at, f.accession_no, f.cik AS filing_cik, f.issuer_cik, f.issuer_name,
              COALESCE(NULLIF(t.issuer_ticker, ''), f.issuer_ticker) AS issuer_ticker,
              t.insider_cik, t.insider_name, t.transaction_date, t.transaction_code,
              t.shares, t.price, t.price_suspect, t.acquired_disposed,

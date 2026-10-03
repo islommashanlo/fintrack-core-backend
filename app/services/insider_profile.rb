@@ -52,7 +52,7 @@ class InsiderProfile
 
   def transactions(days: 365, limit: 40)
     Form4PlanClassifier.annotate_rows(select(<<~SQL, since: @as_of - days.days, limit:))
-      SELECT f.filed_at, f.accession_no, f.issuer_cik, f.issuer_name, f.issuer_ticker,
+      SELECT f.filed_at, f.accession_no, f.cik AS filing_cik, f.issuer_cik, f.issuer_name, f.issuer_ticker,
              t.insider_name, t.transaction_date, t.transaction_code, t.shares, t.price,
              t.price_suspect, t.acquired_disposed, t.security_title,
              f.aff10b5_one AS plan_disclosed, f.footnotes AS filing_footnotes,

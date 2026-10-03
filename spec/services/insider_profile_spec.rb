@@ -22,6 +22,7 @@ RSpec.describe InsiderProfile do
     expect(profile.summary).to include("purchase_count" => 1, "sale_count" => 1, "issuer_count" => 2,
                                        "purchase_value" => BigDecimal("12500"))
     expect(profile.transactions.map { |row| row["transaction_code"] }).to eq(%w[P S])
+    expect(profile.transactions.first["filing_cik"]).to eq(purchase_filing.cik)
     expect(profile.transactions.first["plan_status"]).to eq("10b5-1 plan disclosed")
   end
 

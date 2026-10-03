@@ -19,7 +19,8 @@ RSpec.describe "Ticker profiles" do
       { "insider_name" => "Jane Doe", "insider_cik" => "0000000456", "transaction_code" => "P",
         "transaction_date" => Date.new(2026, 9, 28), "filed_at" => Time.zone.parse("2026-10-01 15:00"),
         "shares" => 500, "price" => BigDecimal("25"), "price_suspect" => false,
-        "value" => BigDecimal("12500"), "plan_status" => "10b5-1 plan disclosed" }
+        "value" => BigDecimal("12500"), "plan_status" => "10b5-1 plan disclosed",
+        "accession_no" => "0000000003-26-000003", "filing_cik" => "0000000003" }
     ])
     allow(profile).to receive(:institutional_holdings).and_return([])
     allow(profile).to receive(:institutional_changes).and_return([])
@@ -41,5 +42,6 @@ RSpec.describe "Ticker profiles" do
                                      "Smart-money overlap",
                                      "Institutional ownership", "Institutional ownership history",
                                      "Institutional ownership changes", "mapped CUSIP", "10b5-1 plan disclosed")
+    expect(response.body).to include("https://www.sec.gov/Archives/edgar/data/3/0000000003-26-000003.txt")
   end
 end

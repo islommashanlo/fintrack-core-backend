@@ -50,7 +50,8 @@ RSpec.describe InstitutionalProfile do
     history = described_class.new(institutional_filer: institution).report_history
 
     expect(history.map { |report| report["id"] }).to eq([ newer.id, amendment.id, original.id ])
-    expect(history[1]).to include("amendment_type" => "RESTATEMENT", "accession_no" => amendment.filing.accession_no)
+    expect(history[1]).to include("amendment_type" => "RESTATEMENT", "filing_cik" => amendment.filing.cik,
+                                  "accession_no" => amendment.filing.accession_no)
   end
 
   it "excludes reports filed after the point-in-time cutoff" do

@@ -18,7 +18,8 @@ RSpec.describe "Insider profiles" do
       { "issuer_ticker" => "ACME", "issuer_name" => "Acme Corp", "transaction_code" => "P",
         "transaction_date" => Date.new(2026, 9, 28), "filed_at" => transaction.filing.filed_at,
         "shares" => 500, "price" => BigDecimal("25"), "price_suspect" => false,
-        "value" => BigDecimal("12500"), "plan_status" => "10b5-1 plan disclosed" }
+        "value" => BigDecimal("12500"), "plan_status" => "10b5-1 plan disclosed",
+        "accession_no" => "0000000004-26-000004", "filing_cik" => "0000000004" }
     ])
     allow(profile).to receive(:issuer_activity).and_return([])
   end
@@ -29,5 +30,6 @@ RSpec.describe "Insider profiles" do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Jane Doe", "Issuer activity", "Transaction history", "Acme Corp",
                                      "Reported purchase value", "10b5-1 plan disclosed")
+    expect(response.body).to include("https://www.sec.gov/Archives/edgar/data/4/0000000004-26-000004.txt")
   end
 end

@@ -17,6 +17,7 @@ RSpec.describe TickerProfile do
     expect(profile.summary).to include("purchase_count" => 1, "insider_count" => 1,
                                        "purchase_value" => BigDecimal("12500"))
     expect(profile.transactions.first).to include("insider_name" => "Jane Doe", "transaction_code" => "P",
+                                                  "filing_cik" => filing.cik,
                                                   "plan_status" => "10b5-1 plan disclosed")
   end
 

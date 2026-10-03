@@ -28,6 +28,7 @@ class InstitutionalProfile
              r.table_value_total,
              r.cover_value_unit,
              r.suspect,
+             f.cik AS filing_cik,
              f.accession_no
       FROM institutional_reports r
       INNER JOIN filings f ON f.id = r.filing_id
