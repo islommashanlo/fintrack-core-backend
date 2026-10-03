@@ -71,7 +71,8 @@ RSpec.describe InsiderSignals do
       rows = signals.recent_purchases
 
       expect(rows.size).to eq(1)
-      expect(rows.first).to include("insider_cik" => "0000000901", "reporting_owners" => 3, "value" => 1000)
+      expect(rows.first).to include("insider_cik" => "0000000901", "filing_cik" => filing.cik,
+                                    "reporting_owners" => 3, "value" => 1000)
     end
 
     it "includes the 10b5-1 status and adoption date on a purchase" do

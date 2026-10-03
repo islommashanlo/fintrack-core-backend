@@ -26,6 +26,13 @@ module ApplicationHelper
     number_to_currency(value, precision: 2)
   end
 
+  def sec_filing_url(row)
+    return if row["filing_cik"].blank? || row["accession_no"].blank?
+
+    "https://www.sec.gov/Archives/edgar/data/#{Cik.path_segment(row["filing_cik"])}" \
+      "/#{row["accession_no"]}.txt"
+  end
+
   def signal_role(row)
     row["officer_title"].presence ||
       ("Director" if row["is_director"]) ||

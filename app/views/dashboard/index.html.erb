@@ -74,7 +74,13 @@
                         <span class="table-secondary">Period <%= signal_date(activity["period_of_report"]) %></span>
                       <% end %>
                     </td>
-                    <td><%= signal_date(activity["filed_at"]) %></td>
+                    <td>
+                      <% if sec_filing_url(activity) %>
+                        <%= link_to signal_date(activity["filed_at"]), sec_filing_url(activity), target: "_blank", rel: "noopener" %>
+                      <% else %>
+                        <%= signal_date(activity["filed_at"]) %>
+                      <% end %>
+                    </td>
                     <td class="numeric">
                       <% if activity["activity_source"] == "Form 4" %>
                         <%= signal_money(activity["value"]) %>
@@ -227,7 +233,13 @@
                       </span>
                     <% end %>
                   </td>
-                  <td><%= signal_date(purchase["filed_at"]) %></td>
+                  <td>
+                    <% if sec_filing_url(purchase) %>
+                      <%= link_to signal_date(purchase["filed_at"]), sec_filing_url(purchase), target: "_blank", rel: "noopener" %>
+                    <% else %>
+                      <%= signal_date(purchase["filed_at"]) %>
+                    <% end %>
+                  </td>
                   <td class="numeric"><%= signal_number(purchase["shares"]) %></td>
                   <td class="numeric">
                     <%= signal_price(purchase["price"], suspect: purchase["price_suspect"]) %>

@@ -21,8 +21,9 @@ RSpec.describe FollowedActivity do
     rows = described_class.new(user:, as_of:).recent
 
     expect(rows.map { |row| row["activity_source"] }).to eq(%w[13F Form\ 4])
-    expect(rows.first).to include("label" => "Acme Capital", "activity_kind" => "13F-HR")
-    expect(rows.last).to include("label" => "Jane Doe", "activity_kind" => "P", "value" => 1000)
+    expect(rows.first).to include("label" => "Acme Capital", "activity_kind" => "13F-HR", "filing_cik" => institution.cik)
+    expect(rows.last).to include("label" => "Jane Doe", "activity_kind" => "P", "filing_cik" => insider_filing.cik,
+                                 "value" => 1000)
   end
 
   it "includes 10b5-1 status and dates for followed Form 4 activity" do

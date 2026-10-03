@@ -20,7 +20,8 @@ RSpec.describe "Dashboard" do
         "officer_title" => "Chief Executive Officer", "filed_at" => Time.zone.parse("2026-10-01 15:00"),
         "shares" => 500, "price" => BigDecimal("25"), "price_suspect" => false,
         "value" => BigDecimal("12500"), "plan_status" => "10b5-1 plan disclosed",
-        "plan_adoption_date" => Date.new(2026, 5, 19)
+        "plan_adoption_date" => Date.new(2026, 5, 19), "accession_no" => "0000000001-26-000001",
+        "filing_cik" => "0000000001"
       }
     ])
     allow(signals).to receive(:cluster_buys).and_return([
@@ -54,13 +55,15 @@ RSpec.describe "Dashboard" do
       { "label" => "Jane Doe", "target_type" => "Insider", "target_key" => "0000000456",
         "activity_source" => "Form 4", "activity_kind" => "P", "filed_at" => Time.current,
         "issuer_ticker" => "ACME", "value" => BigDecimal("1000"), "price_suspect" => false,
-        "plan_status" => "10b5-1 plan disclosed", "plan_adoption_date" => Date.new(2026, 5, 19) }
+        "plan_status" => "10b5-1 plan disclosed", "plan_adoption_date" => Date.new(2026, 5, 19),
+        "accession_no" => "0000000002-26-000002", "filing_cik" => "0000000002" }
     ])
 
     post session_path, params: { email_address: user.email_address, password: "password123" }
     get root_path
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Recent followed activity", "Jane Doe", "10b5-1 plan disclosed", "Manage watchlist")
+    expect(response.body).to include("Recent followed activity", "Jane Doe", "10b5-1 plan disclosed", "Manage watchlist",
+                                     "https://www.sec.gov/Archives/edgar/data/2/0000000002-26-000002.txt")
   end
 end
