@@ -212,6 +212,13 @@
                   <td>
                     <strong class="table-primary"><%= insider_label(purchase) %></strong>
                     <span class="table-secondary"><%= signal_role(purchase) %></span>
+                    <% if purchase["plan_status"].present? %>
+                      <span class="table-secondary">
+                        <%= purchase["plan_status"] %>
+                        <% if purchase["plan_adoption_date"] %> · adopted <%= signal_date(purchase["plan_adoption_date"]) %><% end %>
+                        <% if purchase["plan_termination_date"] %> · terminated <%= signal_date(purchase["plan_termination_date"]) %><% end %>
+                      </span>
+                    <% end %>
                   </td>
                   <td><%= signal_date(purchase["filed_at"]) %></td>
                   <td class="numeric"><%= signal_number(purchase["shares"]) %></td>

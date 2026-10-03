@@ -19,7 +19,8 @@ RSpec.describe "Dashboard" do
         "issuer_ticker" => "ACME", "issuer_name" => "Acme Corp", "insider_name" => "Jane Doe",
         "officer_title" => "Chief Executive Officer", "filed_at" => Time.zone.parse("2026-10-01 15:00"),
         "shares" => 500, "price" => BigDecimal("25"), "price_suspect" => false,
-        "value" => BigDecimal("12500")
+        "value" => BigDecimal("12500"), "plan_status" => "10b5-1 plan disclosed",
+        "plan_adoption_date" => Date.new(2026, 5, 19)
       }
     ])
     allow(signals).to receive(:cluster_buys).and_return([
@@ -40,7 +41,8 @@ RSpec.describe "Dashboard" do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Recent insider purchases", "Institutional whale flow", "Acme Corp", "Jane Doe",
-                                     "Smart-money collisions", "ACME", "$12,500.00", "Monday, November 16, 2026")
+                                     "10b5-1 plan disclosed", "Smart-money collisions", "ACME", "$12,500.00",
+                                     "Monday, November 16, 2026")
     expect(response.body).to include("FilingsIntel presents information as reported in SEC filings")
   end
 

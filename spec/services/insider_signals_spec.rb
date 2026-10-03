@@ -73,6 +73,18 @@ RSpec.describe InsiderSignals do
       expect(rows.size).to eq(1)
       expect(rows.first).to include("insider_cik" => "0000000901", "reporting_owners" => 3, "value" => 1000)
     end
+
+    it "includes the 10b5-1 status and adoption date on a purchase" do
+      f = filing(aff10b5_one: true, footnotes: {
+        "F1" => "These shares were purchased pursuant to a Rule 10b5-1 trading plan adopted on May 19, 2026."
+      })
+      purchase(f, footnote_ids: %w[F1])
+
+      expect(signals.recent_purchases.first).to include(
+        "plan_status" => "10b5-1 plan disclosed",
+        "plan_adoption_date" => Date.new(2026, 5, 19)
+      )
+    end
   end
 
   describe "amendments" do

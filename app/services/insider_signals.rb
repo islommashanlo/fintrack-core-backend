@@ -40,10 +40,12 @@ class InsiderSignals
 
   # One line per purchase, newest filing first.
   def recent_purchases(days: 7, limit: 50)
-    query(<<~SQL, days:, limit:)
+    Form4PlanClassifier.annotate_rows(query(<<~SQL, days:, limit:))
       SELECT f.filed_at, f.accession_no, f.issuer_cik, f.issuer_name, f.issuer_ticker,
              t.insider_cik, t.insider_name, t.officer_title, t.is_director, t.is_officer,
              t.is_ten_percent_owner, t.transaction_date, t.shares, t.price, t.price_suspect,
+             f.aff10b5_one AS plan_disclosed, f.footnotes AS filing_footnotes,
+             t.footnote_ids AS transaction_footnote_ids,
              CASE WHEN #{USABLE_PRICE} THEN #{VALUE} END AS value,
              cardinality(f.owner_ciks) AS reporting_owners
       #{PURCHASES}
