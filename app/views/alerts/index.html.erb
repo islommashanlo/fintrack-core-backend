@@ -71,8 +71,8 @@
                   </td>
                   <td><%= delivery.filing.form_type %></td>
                   <td>
-                    <%= link_to signal_date(delivery.filing.filed_at), delivery.filing.edgar_url,
-                                target: "_blank", rel: "noopener" %>
+                    <%= link_to signal_date(delivery.filing.filed_at), filing_path(delivery.filing.accession_no) %>
+                    <span class="table-secondary"><%= link_to "SEC source", delivery.filing.edgar_url, target: "_blank", rel: "noopener" %></span>
                     <% if delivery.status == "failed" && delivery.error.present? %>
                       <span class="table-secondary"><%= delivery.error %></span>
                     <% end %>

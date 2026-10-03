@@ -18,7 +18,8 @@ RSpec.describe "Alerts" do
 
     get alerts_path
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Email alerts", "ACME", "Active", "Recent deliveries", delivery.filing.edgar_url)
+    expect(response.body).to include("Email alerts", "ACME", "Active", "Recent deliveries", filing_path(delivery.filing.accession_no),
+                                     delivery.filing.edgar_url)
 
     patch alert_rule_path(rule), params: { alert_rule: { active: false } }
 

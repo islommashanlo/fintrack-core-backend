@@ -13,6 +13,8 @@ Rails.application.routes.draw do
   post "signup" => "users#create"
   get "alerts" => "alerts#index", as: :alerts
   resources :alert_rules, only: :update
+  get "filings/:accession_no" => "filings#show", as: :filing,
+      constraints: { accession_no: /\d{10}-\d{2}-\d{6}/ }
   get "watchlist" => "watchlist#index", as: :watchlist
   resources :follows, only: %i[create destroy]
   root "dashboard#index"

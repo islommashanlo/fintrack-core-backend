@@ -1,0 +1,129 @@
+<% content_for :title, "#{@filing.form_type} #{@filing.accession_no} | FilingsIntel" %>
+
+<div class="shell filing-page">
+  <section class="profile-hero">
+    <div>
+      <p class="eyebrow">Parsed SEC filing</p>
+      <h1><%= @filing.form_type %></h1>
+      <p class="profile-meta"><%= @filing.accession_no %> · CIK <%= @filing.cik %></p>
+      <div class="profile-actions">
+        <%= link_to "View original at SEC.gov", @filing.edgar_url, target: "_blank", rel: "noopener",
+                    class: "follow-button follow-button--link" %>
+      </div>
+    </div>
+    <div class="profile-period">
+      <span class="as-of-card__label">Filed</span>
+      <strong><%= signal_date(@filing.filed_at) %></strong>
+      <span class="as-of-card__note">Period of report: <%= signal_date(@filing.period_of_report) %></span>
+    </div>
+  </section>
+
+  <section class="profile-stats" aria-label="Filing summary">
+    <div class="profile-stat">
+      <span>Parse status</span>
+      <strong><%= @filing.parse_status.humanize %></strong>
+      <small><%= @filing.parsed_at ? "Parsed #{signal_date(@filing.parsed_at)}" : "Not parsed" %></small>
+    </div>
+    <div class="profile-stat">
+      <span>Amendment</span>
+      <strong><%= @filing.amendment? ? "Amended" : "Original" %></strong>
+      <small><%= @filing.amends_accession_no.presence || "No parent accession" %></small>
+    </div>
+    <div class="profile-stat">
+      <span>Archived source</span>
+      <strong><%= @filing.raw_path.present? ? "Available" : "Unavailable" %></strong>
+      <small><%= @filing.raw_path.presence || "No raw archive path" %></small>
+    </div>
+  </section>
+
+  <% if @parse_failure %>
+    <section class="section-block">
+      <div class="form-errors"><strong>Parse failure:</strong> <%= @parse_failure.error %></div>
+    </section>
+  <% end %>
+
+  <% if @report %>
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">13F cover page</p>
+          <h2><%= @report.report_type.humanize %></h2>
+          <span class="table-secondary"><%= @report.institutional_filer.name %></span>
+        </div>
+        <span class="section-heading__count"><%= @report.submission_type %></span>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat"><span>Cover value</span><strong><%= signal_money(@report.table_value_total) %></strong><small><%= @report.cover_value_unit.to_s.humanize %></small></div>
+        <div class="profile-stat"><span>Cover entries</span><strong><%= signal_number(@report.table_entry_total) %></strong><small>As reported</small></div>
+        <div class="profile-stat"><span>Amendment type</span><strong><%= @report.amendment_type.presence || "Original report" %></strong><small><%= @report.suspect ? "Integrity flag set" : "No integrity flag" %></small></div>
+      </div>
+      <% if @managers.any? %>
+        <p class="table-secondary">Included managers: <%= @managers.map { |manager| manager.name.presence || manager.cik }.compact.join(", ") %></p>
+      <% end %>
+    </section>
+
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Information table</p>
+          <h2>Reported holdings</h2>
+        </div>
+        <span class="section-heading__count"><%= @holdings.size %> shown<%= @holdings.size == 100 ? " of at least 100" : "" %></span>
+      </div>
+      <% if @holdings.any? %>
+        <div class="table-card table-card--wide">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th scope="col">#</th><th scope="col">Security</th><th scope="col">CUSIP</th><th scope="col" class="numeric">Reported value</th><th scope="col" class="numeric">Value USD</th><th scope="col">Shares</th><th scope="col">Type</th></tr>
+              </thead>
+              <tbody>
+                <% @holdings.each do |holding| %>
+                  <tr>
+                    <td><%= holding.row_seq %></td>
+                    <td><strong class="table-primary"><%= holding_label(holding.attributes) %></strong><span class="table-secondary"><%= holding.title_of_class %></span></td>
+                    <td><%= holding.cusip %></td>
+                    <td class="numeric"><%= signal_number(holding.value_reported) %> <span class="table-secondary"><%= holding.value_unit.to_s.humanize %></span></td>
+                    <td class="numeric"><%= signal_money(holding.value_usd) %><% if holding.suspect %><span class="table-secondary"> flagged</span><% end %></td>
+                    <td class="numeric"><%= signal_number(holding.shares) %></td>
+                    <td><%= [ holding.share_type, holding.put_call, holding.investment_discretion ].compact_blank.join(" · ") %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      <% else %>
+        <%= render "shared/empty_state", message: "No information-table holdings were parsed for this filing." %>
+      <% end %>
+    </section>
+  <% elsif @transactions.any? %>
+    <section class="section-block">
+      <div class="section-heading"><div><p class="eyebrow">Form 4 transactions</p><h2>Reported activity</h2></div><span class="section-heading__count"><%= @transactions.size %> shown</span></div>
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th scope="col">Owner</th><th scope="col">Security</th><th scope="col">Type</th><th scope="col">Trade date</th><th scope="col" class="numeric">Shares</th><th scope="col" class="numeric">Price</th></tr></thead>
+            <tbody>
+              <% @transactions.each do |transaction| %>
+                <tr>
+                  <td><strong class="table-primary"><%= transaction.insider_name.presence || transaction.insider_cik %></strong><span class="table-secondary">CIK <%= transaction.insider_cik %></span></td>
+                  <td><%= transaction.security_title.presence || "—" %></td>
+                  <td><span class="transaction-pill transaction-pill--<%= transaction.transaction_code.to_s.downcase %>"><%= transaction_type_label(transaction.transaction_code) %></span></td>
+                  <td><%= signal_date(transaction.transaction_date) %></td>
+                  <td class="numeric"><%= signal_number(transaction.shares) %></td>
+                  <td class="numeric"><%= signal_price(transaction.price, suspect: transaction.price_suspect) %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
+  <footer class="dashboard-footer">
+    <p>Values and transactions are shown as reported in the filing. Normalized values are labeled separately.</p>
+    <p>Data from public SEC filings. Not investment advice.</p>
+  </footer>
+</div>
