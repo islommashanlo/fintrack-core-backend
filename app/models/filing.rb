@@ -37,4 +37,12 @@ class Filing < ApplicationRecord
   def edgar_url
     "https://www.sec.gov/Archives/edgar/data/#{Cik.path_segment(cik)}/#{accession_no}.txt"
   end
+
+  alias sec_url edgar_url
+
+  def data_age_days(as_of: Time.current)
+    return unless filed_at
+
+    (as_of.to_date - filed_at.to_date).to_i
+  end
 end

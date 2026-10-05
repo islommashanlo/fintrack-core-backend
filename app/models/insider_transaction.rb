@@ -12,6 +12,10 @@ class InsiderTransaction < ApplicationRecord
 
   belongs_to :filing
 
+  def open_market?
+    OPEN_MARKET_CODES.include?(transaction_code)
+  end
+
   validates :security_table, inclusion: { in: SECURITY_TABLES }
   validates :accession_no, :insider_cik, :issuer_cik, :txn_seq, :owner_seq, presence: true
 end

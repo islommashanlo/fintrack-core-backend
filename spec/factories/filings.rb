@@ -16,6 +16,8 @@ FactoryBot.define do
     form_type { "4" }
     filed_on { Date.new(2026, 9, 30) }
     filed_at { Time.utc(2026, 9, 30, 20, 0) }
+    accepted_at { filed_at }
+    ingested_at { filed_at }
     period_of_report { Date.new(2026, 9, 28) }
     parse_status { "parsed" }
     issuer_cik { "0000000123" }

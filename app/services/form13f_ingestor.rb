@@ -60,7 +60,8 @@ class Form13fIngestor
         suspect: false,
         suspect_reason: reason
       )
-      @filing.update!(parse_status: "parsed", parsed_at: Time.current)
+      @filing.update!(parse_status: "parsed", accepted_at: @filing.accepted_at || @filing.filed_at,
+                      ingested_at: @filing.ingested_at || Time.current, parsed_at: Time.current)
       report
     end
   end
@@ -152,6 +153,8 @@ class Form13fIngestor
   def update_filing
     @filing.update!(
       period_of_report: @cover.period_of_report,
+      accepted_at: @filing.accepted_at || @filing.filed_at,
+      ingested_at: @filing.ingested_at || Time.current,
       parse_status: "parsed",
       parsed_at: Time.current
     )

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_02_220001) do
+ActiveRecord::Schema[8.0].define(version: 2026_10_05_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -49,7 +49,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_220001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["day"], name: "index_backfill_runs_on_day", unique: true
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'running'::character varying, 'done'::character varying, 'no_index'::character varying, 'failed'::character varying]::text[])", name: "backfill_runs_status_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'running'::character varying::text, 'done'::character varying::text, 'no_index'::character varying::text, 'failed'::character varying::text])", name: "backfill_runs_status_check"
   end
 
   create_table "cusip_security_mappings", force: :cascade do |t|
@@ -67,7 +67,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_220001) do
     t.index ["cusip", "source", "status"], name: "index_cusip_mappings_on_cusip_source_status"
     t.index ["security_id"], name: "index_cusip_security_mappings_on_security_id"
     t.check_constraint "result_seq >= 0", name: "cusip_security_mappings_result_seq_nonnegative"
-    t.check_constraint "status::text = ANY (ARRAY['mapped'::character varying, 'unmapped'::character varying, 'ambiguous'::character varying, 'error'::character varying, 'stale'::character varying]::text[])", name: "cusip_security_mappings_status_check"
+    t.check_constraint "status::text = ANY (ARRAY['mapped'::character varying::text, 'unmapped'::character varying::text, 'ambiguous'::character varying::text, 'error'::character varying::text, 'stale'::character varying::text])", name: "cusip_security_mappings_status_check"
   end
 
   create_table "filers", force: :cascade do |t|
@@ -102,13 +102,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_220001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "owner_ciks", default: [], null: false, array: true
+    t.datetime "accepted_at"
+    t.datetime "ingested_at"
+    t.index ["accepted_at"], name: "index_filings_on_accepted_at"
     t.index ["accession_no"], name: "index_filings_on_accession_no", unique: true
     t.index ["filed_at"], name: "index_filings_on_filed_at"
     t.index ["form_type", "filed_on"], name: "index_filings_on_form_type_and_filed_on"
+    t.index ["ingested_at"], name: "index_filings_on_ingested_at"
     t.index ["issuer_cik", "period_of_report"], name: "index_filings_on_issuer_cik_and_period_of_report"
     t.index ["owner_ciks"], name: "index_filings_on_owner_ciks", using: :gin
     t.index ["parse_status"], name: "index_filings_on_parse_status"
-    t.check_constraint "parse_status::text = ANY (ARRAY['pending'::character varying, 'parsed'::character varying, 'failed'::character varying]::text[])", name: "filings_parse_status_check"
+    t.check_constraint "parse_status::text = ANY (ARRAY['pending'::character varying::text, 'parsed'::character varying::text, 'failed'::character varying::text])", name: "filings_parse_status_check"
   end
 
   create_table "follows", force: :cascade do |t|
@@ -164,7 +168,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_220001) do
     t.index ["insider_cik", "transaction_date"], name: "index_insider_transactions_on_insider_cik_and_transaction_date"
     t.index ["issuer_cik", "transaction_date"], name: "index_insider_transactions_on_issuer_cik_and_transaction_date"
     t.index ["transaction_code"], name: "index_insider_transactions_on_transaction_code"
-    t.check_constraint "security_table::text = ANY (ARRAY['non_derivative'::character varying, 'derivative'::character varying]::text[])", name: "insider_transactions_security_table_check"
+    t.check_constraint "security_table::text = ANY (ARRAY['non_derivative'::character varying::text, 'derivative'::character varying::text])", name: "insider_transactions_security_table_check"
   end
 
   create_table "institutional_filers", force: :cascade do |t|
@@ -239,7 +243,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_220001) do
     t.index ["filing_id"], name: "index_institutional_reports_on_filing_id", unique: true
     t.index ["institutional_filer_id", "filed_at"], name: "index_institutional_reports_on_filer_and_filed_at"
     t.index ["institutional_filer_id", "period_of_report"], name: "index_institutional_reports_on_filer_and_period"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'parsed'::character varying, 'failed'::character varying, 'skipped'::character varying]::text[])", name: "institutional_reports_status_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'parsed'::character varying::text, 'failed'::character varying::text, 'skipped'::character varying::text])", name: "institutional_reports_status_check"
   end
 
   create_table "parse_failures", force: :cascade do |t|
@@ -278,7 +282,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_02_220001) do
     t.datetime "updated_at", null: false
     t.index ["institutional_filer_id", "period_of_report", "change_type"], name: "index_position_diffs_on_filer_period_change"
     t.index ["institutional_filer_id", "period_of_report", "cusip", "put_call", "share_type"], name: "index_position_diffs_on_natural_key", unique: true
-    t.check_constraint "change_type::text = ANY (ARRAY['new'::character varying, 'exit'::character varying, 'add'::character varying, 'trim'::character varying]::text[])", name: "position_diffs_change_type_check"
+    t.check_constraint "change_type::text = ANY (ARRAY['new'::character varying::text, 'exit'::character varying::text, 'add'::character varying::text, 'trim'::character varying::text])", name: "position_diffs_change_type_check"
     t.check_constraint "shares_delta <> 0::numeric", name: "position_diffs_nonzero_share_delta"
   end
 

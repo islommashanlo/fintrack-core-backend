@@ -61,6 +61,8 @@ class Form4Ingestor
       form_type: @header.form_type,
       filed_on: @header.filed_on,
       filed_at: @header.accepted_at,
+      accepted_at: @header.accepted_at,
+      ingested_at: @filing.ingested_at || Time.current,
       period_of_report: @document.period_of_report,
       issuer_cik: @document.issuer.cik,
       issuer_name: @document.issuer.name,
