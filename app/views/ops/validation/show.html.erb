@@ -1,0 +1,48 @@
+<% content_for :title, "Validation | FilingsIntel" %>
+
+<div class="shell ops-page">
+  <section class="watchlist-hero">
+    <div>
+      <p class="eyebrow">Operator console</p>
+      <h1>Pipeline validation</h1>
+      <p class="hero__copy">SQL-backed checks for filing coverage, parse health, archives, amendments, and 13F integrity.</p>
+    </div>
+    <%= link_to "JSON metrics", "/ops/metrics", class: "follow-button follow-button--link" %>
+  </section>
+
+  <% [ [ "Form 4", @form4_checks ], [ "13F", @form13f_checks ] ].each do |name, checks| %>
+    <section class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow"><%= name %></p>
+          <h2><%= name %> checks</h2>
+        </div>
+        <span class="section-heading__count"><%= checks.count { |check| check.level == :fail } %> failed · <%= checks.count { |check| check.level == :warn } %> warnings</span>
+      </div>
+
+      <div class="table-card table-card--wide">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th scope="col">Level</th><th scope="col">Check</th><th scope="col">Detail</th></tr>
+            </thead>
+            <tbody>
+              <% checks.each do |check| %>
+                <tr>
+                  <td><span class="validation-status validation-status--<%= check.level %>"><%= check.level.to_s.upcase %></span></td>
+                  <td><strong class="table-primary"><%= check.title %></strong></td>
+                  <td><%= check.detail.presence || "—" %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  <% end %>
+
+  <footer class="dashboard-footer">
+    <p>Failures indicate an invariant or required data path needs attention. Warnings preserve the reported values and require review.</p>
+    <p>Operator access only.</p>
+  </footer>
+</div>

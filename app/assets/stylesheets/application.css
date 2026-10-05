@@ -331,6 +331,34 @@ a {
   color: #9b493b;
 }
 
+.validation-status {
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 4px 9px;
+}
+
+.validation-status--pass {
+  background: var(--accent-light);
+  color: #05685f;
+}
+
+.validation-status--info {
+  background: #eef3f4;
+  color: #526a70;
+}
+
+.validation-status--warn {
+  background: #fff3d8;
+  color: #8a641c;
+}
+
+.validation-status--fail {
+  background: #f8e9e5;
+  color: #9b493b;
+}
+
 .auth-page {
   display: flex;
   justify-content: center;

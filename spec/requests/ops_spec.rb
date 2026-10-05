@@ -16,7 +16,7 @@ RSpec.describe "Operator endpoints" do
     %w[OPS_USERNAME OPS_PASSWORD].each { |key| ENV[key] = original[key] }
   end
 
-  %w[/ops/metrics /sidekiq].each do |path|
+  %w[/ops/metrics /ops/validation /sidekiq].each do |path|
     describe path do
       it "admits nobody when no credentials are configured" do
         get path
@@ -35,6 +35,29 @@ RSpec.describe "Operator endpoints" do
           expect(response).to have_http_status(:ok)
         end
       end
+    end
+  end
+
+  describe "validation" do
+    it "renders Form 4 and 13F checks for operators" do
+      with_credentials do
+        get "/ops/validation", headers: basic("ops", "correct horse")
+      end
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Pipeline validation", "Form 4 checks", "13F checks", "PASS", "INFO")
+    end
+
+    it "shows failed validation checks" do
+      create(:filing)
+      ParseFailure.record!("0000000001-26-000001", "Form4Parser::MalformedError: invalid XML")
+
+      with_credentials do
+        get "/ops/validation", headers: basic("ops", "correct horse")
+      end
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("FAIL", "unresolved parse failures")
     end
   end
 

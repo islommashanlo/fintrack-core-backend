@@ -31,6 +31,7 @@ Rails.application.routes.draw do
 
   namespace :ops do
     get "metrics" => "metrics#show"
+    get "validation" => "validation#show"
   end
 
   mount Sidekiq::Web => "/sidekiq"
