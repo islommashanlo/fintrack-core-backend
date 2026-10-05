@@ -42,6 +42,7 @@ RSpec.describe "Ticker profiles" do
                                      "Smart-money overlap",
                                      "Institutional ownership", "Institutional ownership history",
                                      "Institutional ownership changes", "mapped CUSIP", "10b5-1 plan disclosed")
-    expect(response.body).to include("https://www.sec.gov/Archives/edgar/data/3/0000000003-26-000003.txt")
+    expect(response.body).to include("/filings/0000000003-26-000003", "SEC source",
+                                     "https://www.sec.gov/Archives/edgar/data/3/0000000003-26-000003.txt")
   end
 end

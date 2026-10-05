@@ -43,7 +43,7 @@ RSpec.describe "Dashboard" do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Recent insider purchases", "Institutional whale flow", "Acme Corp", "Jane Doe",
                                      "10b5-1 plan disclosed", "Smart-money collisions", "ACME", "$12,500.00",
-                                     "Monday, November 16, 2026")
+                                     "Monday, November 16, 2026", "/filings/0000000001-26-000001", "SEC source")
     expect(response.body).to include("FilingsIntel presents information as reported in SEC filings")
   end
 
@@ -64,6 +64,7 @@ RSpec.describe "Dashboard" do
 
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Recent followed activity", "Jane Doe", "10b5-1 plan disclosed", "Manage watchlist",
+                                     "/filings/0000000002-26-000002",
                                      "https://www.sec.gov/Archives/edgar/data/2/0000000002-26-000002.txt")
   end
 end

@@ -23,7 +23,7 @@ RSpec.describe "Institution profiles" do
     get institution_path(institution.cik)
 
     expect(response).to have_http_status(:ok)
-    expect(response.body).to include("Acme Capital", "View SEC filing", "APPLE INC", "Largest reported positions",
+    expect(response.body).to include("Acme Capital", "View parsed filing", "SEC source", "APPLE INC", "Largest reported positions",
                                      "13F reports", "13F filings show long positions")
   end
 end

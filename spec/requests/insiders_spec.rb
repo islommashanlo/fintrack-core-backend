@@ -30,6 +30,7 @@ RSpec.describe "Insider profiles" do
     expect(response).to have_http_status(:ok)
     expect(response.body).to include("Jane Doe", "Issuer activity", "Transaction history", "Acme Corp",
                                      "Reported purchase value", "10b5-1 plan disclosed")
-    expect(response.body).to include("https://www.sec.gov/Archives/edgar/data/4/0000000004-26-000004.txt")
+    expect(response.body).to include("/filings/0000000004-26-000004", "SEC source",
+                                     "https://www.sec.gov/Archives/edgar/data/4/0000000004-26-000004.txt")
   end
 end

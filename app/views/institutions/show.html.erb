@@ -7,9 +7,9 @@
         <p class="eyebrow">Institution profile</p>
         <h1><%= @institution.name %></h1>
         <p class="profile-meta">CIK <%= @institution.cik %> · Latest 13F filed <%= signal_date(@latest_report.filed_at) %></p>
-        <%= link_to "View SEC filing", sec_filing_url("filing_cik" => @latest_report.filing.cik,
-                                                        "accession_no" => @latest_report.filing.accession_no),
-                    target: "_blank", rel: "noopener" %>
+        <%= link_to "View parsed filing", filing_path(@latest_report.filing.accession_no) %>
+        <span class="table-secondary"><%= link_to "SEC source", @latest_report.filing.edgar_url,
+                                                     target: "_blank", rel: "noopener" %></span>
       </div>
       <div class="profile-hero__actions">
         <%= follow_button(target_type: "InstitutionalFiler", target_key: @institution.cik) %>
@@ -158,8 +158,9 @@
                   <tr>
                     <td><%= signal_date(report["period_of_report"]) %></td>
                     <td>
-                      <% if sec_filing_url(report) %>
-                        <%= link_to signal_date(report["filed_at"]), sec_filing_url(report), target: "_blank", rel: "noopener" %>
+                      <% if report["accession_no"].present? %>
+                        <%= link_to signal_date(report["filed_at"]), filing_path(report["accession_no"]) %>
+                        <% if sec_filing_url(report) %><span class="table-secondary"><%= link_to "SEC source", sec_filing_url(report), target: "_blank", rel: "noopener" %></span><% end %>
                       <% else %>
                         <%= signal_date(report["filed_at"]) %>
                       <% end %>

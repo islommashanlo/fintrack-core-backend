@@ -122,8 +122,9 @@
                   </td>
                   <td><%= signal_date(transaction["transaction_date"]) %></td>
                   <td>
-                    <% if sec_filing_url(transaction) %>
-                      <%= link_to signal_date(transaction["filed_at"]), sec_filing_url(transaction), target: "_blank", rel: "noopener" %>
+                    <% if transaction["accession_no"].present? %>
+                      <%= link_to signal_date(transaction["filed_at"]), filing_path(transaction["accession_no"]) %>
+                      <% if sec_filing_url(transaction) %><span class="table-secondary"><%= link_to "SEC source", sec_filing_url(transaction), target: "_blank", rel: "noopener" %></span><% end %>
                     <% else %>
                       <%= signal_date(transaction["filed_at"]) %>
                     <% end %>

@@ -75,8 +75,9 @@
                       <% end %>
                     </td>
                     <td>
-                      <% if sec_filing_url(activity) %>
-                        <%= link_to signal_date(activity["filed_at"]), sec_filing_url(activity), target: "_blank", rel: "noopener" %>
+                      <% if activity["accession_no"].present? %>
+                        <%= link_to signal_date(activity["filed_at"]), filing_path(activity["accession_no"]) %>
+                        <% if sec_filing_url(activity) %><span class="table-secondary"><%= link_to "SEC source", sec_filing_url(activity), target: "_blank", rel: "noopener" %></span><% end %>
                       <% else %>
                         <%= signal_date(activity["filed_at"]) %>
                       <% end %>
@@ -234,8 +235,9 @@
                     <% end %>
                   </td>
                   <td>
-                    <% if sec_filing_url(purchase) %>
-                      <%= link_to signal_date(purchase["filed_at"]), sec_filing_url(purchase), target: "_blank", rel: "noopener" %>
+                    <% if purchase["accession_no"].present? %>
+                      <%= link_to signal_date(purchase["filed_at"]), filing_path(purchase["accession_no"]) %>
+                      <% if sec_filing_url(purchase) %><span class="table-secondary"><%= link_to "SEC source", sec_filing_url(purchase), target: "_blank", rel: "noopener" %></span><% end %>
                     <% else %>
                       <%= signal_date(purchase["filed_at"]) %>
                     <% end %>
