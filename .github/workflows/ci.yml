@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: "3.4"
+      - run: bundle exec rake policy:banned_terms
+      - run: bundle exec rubocop
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: filings_intel
+          POSTGRES_PASSWORD: filings_intel
+          POSTGRES_DB: filings_intel_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: "3.4"
+      - run: bundle exec rails db:prepare
+        env:
+          RAILS_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_USER: filings_intel
+          DB_PASSWORD: filings_intel
+      - run: bundle exec rspec
+        env:
+          RAILS_ENV: test
+          DB_HOST: 127.0.0.1
+          DB_USER: filings_intel
+          DB_PASSWORD: filings_intel
+          TEST_REDIS_URL: redis://127.0.0.1:6379/0
