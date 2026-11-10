@@ -2,7 +2,9 @@
 
 class SessionsController < ApplicationController
   allow_unauthenticated_access only: %i[ new create ]
-  rate_limit to: 10, within: 3.minutes, only: :create, with: -> { redirect_to new_session_url, alert: "Try again later." }
+  before_action :limit_sign_in, only: :create
+  rescue_from ApiRateLimiter::Limited, with: -> { redirect_to new_session_url, alert: "Try again later." }
+  rescue_from ApiRateLimiter::Unavailable, with: -> { render plain: "Sign in is temporarily unavailable", status: :service_unavailable }
 
   def new
   end
@@ -19,5 +21,11 @@ class SessionsController < ApplicationController
   def destroy
     terminate_session
     redirect_to new_session_path
+  end
+
+  private
+
+  def limit_sign_in
+    ApiRateLimiter.check!(scope: "login", identifier: request.remote_ip, limit: 10, window: 3.minutes)
   end
 end

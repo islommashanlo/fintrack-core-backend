@@ -154,7 +154,7 @@ depending on a materialization job being current.
 Report history preserves each cover page's totals, units, amendment information,
 other-manager count and suspect flags. It is report history, not portfolio
 performance. Plan-based history restrictions remain part of the forthcoming
-authentication/billing work.
+billing/gating work.
 
 ## Companies
 
@@ -252,3 +252,118 @@ current employment. Role and ticker filters apply to the latest disclosure for
 each issuer, rather than resurrecting an older matching disclosure. These lists
 use the same signed, resource-bound, 24-hour cursors and snapshot ID bounds as
 other read lists; `total_count` counts distinct issuer CIKs.
+
+## Cookie authentication and accounts
+
+| Route | Behavior |
+| --- | --- |
+| `GET /api/v1/auth/csrf` | Get a browser-session CSRF token, including before login/signup |
+| `POST /api/v1/auth/signup` | Create an account from `email`, `password`, optional `password_confirmation`; sign in |
+| `POST /api/v1/auth/login` | Sign in with `email` and `password` |
+| `DELETE /api/v1/auth/logout` | Revoke this browser's database session and clear its cookie |
+| `GET /api/v1/me` | Read the authenticated account |
+| `PATCH /api/v1/me` | Change email and/or password after verifying `current_password` |
+| `DELETE /api/v1/me` | Delete the authenticated account after verifying `current_password` |
+| `GET /api/v1/plans` | Public plan feature/limit definitions from the server's shared catalog |
+
+Bodies are flat JSON objects. Unknown fields and structured values where a string
+is expected return HTTP 400. Account responses expose only `id`, `email`,
+`created_at`, `plan`, and `limits`. Email is normalized to lowercase with outer
+whitespace removed. Passwords require at least eight characters; passwords and
+digests are never returned.
+
+Use `credentials: "include"` on browser fetches. First fetch `/auth/csrf`, then
+send the returned `data.csrf_token` in `X-CSRF-Token` on **every** API mutation,
+including unauthenticated signup and login. Rails stores the matching CSRF state
+in its encrypted browser-session cookie; both cookies must round-trip with the
+token. A token from another browser, missing/invalid token, or untrusted origin
+returns HTTP 403 with `error.code = "INVALID_CSRF_TOKEN"`.
+
+Signup returns HTTP 201 and login returns HTTP 200 with
+`{ data: { user: { ... }, csrf_token: "..." } }`. Both replace the browser's
+previous database session and rotate its CSRF state. **Replace the client token
+with the token from that response** before the next mutation. Logout returns
+204. Missing, expired, tampered, or revoked authentication returns JSON 401 rather
+than redirecting to an HTML login page. Bad login credentials use the same
+`INVALID_CREDENTIALS` response for unknown accounts and wrong passwords.
+
+The signed `session_id` cookie is HttpOnly, SameSite=Lax, Secure over HTTPS and in
+production, and expires after 30 days. Session lookup also checks a 30-day
+absolute server-side lifetime. The API uses the existing Rails account/session
+tables; it does not issue bearer tokens. API account, authentication, and
+watchlist responses use `Cache-Control: no-store`.
+
+Account changes require `current_password` plus `email` and/or `password`.
+`password_confirmation` is optional. A successful change revokes every previous
+session for that account, starts a fresh session for this browser, and returns
+the same user/CSRF response shape as login. Incorrect reauthentication returns
+401 with `REAUTHENTICATION_REQUIRED`; invalid account data returns 422 with
+`VALIDATION_FAILED`. Failed validation leaves credentials and sessions intact.
+Account deletion requires a JSON `current_password` and removes only that user's
+private sessions, follows, linked alert rules/deliveries and account. Public
+filings and normalized reported data remain stored.
+
+Google OAuth, API password-reset flows, and persisted user preferences are still
+pending. The existing HTML password-reset flow remains separate.
+
+### Frontend origin and request limits
+
+Set `FRONTEND_ORIGIN` to one exact React frontend origin, such as
+`https://app.example.com` or `http://localhost:5173`. A blank value supports
+same-origin access only. Wildcards, embedded credentials, paths, query strings,
+and fragments are invalid configuration. CORS reflects only the configured
+origin and permits credentials; preflights whitelist API methods and
+`Content-Type`, `X-CSRF-Token`, and `Accept`. `Retry-After` is exposed to that
+frontend. A foreign or `null` origin cannot perform a cookie-authenticated
+mutation even if it supplies a token.
+
+Frontend and API must be on the **same site** for SameSite=Lax cookies, such as
+`app.example.com` and `api.example.com`, or localhost on different ports. A
+same-origin reverse proxy also works. CORS does not make Lax cookies available
+between unrelated sites.
+
+Redis-backed limits are shared across API workers: 300 requests per minute per
+IP, plus 300 per minute per authenticated user. Credential attempts additionally
+allow 10 logins per three minutes and 10 signups per hour per IP. The HTML
+login/signup routes share those credential-attempt counters. HTTP 429 includes
+`error.code = "RATE_LIMITED"` and `Retry-After`; limiter unavailability returns a
+generic HTTP 503 rather than accepting unprotected requests.
+
+### Plans and watchlists
+
+`GET /plans` returns Free and Pro limits; null means unlimited. Plan definitions
+are shared with enforcement and account serialization. Currently all accounts
+have Free entitlements. Clients cannot set a plan through signup or account
+updates. Verified Stripe subscription records will become the entitlement source
+when billing is implemented; no paid status is inferred or seeded now. The
+watchlist item limit is enforced in this slice; other plan gates remain part of
+their feature/billing work.
+
+| Route | Behavior |
+| --- | --- |
+| `GET /api/v1/watchlist` | User-scoped list with `entity_type`, `sort`, `limit`, `cursor` |
+| `POST /api/v1/watchlist` | Add `{ entity_type, entity_key }` |
+| `DELETE /api/v1/watchlist/:id` | Remove an item belonging to the authenticated user |
+| `DELETE /api/v1/watchlist` | Equivalent removal using an explicit JSON `{ id }` |
+
+Entity types are `issuer` (exact ticker key, normalized uppercase), `fund`
+(10-digit CIK), and `person` (10-digit insider CIK). Targets must already exist in
+local filing/profile data; these routes never look up or enrich SEC data. Unknown
+targets return JSON 404. List entries contain `id`, `entity_type`, `entity_key`,
+`name`, and `created_at`. Sorts are `created_at` (descending by default) and
+`entity_key`, with optional `-` prefixes. The normal cursor envelope and 1–100
+page size apply; cursors bind the authenticated user as well as filters and sort.
+Only that user's memberships can be read or removed, including when another
+user's item ID or cursor is supplied. Labels may refresh from local profile data.
+
+Free accounts can have 15 items across all entity types. Adds lock the user row
+before checking/inserting, so concurrent requests cannot exceed the limit. A
+duplicate add returns HTTP 200 and the existing item, including at the limit; a
+new item returns 201. The sixteenth item returns HTTP 402 with
+`{ "code": "PRO_REQUIRED", "feature": "watchlist_items", "limit": 15 }`.
+The existing HTML follow endpoint uses the same quota check.
+
+Adding an API watchlist item does not create or enable an email alert. Removal
+returns 204 and removes private alert records linked to that membership; obsolete
+queued delivery jobs are discarded. Neither operation changes reported filing
+data. Alert-builder/digest work remains separate.

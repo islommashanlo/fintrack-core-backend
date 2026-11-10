@@ -2,6 +2,9 @@
 
 class UsersController < ApplicationController
   allow_unauthenticated_access only: %i[ new create ]
+  before_action :limit_signup, only: :create
+  rescue_from ApiRateLimiter::Limited, with: -> { render plain: "Try again later", status: :too_many_requests }
+  rescue_from ApiRateLimiter::Unavailable, with: -> { render plain: "Sign up is temporarily unavailable", status: :service_unavailable }
 
   def new
     @user = User.new
@@ -18,6 +21,10 @@ class UsersController < ApplicationController
   end
 
   private
+
+  def limit_signup
+    ApiRateLimiter.check!(scope: "signup", identifier: request.remote_ip, limit: 10, window: 1.hour)
+  end
 
   def user_params
     params.require(:user).permit(:email_address, :password, :password_confirmation)

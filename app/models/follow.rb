@@ -5,8 +5,9 @@ class Follow < ApplicationRecord
 
   belongs_to :user
   has_one :alert_rule, dependent: :destroy
+  attr_accessor :skip_default_alert_rule
 
-  after_create :create_default_alert_rule
+  after_create :create_default_alert_rule, unless: :skip_default_alert_rule
 
   validates :target_type, inclusion: { in: TARGET_TYPES }
   validates :target_key, presence: true

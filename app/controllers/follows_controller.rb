@@ -8,15 +8,17 @@ class FollowsController < ApplicationController
       return
     end
 
-    follow = Current.user.follows.create_or_find_by!(target_type: target.type, target_key: target.key)
+    follow = WatchlistMembership.add(user: Current.user, target:, create_alert_rule: true).follow
     follow.create_alert_rule!(event_type: "new_filing", channel: "email") unless follow.alert_rule
     redirect_back fallback_location: root_path, notice: "Following #{target.label}."
   rescue ActiveRecord::RecordNotUnique
     redirect_back fallback_location: root_path, notice: "You are already following that profile."
+  rescue PlanCatalog::Required => e
+    redirect_back fallback_location: root_path, alert: "The Free plan allows #{e.limit} watchlist items."
   end
 
   def destroy
-    Current.user.follows.find(params[:id]).destroy!
+    WatchlistMembership.remove(user: Current.user, id: params[:id])
     redirect_back fallback_location: root_path, notice: "Follow removed."
   end
 

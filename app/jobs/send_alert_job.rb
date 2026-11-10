@@ -2,6 +2,7 @@
 
 class SendAlertJob < ApplicationJob
   queue_as :alerts
+  discard_on ActiveRecord::RecordNotFound
 
   def perform(delivery_id)
     delivery = AlertDelivery.includes(:filing, alert_rule: { follow: :user }).find(delivery_id)

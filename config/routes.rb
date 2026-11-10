@@ -9,6 +9,18 @@ Sidekiq::Web.use(Rack::Auth::Basic, "FilingsIntel ops") { |user, password| OpsAu
 Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
+      get "auth/csrf" => "auth#csrf"
+      post "auth/signup" => "auth#signup"
+      post "auth/login" => "auth#login"
+      delete "auth/logout" => "auth#logout"
+      get "plans" => "plans#index", as: :plans
+      get "me" => "accounts#show", as: :me
+      patch "me" => "accounts#update"
+      delete "me" => "accounts#destroy"
+      get "watchlist" => "watchlist#index", as: :watchlist
+      post "watchlist" => "watchlist#create"
+      delete "watchlist" => "watchlist#destroy"
+      delete "watchlist/:id" => "watchlist#destroy", as: :watchlist_item
       resources :funds, param: :cik, only: %i[index show] do
         get :holdings, on: :member
         get :history, on: :member

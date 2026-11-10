@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 The product is **FilingsIntel**, specified in `docs/project-brief.md`. This branch (`filingsintel-rails8`) is a clean Rails 8 rebuild made on 2026-10-02. The pipeline the brief calls "built as of July 2026" lived in an unpushed local repo that was lost, so nothing from July survives: not the code, the database, or the validation findings.
 
 - **Current work:** The owner's Rails backend build prompt authorizes application development for a separate React frontend. Form 4 and 13F ingestion, holdings/diffs, server-rendered profiles, cookie auth, follows and filing alerts exist. JSON read routes are documented in `docs/api-v1.md` and `docs/openapi.yml`; the complete backend specification is not finished.
-- **Next step:** API auth/watchlist, then activity/derived analytics. Fund, company and insider profile JSON routes are implemented. Later work includes unusual activity/screener, expanded alerts, explanations/news/prices, and billing/gating. Do not infer deployment, SEC requests, enrichment or seeding authorization from an ordinary request to continue backend work.
+- **Next step:** Activity feed/derived analytics. Fund, company and insider read APIs, cookie API signup/login/logout, account read/update/delete, and a user-scoped watchlist with the Free item limit are implemented. OAuth, API password resets and preferences remain pending alongside unusual activity/screener, expanded alerts, explanations/news/prices, and billing/gating. Do not infer deployment, SEC requests, enrichment or seeding authorization from an ordinary request to continue backend work.
 - **Validation/deployment:** The original Form 4 rebuild ran on 45 real filings, not a full backfill. A real backfill and production validation still need separate authorization. `docs/plan-phase-2.md` is the historical deployment plan; deployment is outside the current authorized work.
 - The earlier FinTrack prototype (Rails 7.1, different schema) is on `main`, for reference only. `docs/gap-analysis.md` audits it. The Python scraper, push-ingest endpoints, politician/HNWI data and the old auth/Stripe/alert code were deliberately not carried over.
 
@@ -63,6 +63,8 @@ The `Makefile` wraps podman-compose (`make help`; use `make COMPOSE="docker comp
 Rake tasks: `backfill:run[from,to]`, `backfill:status`, `validate:report` (exits 1 on FAIL), `validate:crosscheck[day]`, `query:recent_purchases`, `query:cluster_buys`, `query:top_insiders`, `diagnose:prices`, `diagnose:failures`, `pipeline:requeue_pending`, `pipeline:retry_failures`, `pipeline:process[accession]`, `ops:status`.
 
 `.env` (not committed; see `.env.example`): `SEC_USER_AGENT_EMAIL` (required), `EDGAR_POLLING` (`on` lets Sidekiq poll the SEC every minute; leave off in development), `OPS_USERNAME` / `OPS_PASSWORD`. Specs use Redis database 15 and flush it before every example.
+
+`FRONTEND_ORIGIN` configures one exact credentialed API origin; blank means same-origin only. API mutations require `X-CSRF-Token` from `/api/v1/auth/csrf`. Requests and credential attempts use the shared Redis limiter; account/watchlist responses are not cached. Plan definitions live in `PlanCatalog`; all accounts remain Free until verified billing entitlements exist.
 
 ## Architecture
 

@@ -24,3 +24,9 @@ Put your contact address in `.env` as `SEC_USER_AGENT_EMAIL`; the SEC requires o
 request. The EDGAR poller only runs when `EDGAR_POLLING=on`.
 
 The earlier FinTrack prototype is on the `main` branch.
+
+The JSON API uses cookie sessions and CSRF tokens. React clients should fetch
+`/api/v1/auth/csrf` first, send `credentials: "include"`, and include the returned
+token as `X-CSRF-Token` on mutations. Configure `FRONTEND_ORIGIN` for a separate
+frontend origin on the same site; blank means same-origin access. See
+[`docs/api-v1.md`](docs/api-v1.md) for account/watchlist contracts and plan limits.

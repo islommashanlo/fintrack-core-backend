@@ -3,6 +3,7 @@
 require_relative "boot"
 
 require "rails"
+require_relative "../lib/middleware/api_cors"
 # Pick the frameworks you want:
 require "active_model/railtie"
 require "active_job/railtie"
@@ -32,6 +33,7 @@ module FilingsIntel
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
+    config.middleware.insert_before ActionDispatch::Cookies, Middleware::ApiCors
 
     # Configuration for the application, engines, and railties goes here.
     #
