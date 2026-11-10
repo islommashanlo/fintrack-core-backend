@@ -6,7 +6,7 @@ RSpec.describe "API v1 filings" do
   it "returns a Form 4 with factual transaction classifications and freshness" do
     filing = create(:filing, cik: "0000000123", filed_at: Time.utc(2026, 10, 1, 20, 0),
                     accepted_at: Time.utc(2026, 10, 1, 20, 0), ingested_at: Time.utc(2026, 10, 2, 12, 0))
-    create(:insider_transaction, filing:, transaction_code: "P", insider_name: "Jane Doe", shares: 500, price: 25)
+    create(:insider_transaction, filing:, txn_seq: 1, transaction_code: "P", insider_name: "Jane Doe", shares: 500, price: 25)
     create(:insider_transaction, filing:, transaction_code: "A", txn_seq: 2, insider_name: "Jane Doe", shares: 100,
                                  price: nil)
 
