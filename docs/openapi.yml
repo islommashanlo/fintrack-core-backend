@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.8.0
+  version: 1.9.0
   description: Implemented account, watchlist, plan-catalog and filing-data read APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1513,6 +1513,237 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+  "/alert-rules":
+    get:
+      operationId: listAlertRules
+      summary: List owned legacy filing-email rules
+      security:
+      - CookieSession: []
+      description: Owned follow-scoped new_filing/email rules. frequency=instant describes
+        the current delivery engine. Creation/deletion, conditions, digests and read
+        tracking are explicitly unavailable. Lists preserve legacy rules even above
+        current plan limits; active state is mutable between pages.
+      parameters:
+      - name: entity_type
+        in: query
+        schema:
+          type: string
+          enum:
+          - issuer
+          - fund
+          - person
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          maxLength: 8192
+      - name: active
+        in: query
+        schema:
+          type: boolean
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - created_at
+          - "-created_at"
+          - active
+          - "-active"
+          - entity_key
+          - "-entity_key"
+          default: "-created_at"
+      responses:
+        '200':
+          description: Owned rows and signed cursor/capability metadata; no-store.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/FilingAlertRule"
+                    maxItems: 100
+                  meta:
+                    "$ref": "#/components/schemas/FilingAlertPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/alert-rules/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    patch:
+      operationId: updateAlertRuleActiveState
+      summary: Pause an owned rule or resume with a trusted instant-alert entitlement
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      description: Only a JSON boolean active is accepted. Pause preserves rules and
+        deliveries and is idempotent. Free activation returns PRO_REQUIRED/instant_alerts/0;
+        entitled inactive-to-active transitions also check the rule limit under a
+        user-row lock. An unowned rule returns 404 before plan checks. No mail is
+        queued or old filings reprocessed. In-flight mail cannot be recalled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - active
+              properties:
+                active:
+                  type: boolean
+              additionalProperties: false
+      responses:
+        '200':
+          description: Updated rule and supported capabilities.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/FilingAlertRule"
+                  meta:
+                    "$ref": "#/components/schemas/FilingAlertCapabilities"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/alert-events":
+    get:
+      operationId: listAlertEvents
+      summary: Read owned filing-alert delivery history
+      security:
+      - CookieSession: []
+      description: Lists owned delivery attempts, not read/unread notifications. Each
+        row includes SEC provenance; provider error text stays private. Dates filter
+        delivery creation in UTC. Cursors bind owner, route, filters and source-ID
+        bounds. Current delivery status may change between requests. Unknown capabilities
+        remain explicitly false.
+      parameters:
+      - name: entity_type
+        in: query
+        schema:
+          type: string
+          enum:
+          - issuer
+          - fund
+          - person
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          maxLength: 8192
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - pending
+          - sent
+          - failed
+      - name: rule_id
+        in: query
+        schema:
+          type: integer
+          format: int64
+          minimum: 1
+        description: An unowned rule yields no matches.
+      - name: date_from
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Inclusive UTC creation date, Gregorian years 0001–9999.
+      - name: date_to
+        in: query
+        schema:
+          type: string
+          format: date
+        description: Inclusive UTC creation date, Gregorian years 0001–9999.
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - created_at
+          - "-created_at"
+          - delivered_at
+          - "-delivered_at"
+          - status
+          - "-status"
+          default: "-created_at"
+      responses:
+        '200':
+          description: Owned rows and signed cursor/capability metadata; no-store.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/FilingAlertEvent"
+                    maxItems: 100
+                  meta:
+                    "$ref": "#/components/schemas/FilingAlertPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
     Cik:
@@ -2559,10 +2790,11 @@ components:
           type: string
           enum:
           - watchlist_items
+          - instant_alerts
+          - alert_rules
         limit:
           type: integer
-          enum:
-          - 15
+          minimum: 0
     FilingHolding:
       type: object
       required:
@@ -4182,6 +4414,210 @@ components:
       description: 'total_count counts every match. Pagination operates within the
         server-entitled prefix: at most three Free results per screen across pages.
         truncated may remain true when has_more is false.'
+    FilingAlertRule:
+      type: object
+      required:
+      - id
+      - follow_id
+      - trigger
+      - entity
+      - conditions
+      - channels
+      - frequency
+      - active
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        follow_id:
+          type: integer
+          format: int64
+          minimum: 1
+        trigger:
+          type: string
+          enum:
+          - new_filing
+        entity:
+          type: object
+          required:
+          - type
+          - key
+          properties:
+            type:
+              type: string
+              enum:
+              - issuer
+              - fund
+              - person
+            key:
+              type: string
+        conditions:
+          type: object
+          additionalProperties: false
+        channels:
+          type: array
+          items:
+            type: string
+            enum:
+            - email
+          minItems: 1
+          maxItems: 1
+        frequency:
+          type: string
+          enum:
+          - instant
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    FilingAlertEvent:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required:
+        - id
+        - rule_id
+        - trigger
+        - entity
+        - channel
+        - frequency
+        - status
+        - error_code
+        - delivered_at
+        - created_at
+        - updated_at
+        - period_of_report
+        properties:
+          id:
+            type: integer
+            format: int64
+            minimum: 1
+          rule_id:
+            type: integer
+            format: int64
+            minimum: 1
+          trigger:
+            type: string
+            enum:
+            - new_filing
+          entity:
+            type: object
+            required:
+            - type
+            - key
+            properties:
+              type:
+                type: string
+                enum:
+                - issuer
+                - fund
+                - person
+              key:
+                type: string
+          channel:
+            type: string
+            enum:
+            - email
+          frequency:
+            type: string
+            enum:
+            - instant
+          status:
+            type: string
+            enum:
+            - pending
+            - sent
+            - failed
+          error_code:
+            type: string
+            enum:
+            - DELIVERY_FAILED
+            nullable: true
+            description: Provider errors and infrastructure text remain private.
+          delivered_at:
+            "$ref": "#/components/schemas/NullableTimestamp"
+          created_at:
+            type: string
+            format: date-time
+          updated_at:
+            type: string
+            format: date-time
+          period_of_report:
+            type: string
+            format: date
+            nullable: true
+    FilingAlertCapabilities:
+      type: object
+      required:
+      - capabilities
+      - limits
+      - supported_triggers
+      - supported_channels
+      - supported_frequencies
+      properties:
+        capabilities:
+          type: object
+          required:
+          - rule_creation
+          - rule_deletion
+          - pause_rules
+          - resume_rules
+          - daily_digest
+          - condition_filters
+          - read_tracking
+          properties:
+            rule_creation:
+              type: boolean
+            rule_deletion:
+              type: boolean
+            pause_rules:
+              type: boolean
+            resume_rules:
+              type: boolean
+            daily_digest:
+              type: boolean
+            condition_filters:
+              type: boolean
+            read_tracking:
+              type: boolean
+        limits:
+          type: object
+          required:
+          - alert_rules
+          properties:
+            alert_rules:
+              type: integer
+              minimum: 0
+              nullable: true
+        supported_triggers:
+          type: array
+          items:
+            type: string
+            enum:
+            - new_filing
+        supported_channels:
+          type: array
+          items:
+            type: string
+            enum:
+            - email
+        supported_frequencies:
+          type: array
+          items:
+            type: string
+            enum:
+            - instant
+    FilingAlertPageMeta:
+      allOf:
+      - "$ref": "#/components/schemas/ReadPageMeta"
+      - "$ref": "#/components/schemas/FilingAlertCapabilities"
   parameters:
     TransactionType:
       name: type
@@ -4398,7 +4834,7 @@ components:
           schema:
             type: string
     ProRequired:
-      description: Free watchlist limit reached.
+      description: A server-side entitlement or feature limit prevents this action.
       content:
         application/json:
           schema:

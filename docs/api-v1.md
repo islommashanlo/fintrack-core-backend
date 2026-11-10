@@ -698,3 +698,80 @@ preview cap; clients cannot enable it, and all current accounts remain Free.
 
 Scores, sectors, market caps, AUM, turnover and other unimplemented metrics are
 rejected as filter/sort fields. Saved-screen CRUD and exports remain pending.
+
+## Existing filing alert rules and delivery history
+
+These routes require a cookie-authenticated user and return `Cache-Control:
+no-store`. They expose the current follow-scoped filing-email infrastructure;
+they are not the full condition-based Alert Builder yet.
+
+| Route | Implemented behavior |
+| --- | --- |
+| `GET /api/v1/alert-rules` | Cursor-paginated rules owned by the signed-in user |
+| `PATCH /api/v1/alert-rules/:id` | Strict JSON `{ "active": false }` pauses a rule; resuming requires the server's instant-alert entitlement |
+| `GET /api/v1/alert-events` | Cursor-paginated owned delivery history with SEC filing provenance |
+
+Rule rows include `id`, `follow_id`, `trigger: new_filing`, an `entity` containing
+`type` (`issuer`, `fund`, `person`) and `key`, empty `conditions`,
+`channels: ["email"]`, `frequency: instant`, `active`, and creation/update times.
+Instant frequency describes the existing worker behavior; no frequency setting
+is fabricated or stored. The API does not currently create/archive/delete rules
+or accept trigger/channel/condition/frequency edits.
+
+Rule-list filters are `active=true|false` and `entity_type=issuer|fund|person`.
+Sorts are `created_at` (descending by default), `active`, and `entity_key`, with
+optional `-`. History filters are `status=pending|sent|failed`, a positive 64-bit
+`rule_id`, `entity_type`, and inclusive UTC `date_from` / `date_to` applied to
+delivery creation time, not filing time. Dates are strict Gregorian dates with
+years 0001–9999. History sorts are `created_at` (descending by default),
+`delivered_at`, and `status`, with optional `-`; undelivered timestamps sort last.
+Both lists accept standard `limit` (1–100) and signed 24-hour `cursor` values.
+
+Every query is scoped through the user's follows. A rule belonging to someone
+else returns JSON 404 on update, before any entitlement check. Filtering history
+by an unowned rule yields no rows. Cursors bind owner, route, filters and sort;
+source-ID bounds exclude subsequent inserts. Current active/delivery statuses
+can change between requests; these are not immutable historical state snapshots.
+
+Event rows include `id`, `rule_id`, trigger/entity/channel/frequency, delivery
+`status`, `delivered_at`, creation/update times, period of report, and the normal
+`accession`, `sec_url`, `filed_at`, `accepted_at`, `ingested_at`, `data_age_days`
+fields. Source filings and rule/follow associations are loaded once per page.
+Provider error text stays private; failures expose only
+`error_code: DELIVERY_FAILED`. This is delivery history: there is no invented
+`read_at` or unread state.
+
+Metadata includes `supported_triggers: ["new_filing"]`,
+`supported_channels: ["email"]`, `supported_frequencies: ["instant"]`, the
+catalog's alert-rule limit, and explicit capability flags. Current capabilities:
+pause is available; creation, deletion, condition filters, digest and read
+tracking are unavailable. `resume_rules` follows the trusted instant-alert
+entitlement, which is false for every current Free account.
+
+Pausing is idempotent and preserves deliveries. Send jobs recheck active state
+before starting mail; an already-started email cannot be recalled. A pending job
+skipped while paused retains its pending history and is not automatically
+requeued by resume. Neither list requests nor rule updates enqueue mail or
+reprocess old filings. Send attempts serialize on the delivery row; this does not
+guarantee exactly-once delivery across provider/database failures.
+
+Mutations require the CSRF header. Only a JSON boolean `active` is accepted;
+other settings or string booleans return HTTP 400. Free attempts to set
+`active: true` return HTTP 402:
+
+```json
+{"code":"PRO_REQUIRED","feature":"instant_alerts","limit":0}
+```
+
+An entitled transition from inactive to active also checks the catalog's active
+rule limit under a user-row lock. All existing legacy rules remain readable,
+including legacy accounts already above the Free limit. Existing HTML follow
+and resume behavior predates the new plan policy and remains a documented gap;
+the API does not enable another Free immediate-delivery path.
+
+Daily digests, rule creation/archival and read/read-all writes require new stored
+settings. The concrete proposal is in
+[`plan-alert-digests.md`](plan-alert-digests.md); no migrations or legacy data
+conversion have been run. The full trigger/channel Alert Builder remains pending.
+That proposal also requests a follow-removal marker, since current unfollowing
+deletes linked delivery history; pausing alone preserves history today.

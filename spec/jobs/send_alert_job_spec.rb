@@ -22,4 +22,12 @@ RSpec.describe SendAlertJob do
 
     expect(delivery.reload).to have_attributes(status: "failed", error: "StandardError: mail transport unavailable")
   end
+
+  it "does not send queued mail after its rule is paused and retains pending history" do
+    delivery = create(:alert_delivery)
+    delivery.alert_rule.update!(active: false)
+
+    expect { described_class.perform_now(delivery.id) }.not_to change { ActionMailer::Base.deliveries.size }
+    expect(delivery.reload).to have_attributes(status: "pending", delivered_at: nil, error: nil)
+  end
 end

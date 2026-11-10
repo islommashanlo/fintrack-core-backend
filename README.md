@@ -9,6 +9,7 @@ Data from public SEC filings. Not investment advice.
 - `CLAUDE.md` has the invariants, conventions and commands.
 - `docs/api-v1.md` and `docs/openapi.yml` document the implemented JSON read APIs.
 - `docs/activity-methodology.md` explains the cluster definition and draft Activity Score proposal.
+- `docs/plan-alert-digests.md` proposes the new storage needed for digest delivery and read tracking; approval is required before migrations.
 
 ## Getting started
 
