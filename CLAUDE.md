@@ -6,9 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The product is **FilingsIntel**, specified in `docs/project-brief.md`. This branch (`filingsintel-rails8`) is a clean Rails 8 rebuild made on 2026-10-02. The pipeline the brief calls "built as of July 2026" lived in an unpushed local repo that was lost, so nothing from July survives: not the code, the database, or the validation findings.
 
-- **Current phase:** Phase 1 (Form 4 pipeline) is rebuilt and tested. It has run on 45 real filings, not on a backfill.
-- **Next step:** Phase 1's "done when" needs a real backfill followed by `validate:report`. That sends thousands of SEC requests, so ask first. Phase 2 is planned in `docs/plan-phase-2.md` and waits on the owner's decisions (host, object storage, error tracking).
-- The earlier FinTrack prototype (Rails 7.1, different schema) is on `main`, for reference only. `docs/gap-analysis.md` audits it. The Python scraper, push-ingest endpoints, politician/HNWI data and the old auth/Stripe/alert code were deliberately not carried over. No frontend work for now.
+- **Current work:** The owner's Rails backend build prompt authorizes application development for a separate React frontend. Form 4 and 13F ingestion, holdings/diffs, server-rendered profiles, cookie auth, follows and filing alerts exist. JSON read routes are documented in `docs/api-v1.md` and `docs/openapi.yml`; the complete backend specification is not finished.
+- **Next step:** Add insider profile JSON routes, then API auth/watchlist and activity/derived analytics. Later work includes unusual activity/screener, expanded alerts, explanations/news/prices, and billing/gating. Do not infer deployment, SEC requests, enrichment or seeding authorization from an ordinary request to continue backend work.
+- **Validation/deployment:** The original Form 4 rebuild ran on 45 real filings, not a full backfill. A real backfill and production validation still need separate authorization. `docs/plan-phase-2.md` is the historical deployment plan; deployment is outside the current authorized work.
+- The earlier FinTrack prototype (Rails 7.1, different schema) is on `main`, for reference only. `docs/gap-analysis.md` audits it. The Python scraper, push-ingest endpoints, politician/HNWI data and the old auth/Stripe/alert code were deliberately not carried over.
 
 ## Product
 
@@ -41,7 +42,7 @@ FilingsIntel is a public-filings intelligence platform. Users follow corporate i
 - Ask before adding a gem, changing an existing table's schema, or deleting or rewriting stored as-reported values.
 - Ask before any backfill, bulk reprocessing, or anything sending more than about 100 SEC requests.
 - Before writing a parser for a filing type, fetch a real filing of that type and commit it as a fixture. Never write EDGAR formats from memory; the facts under "EDGAR behaviour" below were all checked live.
-- Don't write code for a later phase; write `docs/plan-<phase>.md` and wait for approval.
+- Follow the currently authorized backend build order above; the owner's later backend build prompt supersedes the original roadmap's phase stops. Schema, gem and data-operation approval requirements still apply.
 - Each fix comes with a regression spec, a green suite and one small commit. Push after every commit once a remote branch exists: the earlier work was lost because it lived on one disk.
 
 ## Commands
@@ -94,4 +95,4 @@ ParseForm4Job -> Form4Pipeline: SecClient.get -> FilingArchive.store -> Edgar::S
 - The spec suite uses the Active Job test adapter, so it never runs Sidekiq itself. After changing gems or the Sidekiq setup, run `make up` and check `make logs`.
 - `podman-compose up` reuses old containers; `make up` recreates web and sidekiq so a rebuilt image is used.
 - `ParseForm4Job` rescues `StandardError` on purpose (invariant 6). A new error class that should be retried must inherit from `SecClient::TransientError` or be added to `retry_on`.
-- Known limits (BRK.A-style prices flagged, whole-filing superseding, single `filer_type`, holdings not stored) are listed in `docs/plan-phase-2.md`.
+- `docs/plan-phase-2.md` records historical limits, not current implementation status. Holdings are now stored. JSON API coverage and remaining limitations are documented in `docs/api-v1.md`.

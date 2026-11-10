@@ -48,6 +48,10 @@ module Api
         })
       end
 
+      def relation
+        filtered_scope
+      end
+
       private
 
       def validate_parameters!

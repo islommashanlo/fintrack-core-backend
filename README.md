@@ -1,12 +1,13 @@
 # FilingsIntel
 
-Public-filings intelligence built on SEC EDGAR data: Form 4 insider transactions first,
-13F institutional holdings next. Data from public SEC filings. Not investment advice.
+Public-filings intelligence built on SEC EDGAR data: Form 4 insider transactions
+and 13F institutional holdings, with JSON read APIs for a separate frontend.
+Data from public SEC filings. Not investment advice.
 
 - `docs/project-brief.md` is the product and architecture brief.
 - `docs/gap-analysis.md` is the audit that started this rebuild.
 - `CLAUDE.md` has the invariants, conventions and commands.
-- `docs/api-v1.md` documents implemented JSON routes; `docs/openapi.yml` describes the transaction API.
+- `docs/api-v1.md` and `docs/openapi.yml` document the implemented JSON read APIs.
 
 ## Getting started
 

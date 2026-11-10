@@ -9,6 +9,16 @@ Sidekiq::Web.use(Rack::Auth::Basic, "FilingsIntel ops") { |user, password| OpsAu
 Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
+      resources :funds, param: :cik, only: %i[index show] do
+        get :holdings, on: :member
+        get :history, on: :member
+        get :changes, on: :member
+      end
+      resources :companies, param: :ticker, only: :show, constraints: { ticker: /[A-Za-z0-9.-]+/ } do
+        get :insiders, on: :member
+        get :filings, on: :member
+        get :institutional, on: :member
+      end
       get "insiders/transactions" => "insider_transactions#index", as: :insider_transactions
       get "filings/:accession" => "filings#show", as: :filing,
           constraints: { accession: /\d{10}-\d{2}-\d{6}/ }

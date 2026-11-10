@@ -1,107 +1,38 @@
+---
 openapi: 3.0.3
 info:
-  title: FilingsIntel transaction API
-  version: 1.0.0
-  description: >-
-    Implemented insider transaction list. Other planned API routes are not
-    described here yet. Data from public SEC filings. Not investment advice.
+  title: FilingsIntel read API
+  version: 1.1.0
+  description: Implemented fund, company and insider transaction reads. Other planned
+    routes are not described here yet. Data from public SEC filings. Not investment
+    advice.
 servers:
-  - url: /api/v1
+- url: "/api/v1"
 paths:
-  /insiders/transactions:
+  "/insiders/transactions":
     get:
       operationId: listInsiderTransactions
       summary: List reported insider transaction rows
-      description: >-
-        Includes parsed Form 4 and 4/A filings, with amendments resolved as of the
-        first page. One row per reporting owner and transaction line, including
-        both security tables. Filters combine with AND. Decimals are strings.
-        Missing sort values come last; row ID breaks ties in the same direction.
+      description: Includes parsed Form 4 and 4/A filings, with amendments resolved
+        as of the first page. One row per reporting owner and transaction line, including
+        both security tables. Filters combine with AND. Decimals are strings. Missing
+        sort values come last; row ID breaks ties in the same direction.
       parameters:
-        - name: type
-          in: query
-          schema:
-            type: string
-            enum: [all, open_market, administrative]
-            default: all
-        - name: code
-          in: query
-          description: One SEC code or comma-separated codes; case-insensitive.
-          schema:
-            type: string
-            pattern: '^[A-Za-z](,[A-Za-z])*$'
-          example: P,S
-        - name: direction
-          in: query
-          schema:
-            type: string
-            enum: [purchase, sale, other]
-        - name: role
-          in: query
-          schema:
-            type: string
-            enum: [director, officer, ten_percent_owner, other]
-        - name: insider_cik
-          in: query
-          schema:
-            $ref: '#/components/schemas/Cik'
-        - name: issuer_cik
-          in: query
-          schema:
-            $ref: '#/components/schemas/Cik'
-        - name: ticker
-          in: query
-          description: Exact case-insensitive ticker, including share-class punctuation.
-          schema:
-            type: string
-            pattern: '^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$'
-        - name: security_table
-          in: query
-          schema:
-            type: string
-            enum: [non_derivative, derivative]
-        - name: min_value
-          in: query
-          description: Inclusive minimum reported transaction value in dollars.
-          schema:
-            $ref: '#/components/schemas/ValueFilter'
-        - name: max_value
-          in: query
-          description: Inclusive maximum reported transaction value in dollars.
-          schema:
-            $ref: '#/components/schemas/ValueFilter'
-        - name: date_from
-          in: query
-          description: Inclusive transaction date, not filing date.
-          schema:
-            type: string
-            format: date
-        - name: date_to
-          in: query
-          description: Inclusive transaction date, not filing date.
-          schema:
-            type: string
-            format: date
-        - name: sort
-          in: query
-          schema:
-            $ref: '#/components/schemas/TransactionSort'
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 50
-        - name: cursor
-          in: query
-          description: >-
-            Signed next_cursor from a preceding page; expires in 24 hours.
-            Repeat the same normalized filters and sort. Limit may change.
-            Later inserts are excluded; updates to existing rows remain visible.
-          schema:
-            type: string
-            maxLength: 8192
+      - "$ref": "#/components/parameters/TransactionType"
+      - "$ref": "#/components/parameters/TransactionCode"
+      - "$ref": "#/components/parameters/TransactionDirection"
+      - "$ref": "#/components/parameters/TransactionRole"
+      - "$ref": "#/components/parameters/TransactionInsiderCik"
+      - "$ref": "#/components/parameters/TransactionIssuerCik"
+      - "$ref": "#/components/parameters/TransactionTicker"
+      - "$ref": "#/components/parameters/TransactionSecurityTable"
+      - "$ref": "#/components/parameters/TransactionMinValue"
+      - "$ref": "#/components/parameters/TransactionMaxValue"
+      - "$ref": "#/components/parameters/TransactionDateFrom"
+      - "$ref": "#/components/parameters/TransactionDateTo"
+      - "$ref": "#/components/parameters/TransactionSort"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
       responses:
         '200':
           description: Matching reporting-owner rows and cursor metadata.
@@ -109,26 +40,419 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [data, meta]
+                required:
+                - data
+                - meta
                 properties:
                   data:
                     type: array
                     maxItems: 100
                     items:
-                      $ref: '#/components/schemas/InsiderTransaction'
+                      "$ref": "#/components/schemas/InsiderTransaction"
                   meta:
-                    $ref: '#/components/schemas/TransactionPageMeta'
+                    "$ref": "#/components/schemas/TransactionPageMeta"
         '400':
           description: Unknown or malformed parameter, invalid range, or invalid cursor.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ParameterError'
+                "$ref": "#/components/schemas/ParameterError"
+  "/funds":
+    get:
+      operationId: listFunds
+      summary: List institutional filers
+      parameters:
+      - name: q
+        in: query
+        description: Literal name substring or exact CIK.
+        schema:
+          type: string
+      - name: sort
+        in: query
+        description: Missing values last; row ID breaks ties in the same direction.
+        schema:
+          type: string
+          enum:
+          - name
+          - "-name"
+          - cik
+          - "-cik"
+          default: name
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/Fund"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+  "/funds/{cik}":
+    get:
+      operationId: getFund
+      summary: Get fund identity and latest known report
+      parameters: []
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/FundProfile"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+    parameters:
+    - "$ref": "#/components/parameters/FundCik"
+  "/funds/{cik}/holdings":
+    get:
+      operationId: listFundHoldings
+      summary: List effective reported holdings
+      parameters:
+      - "$ref": "#/components/parameters/Period"
+      - "$ref": "#/components/parameters/Cusip"
+      - "$ref": "#/components/parameters/PutCall"
+      - "$ref": "#/components/parameters/ShareType"
+      - name: sort
+        in: query
+        description: Missing values last; row ID breaks ties in the same direction.
+        schema:
+          type: string
+          enum:
+          - value_usd
+          - "-value_usd"
+          - shares
+          - "-shares"
+          - cusip
+          - "-cusip"
+          - row_sequence
+          - "-row_sequence"
+          default: "-value_usd"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/InstitutionalHolding"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+      description: One row per information-table line. RESTATEMENT replaces the base;
+        later NEW HOLDINGS adds. Notices and unresolved additions have no effective
+        holdings. Original reported units and values remain separate from normalized
+        values.
+    parameters:
+    - "$ref": "#/components/parameters/FundCik"
+  "/funds/{cik}/history":
+    get:
+      operationId: listFundReports
+      summary: List report history including amendments and notices
+      parameters:
+      - "$ref": "#/components/parameters/Period"
+      - name: sort
+        in: query
+        description: Missing values last; row ID breaks ties in the same direction.
+        schema:
+          type: string
+          enum:
+          - period
+          - "-period"
+          - filed_at
+          - "-filed_at"
+          default: "-period"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/InstitutionalReport"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+    parameters:
+    - "$ref": "#/components/parameters/FundCik"
+  "/funds/{cik}/changes":
+    get:
+      operationId: listFundChanges
+      summary: List changes against the preceding available period
+      parameters:
+      - "$ref": "#/components/parameters/Period"
+      - name: change_type
+        in: query
+        schema:
+          type: string
+          enum:
+          - new
+          - added
+          - reduced
+          - exited
+      - name: sort
+        in: query
+        description: Missing values last; row ID breaks ties in the same direction.
+        schema:
+          type: string
+          enum:
+          - value_change
+          - "-value_change"
+          - shares_change
+          - "-shares_change"
+          - cusip
+          - "-cusip"
+          default: "-value_change"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/PositionChange"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+      description: Computed in SQL from effective holdings. Value/share sorts use
+        absolute deltas. All contributing current/prior filings are linked; missing
+        normalized values remain null. No derived rows are written by this request.
+    parameters:
+    - "$ref": "#/components/parameters/FundCik"
+  "/companies/{ticker}":
+    get:
+      operationId: getCompany
+      summary: Get company identity and 90-day insider summary
+      parameters: []
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/Company"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+      description: Exact case-insensitive ticker. Summary counts first-owner, non-derivative
+        P/S rows; suspect or missing prices are excluded from value totals. Existing
+        local mappings can supply a name/ticker with null CIK when no Form 4 exists.
+    parameters:
+    - "$ref": "#/components/parameters/CompanyTicker"
+  "/companies/{ticker}/insiders":
+    get:
+      operationId: listCompanyInsiderTransactions
+      summary: List company insider transaction rows
+      parameters:
+      - "$ref": "#/components/parameters/TransactionType"
+      - "$ref": "#/components/parameters/TransactionCode"
+      - "$ref": "#/components/parameters/TransactionDirection"
+      - "$ref": "#/components/parameters/TransactionRole"
+      - "$ref": "#/components/parameters/TransactionInsiderCik"
+      - "$ref": "#/components/parameters/TransactionSecurityTable"
+      - "$ref": "#/components/parameters/TransactionMinValue"
+      - "$ref": "#/components/parameters/TransactionMaxValue"
+      - "$ref": "#/components/parameters/TransactionDateFrom"
+      - "$ref": "#/components/parameters/TransactionDateTo"
+      - "$ref": "#/components/parameters/TransactionSort"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/InsiderTransaction"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+    parameters:
+    - "$ref": "#/components/parameters/CompanyTicker"
+  "/companies/{ticker}/filings":
+    get:
+      operationId: listCompanyFilings
+      summary: List company filing summaries
+      parameters:
+      - name: form_type
+        in: query
+        schema:
+          type: string
+          enum:
+          - '4'
+          - 4/A
+      - name: sort
+        in: query
+        description: Missing values last; row ID breaks ties in the same direction.
+        schema:
+          type: string
+          enum:
+          - filed_at
+          - "-filed_at"
+          - period
+          - "-period"
+          default: "-filed_at"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/FilingSummary"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+    parameters:
+    - "$ref": "#/components/parameters/CompanyTicker"
+  "/companies/{ticker}/institutional":
+    get:
+      operationId: listCompanyInstitutionalHoldings
+      summary: List mapped institutional holding rows
+      parameters:
+      - "$ref": "#/components/parameters/Period"
+      - "$ref": "#/components/parameters/Cusip"
+      - "$ref": "#/components/parameters/PutCall"
+      - "$ref": "#/components/parameters/ShareType"
+      - name: sort
+        in: query
+        description: Missing values last; row ID breaks ties in the same direction.
+        schema:
+          type: string
+          enum:
+          - value_usd
+          - "-value_usd"
+          - shares
+          - "-shares"
+          - cusip
+          - "-cusip"
+          - row_sequence
+          - "-row_sequence"
+          default: "-value_usd"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Locally stored filing data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/InstitutionalHolding"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+      description: Only exact ticker matches from existing mappings marked mapped.
+        No external lookups. Defaults to each fund's latest known period. Options,
+        share classes and repeated CUSIP lines remain distinct; current mappings are
+        not historical identity data.
+    parameters:
+    - "$ref": "#/components/parameters/CompanyTicker"
 components:
   schemas:
     Cik:
       type: string
-      pattern: '^[0-9]{10}$'
+      pattern: "^[0-9]{10}$"
     NullableDecimal:
       type: string
       nullable: true
@@ -140,14 +464,26 @@ components:
       nullable: true
     ValueFilter:
       type: string
-      pattern: '^[0-9]+(\.[0-9]+)?$'
+      pattern: "^[0-9]+(\\.[0-9]+)?$"
     TransactionSort:
       type: string
-      enum: [filed_at, '-filed_at', transaction_date, '-transaction_date', value, '-value']
-      default: '-filed_at'
+      enum:
+      - filed_at
+      - "-filed_at"
+      - transaction_date
+      - "-transaction_date"
+      - value
+      - "-value"
+      default: "-filed_at"
     TransactionPageMeta:
       type: object
-      required: [total_count, has_more, next_cursor, limit, sort, as_of]
+      required:
+      - total_count
+      - has_more
+      - next_cursor
+      - limit
+      - sort
+      - as_of
       properties:
         total_count:
           type: integer
@@ -163,64 +499,70 @@ components:
           minimum: 1
           maximum: 100
         sort:
-          $ref: '#/components/schemas/TransactionSort'
+          "$ref": "#/components/schemas/TransactionSort"
         as_of:
           type: string
           format: date-time
-          description: Original first-page time used for filing visibility and data age.
+          description: Original first-page time used for filing visibility and data
+            age.
     InsiderTransaction:
       type: object
       required:
-        - id
-        - accession
-        - form_type
-        - insider_cik
-        - insider_name
-        - issuer
-        - role
-        - owner_sequence
-        - security_table
-        - transaction_sequence
-        - security_title
-        - transaction_date
-        - transaction_code
-        - activity_type
-        - direction
-        - shares
-        - price
-        - price_suspect
-        - price_suspect_reason
-        - value
-        - shares_owned_following
-        - acquired_disposed
-        - direct_or_indirect
-        - filed_at
-        - accepted_at
-        - ingested_at
-        - period_of_report
-        - data_age_days
-        - sec_url
+      - id
+      - accession
+      - form_type
+      - insider_cik
+      - insider_name
+      - issuer
+      - role
+      - owner_sequence
+      - security_table
+      - transaction_sequence
+      - security_title
+      - transaction_date
+      - transaction_code
+      - activity_type
+      - direction
+      - shares
+      - price
+      - price_suspect
+      - price_suspect_reason
+      - value
+      - shares_owned_following
+      - acquired_disposed
+      - direct_or_indirect
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - period_of_report
+      - data_age_days
+      - sec_url
       properties:
         id:
           type: integer
           format: int64
         accession:
           type: string
-          pattern: '^[0-9]{10}-[0-9]{2}-[0-9]{6}$'
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
         form_type:
           type: string
-          enum: ['4', 4/A]
+          enum:
+          - '4'
+          - 4/A
         insider_cik:
-          $ref: '#/components/schemas/Cik'
+          "$ref": "#/components/schemas/Cik"
         insider_name:
           type: string
           nullable: true
         issuer:
           type: object
-          required: [cik, name, ticker]
+          required:
+          - cik
+          - name
+          - ticker
           properties:
             cik:
-              $ref: '#/components/schemas/Cik'
+              "$ref": "#/components/schemas/Cik"
             name:
               type: string
               nullable: true
@@ -229,7 +571,12 @@ components:
               nullable: true
         role:
           type: object
-          required: [is_director, is_officer, is_ten_percent_owner, is_other, officer_title]
+          required:
+          - is_director
+          - is_officer
+          - is_ten_percent_owner
+          - is_other
+          - officer_title
           properties:
             is_director:
               type: boolean
@@ -246,7 +593,9 @@ components:
           type: integer
         security_table:
           type: string
-          enum: [non_derivative, derivative]
+          enum:
+          - non_derivative
+          - derivative
         transaction_sequence:
           type: integer
         security_title:
@@ -261,23 +610,28 @@ components:
           nullable: true
         activity_type:
           type: string
-          enum: [open_market, administrative]
+          enum:
+          - open_market
+          - administrative
         direction:
           type: string
-          enum: [purchase, sale, other]
+          enum:
+          - purchase
+          - sale
+          - other
         shares:
-          $ref: '#/components/schemas/NullableDecimal'
+          "$ref": "#/components/schemas/NullableDecimal"
         price:
-          $ref: '#/components/schemas/NullableDecimal'
+          "$ref": "#/components/schemas/NullableDecimal"
         price_suspect:
           type: boolean
         price_suspect_reason:
           type: string
           nullable: true
         value:
-          $ref: '#/components/schemas/NullableDecimal'
+          "$ref": "#/components/schemas/NullableDecimal"
         shares_owned_following:
-          $ref: '#/components/schemas/NullableDecimal'
+          "$ref": "#/components/schemas/NullableDecimal"
         acquired_disposed:
           type: string
           nullable: true
@@ -285,11 +639,11 @@ components:
           type: string
           nullable: true
         filed_at:
-          $ref: '#/components/schemas/NullableTimestamp'
+          "$ref": "#/components/schemas/NullableTimestamp"
         accepted_at:
-          $ref: '#/components/schemas/NullableTimestamp'
+          "$ref": "#/components/schemas/NullableTimestamp"
         ingested_at:
-          $ref: '#/components/schemas/NullableTimestamp'
+          "$ref": "#/components/schemas/NullableTimestamp"
         period_of_report:
           type: string
           format: date
@@ -302,14 +656,745 @@ components:
           format: uri
     ParameterError:
       type: object
-      required: [error]
+      required:
+      - error
       properties:
         error:
           type: object
-          required: [code, message]
+          required:
+          - code
+          - message
           properties:
             code:
               type: string
-              enum: [INVALID_PARAMETER]
+              enum:
+              - INVALID_PARAMETER
             message:
               type: string
+    FilingProvenance:
+      type: object
+      required:
+      - accession
+      - form_type
+      - sec_url
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - data_age_days
+      properties:
+        accession:
+          type: string
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+        form_type:
+          type: string
+        sec_url:
+          type: string
+          format: uri
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+    Fund:
+      type: object
+      required:
+      - cik
+      - name
+      properties:
+        cik:
+          "$ref": "#/components/schemas/Cik"
+        name:
+          type: string
+    InstitutionalReport:
+      type: object
+      required:
+      - accession
+      - form_type
+      - sec_url
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - data_age_days
+      - id
+      - period_of_report
+      - report_type
+      - amendment_type
+      - amendment_number
+      - other_manager_count
+      - table_entry_total
+      - table_value_total
+      - value_unit
+      - suspect
+      - suspect_reason
+      properties:
+        accession:
+          type: string
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+        form_type:
+          type: string
+        sec_url:
+          type: string
+          format: uri
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+        id:
+          type: integer
+        period_of_report:
+          type: string
+          format: date
+        report_type:
+          type: string
+        amendment_type:
+          type: string
+          nullable: true
+        amendment_number:
+          type: integer
+          nullable: true
+        other_manager_count:
+          type: integer
+          nullable: true
+        table_entry_total:
+          type: integer
+          nullable: true
+        table_value_total:
+          "$ref": "#/components/schemas/NullableDecimal"
+        value_unit:
+          type: string
+          nullable: true
+        suspect:
+          type: boolean
+        suspect_reason:
+          type: string
+          nullable: true
+    FundProfile:
+      type: object
+      required:
+      - cik
+      - name
+      - latest_report
+      properties:
+        cik:
+          "$ref": "#/components/schemas/Cik"
+        name:
+          type: string
+        latest_report:
+          type: object
+          required:
+          - accession
+          - form_type
+          - sec_url
+          - filed_at
+          - accepted_at
+          - ingested_at
+          - data_age_days
+          - id
+          - period_of_report
+          - report_type
+          - amendment_type
+          - amendment_number
+          - other_manager_count
+          - table_entry_total
+          - table_value_total
+          - value_unit
+          - suspect
+          - suspect_reason
+          properties:
+            accession:
+              type: string
+              pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+            form_type:
+              type: string
+            sec_url:
+              type: string
+              format: uri
+            filed_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            accepted_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            ingested_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            data_age_days:
+              type: integer
+              nullable: true
+            id:
+              type: integer
+            period_of_report:
+              type: string
+              format: date
+            report_type:
+              type: string
+            amendment_type:
+              type: string
+              nullable: true
+            amendment_number:
+              type: integer
+              nullable: true
+            other_manager_count:
+              type: integer
+              nullable: true
+            table_entry_total:
+              type: integer
+              nullable: true
+            table_value_total:
+              "$ref": "#/components/schemas/NullableDecimal"
+            value_unit:
+              type: string
+              nullable: true
+            suspect:
+              type: boolean
+            suspect_reason:
+              type: string
+              nullable: true
+          nullable: true
+    InstitutionalHolding:
+      type: object
+      required:
+      - accession
+      - form_type
+      - sec_url
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - data_age_days
+      - id
+      - fund
+      - period_of_report
+      - row_sequence
+      - cusip
+      - figi
+      - issuer_name
+      - title_of_class
+      - value_reported
+      - value_unit
+      - value_usd
+      - shares
+      - share_type
+      - put_call
+      - investment_discretion
+      - other_manager
+      - voting_authority
+      - suspect
+      - suspect_reason
+      properties:
+        accession:
+          type: string
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+        form_type:
+          type: string
+        sec_url:
+          type: string
+          format: uri
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+        id:
+          type: integer
+        fund:
+          "$ref": "#/components/schemas/Fund"
+        period_of_report:
+          type: string
+          format: date
+        row_sequence:
+          type: integer
+        cusip:
+          type: string
+          nullable: true
+        figi:
+          type: string
+          nullable: true
+        issuer_name:
+          type: string
+        title_of_class:
+          type: string
+        value_reported:
+          type: string
+        value_unit:
+          type: string
+        value_usd:
+          "$ref": "#/components/schemas/NullableDecimal"
+        shares:
+          type: string
+        share_type:
+          type: string
+        put_call:
+          type: string
+          nullable: true
+        investment_discretion:
+          type: string
+          nullable: true
+        other_manager:
+          type: string
+          nullable: true
+        voting_authority:
+          type: object
+          required:
+          - sole
+          - shared
+          - none
+          properties:
+            sole:
+              "$ref": "#/components/schemas/NullableDecimal"
+            shared:
+              "$ref": "#/components/schemas/NullableDecimal"
+            none:
+              "$ref": "#/components/schemas/NullableDecimal"
+        suspect:
+          type: boolean
+        suspect_reason:
+          type: string
+          nullable: true
+    PositionChange:
+      type: object
+      required:
+      - accession
+      - form_type
+      - sec_url
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - data_age_days
+      - period_of_report
+      - prior_period_of_report
+      - cusip
+      - put_call
+      - share_type
+      - issuer_name
+      - title_of_class
+      - change_type
+      - current_suspect
+      - prior_suspect
+      - shares_before
+      - shares_after
+      - shares_delta
+      - value_usd_before
+      - value_usd_after
+      - value_usd_delta
+      - current_sources
+      - prior_sources
+      properties:
+        accession:
+          type: string
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+        form_type:
+          type: string
+        sec_url:
+          type: string
+          format: uri
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+        period_of_report:
+          type: string
+          format: date
+        prior_period_of_report:
+          type: string
+          format: date
+          nullable: true
+        cusip:
+          type: string
+        put_call:
+          type: string
+          nullable: true
+        share_type:
+          type: string
+        issuer_name:
+          type: string
+          nullable: true
+        title_of_class:
+          type: string
+          nullable: true
+        change_type:
+          type: string
+          enum:
+          - new
+          - added
+          - reduced
+          - exited
+        current_suspect:
+          type: boolean
+        prior_suspect:
+          type: boolean
+        shares_before:
+          "$ref": "#/components/schemas/NullableDecimal"
+        shares_after:
+          "$ref": "#/components/schemas/NullableDecimal"
+        shares_delta:
+          "$ref": "#/components/schemas/NullableDecimal"
+        value_usd_before:
+          "$ref": "#/components/schemas/NullableDecimal"
+        value_usd_after:
+          "$ref": "#/components/schemas/NullableDecimal"
+        value_usd_delta:
+          "$ref": "#/components/schemas/NullableDecimal"
+        current_sources:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FilingProvenance"
+        prior_sources:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FilingProvenance"
+    Company:
+      type: object
+      required:
+      - cik
+      - ticker
+      - name
+      - latest_filing
+      - insider_summary
+      properties:
+        cik:
+          type: string
+          nullable: true
+          pattern: "^[0-9]{10}$"
+        ticker:
+          type: string
+        name:
+          type: string
+          nullable: true
+        latest_filing:
+          type: object
+          required:
+          - accession
+          - form_type
+          - sec_url
+          - filed_at
+          - accepted_at
+          - ingested_at
+          - data_age_days
+          properties:
+            accession:
+              type: string
+              pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+            form_type:
+              type: string
+            sec_url:
+              type: string
+              format: uri
+            filed_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            accepted_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            ingested_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            data_age_days:
+              type: integer
+              nullable: true
+          nullable: true
+        insider_summary:
+          type: object
+          required:
+          - window_days
+          - purchase_count
+          - sale_count
+          - insider_count
+          - purchase_value
+          - sale_value
+          properties:
+            window_days:
+              type: integer
+            purchase_count:
+              type: integer
+            sale_count:
+              type: integer
+            insider_count:
+              type: integer
+            purchase_value:
+              "$ref": "#/components/schemas/NullableDecimal"
+            sale_value:
+              "$ref": "#/components/schemas/NullableDecimal"
+    FilingSummary:
+      type: object
+      required:
+      - accession
+      - form_type
+      - sec_url
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - data_age_days
+      - period_of_report
+      - issuer_cik
+      - issuer_name
+      - issuer_ticker
+      - is_amendment
+      - amends_accession
+      - superseded_by
+      properties:
+        accession:
+          type: string
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+        form_type:
+          type: string
+        sec_url:
+          type: string
+          format: uri
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+        period_of_report:
+          type: string
+          format: date
+          nullable: true
+        issuer_cik:
+          type: string
+          nullable: true
+        issuer_name:
+          type: string
+          nullable: true
+        issuer_ticker:
+          type: string
+          nullable: true
+        is_amendment:
+          type: boolean
+        amends_accession:
+          type: string
+          nullable: true
+        superseded_by:
+          type: string
+          nullable: true
+    ReadPageMeta:
+      type: object
+      required:
+      - total_count
+      - has_more
+      - next_cursor
+      - limit
+      - sort
+      - as_of
+      properties:
+        total_count:
+          type: integer
+          minimum: 0
+          description: All matching rows before the cursor boundary. Counts raw information-table
+            rows for holdings.
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        sort:
+          type: string
+        as_of:
+          type: string
+          format: date-time
+          description: Original first-page time used for filing visibility and data
+            age.
+    NotFoundError:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              enum:
+              - NOT_FOUND
+            message:
+              type: string
+  parameters:
+    TransactionType:
+      name: type
+      in: query
+      schema:
+        type: string
+        enum:
+        - all
+        - open_market
+        - administrative
+        default: all
+    TransactionCode:
+      name: code
+      in: query
+      description: One SEC code or comma-separated codes; case-insensitive.
+      schema:
+        type: string
+        pattern: "^[A-Za-z](,[A-Za-z])*$"
+      example: P,S
+    TransactionDirection:
+      name: direction
+      in: query
+      schema:
+        type: string
+        enum:
+        - purchase
+        - sale
+        - other
+    TransactionRole:
+      name: role
+      in: query
+      schema:
+        type: string
+        enum:
+        - director
+        - officer
+        - ten_percent_owner
+        - other
+    TransactionInsiderCik:
+      name: insider_cik
+      in: query
+      schema:
+        "$ref": "#/components/schemas/Cik"
+    TransactionIssuerCik:
+      name: issuer_cik
+      in: query
+      schema:
+        "$ref": "#/components/schemas/Cik"
+    TransactionTicker:
+      name: ticker
+      in: query
+      description: Exact case-insensitive ticker, including share-class punctuation.
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$"
+    TransactionSecurityTable:
+      name: security_table
+      in: query
+      schema:
+        type: string
+        enum:
+        - non_derivative
+        - derivative
+    TransactionMinValue:
+      name: min_value
+      in: query
+      description: Inclusive minimum reported transaction value in dollars.
+      schema:
+        "$ref": "#/components/schemas/ValueFilter"
+    TransactionMaxValue:
+      name: max_value
+      in: query
+      description: Inclusive maximum reported transaction value in dollars.
+      schema:
+        "$ref": "#/components/schemas/ValueFilter"
+    TransactionDateFrom:
+      name: date_from
+      in: query
+      description: Inclusive transaction date, not filing date.
+      schema:
+        type: string
+        format: date
+    TransactionDateTo:
+      name: date_to
+      in: query
+      description: Inclusive transaction date, not filing date.
+      schema:
+        type: string
+        format: date
+    TransactionSort:
+      name: sort
+      in: query
+      schema:
+        "$ref": "#/components/schemas/TransactionSort"
+    TransactionLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    TransactionCursor:
+      name: cursor
+      in: query
+      description: Signed next_cursor from a preceding page; expires in 24 hours.
+        Repeat the same normalized filters and sort. Limit may change. Later inserts
+        are excluded; updates to existing rows remain visible.
+      schema:
+        type: string
+        maxLength: 8192
+    FundCik:
+      name: cik
+      in: path
+      required: true
+      schema:
+        "$ref": "#/components/schemas/Cik"
+    CompanyTicker:
+      name: ticker
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$"
+    Period:
+      name: period
+      in: query
+      description: Quarter-end date in YYYY-MM-DD form. Defaults to the latest known
+        period where applicable.
+      schema:
+        type: string
+        format: date
+    Cusip:
+      name: cusip
+      in: query
+      schema:
+        type: string
+        pattern: "^[0-9A-Z]{9}$"
+    PutCall:
+      name: put_call
+      in: query
+      schema:
+        type: string
+        enum:
+        - PUT
+        - CALL
+    ShareType:
+      name: share_type
+      in: query
+      schema:
+        type: string
+        enum:
+        - SH
+        - PRN
+  responses:
+    InvalidParameter:
+      description: Unknown or malformed parameter, invalid range, invalid or expired
+        cursor.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ParameterError"
+    NotFound:
+      description: Unknown entity in locally stored data.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/NotFoundError"
