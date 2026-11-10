@@ -42,12 +42,13 @@ RSpec.describe InstitutionalPositionDiffQuery do
     create(:institutional_holding, institutional_report: second, row_seq: 1, cusip: "037833100", shares: 60,
            investment_discretion: "SOLE")
     create(:institutional_holding, institutional_report: second, row_seq: 2, cusip: "037833100", shares: 60,
-           investment_discretion: "SHARED")
+           investment_discretion: "SHARED", value_usd: nil, suspect: true)
 
     row = described_class.new(institutional_filer_id: filer.id, period_of_report: second.period_of_report)
       .call.find { |result| result["cusip"] == "037833100" }
 
-    expect(row).to include("change_type" => "add", "shares_before" => 100.to_d, "shares_after" => 120.to_d)
+    expect(row).to include("change_type" => "add", "shares_before" => 100.to_d, "shares_after" => 120.to_d,
+                           "value_usd_after" => nil, "value_usd_delta" => nil, "current_suspect" => true)
   end
 
   private

@@ -22,6 +22,18 @@ RSpec.describe InstitutionalPositionDiffMaterializer do
     expect(PositionDiff.sole).to have_attributes(change_type: "add", shares_delta: 50.to_d)
   end
 
+  it "links an exited position to the current quarter's report" do
+    filer = create(:institutional_filer)
+    first = create_report(filer, Date.new(2025, 12, 31), Time.utc(2026, 2, 14))
+    second = create_report(filer, Date.new(2026, 3, 31), Time.utc(2026, 5, 15))
+    create(:institutional_holding, institutional_report: first)
+
+    described_class.call(institutional_filer_id: filer.id, period_of_report: second.period_of_report)
+
+    expect(PositionDiff.sole).to have_attributes(change_type: "exit", institutional_report: second,
+                                                prior_institutional_report: first)
+  end
+
   private
 
   def create_report(filer, period, filed_at)
