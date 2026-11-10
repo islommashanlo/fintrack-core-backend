@@ -16,6 +16,17 @@ class InsiderTransaction < ApplicationRecord
     OPEN_MARKET_CODES.include?(transaction_code)
   end
 
+  def direction
+    return "purchase" if transaction_code == PURCHASE_CODE
+    return "sale" if transaction_code == SALE_CODE
+
+    "other"
+  end
+
+  def reported_value
+    shares * price if shares && price && !price_suspect
+  end
+
   validates :security_table, inclusion: { in: SECURITY_TABLES }
   validates :accession_no, :insider_cik, :issuer_cik, :txn_seq, :owner_seq, presence: true
 end

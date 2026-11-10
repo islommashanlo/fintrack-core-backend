@@ -6,6 +6,7 @@ Public-filings intelligence built on SEC EDGAR data: Form 4 insider transactions
 - `docs/project-brief.md` is the product and architecture brief.
 - `docs/gap-analysis.md` is the audit that started this rebuild.
 - `CLAUDE.md` has the invariants, conventions and commands.
+- `docs/api-v1.md` documents implemented JSON routes; `docs/openapi.yml` describes the transaction API.
 
 ## Getting started
 

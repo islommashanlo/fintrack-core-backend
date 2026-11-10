@@ -1,0 +1,315 @@
+openapi: 3.0.3
+info:
+  title: FilingsIntel transaction API
+  version: 1.0.0
+  description: >-
+    Implemented insider transaction list. Other planned API routes are not
+    described here yet. Data from public SEC filings. Not investment advice.
+servers:
+  - url: /api/v1
+paths:
+  /insiders/transactions:
+    get:
+      operationId: listInsiderTransactions
+      summary: List reported insider transaction rows
+      description: >-
+        Includes parsed Form 4 and 4/A filings, with amendments resolved as of the
+        first page. One row per reporting owner and transaction line, including
+        both security tables. Filters combine with AND. Decimals are strings.
+        Missing sort values come last; row ID breaks ties in the same direction.
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [all, open_market, administrative]
+            default: all
+        - name: code
+          in: query
+          description: One SEC code or comma-separated codes; case-insensitive.
+          schema:
+            type: string
+            pattern: '^[A-Za-z](,[A-Za-z])*$'
+          example: P,S
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [purchase, sale, other]
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [director, officer, ten_percent_owner, other]
+        - name: insider_cik
+          in: query
+          schema:
+            $ref: '#/components/schemas/Cik'
+        - name: issuer_cik
+          in: query
+          schema:
+            $ref: '#/components/schemas/Cik'
+        - name: ticker
+          in: query
+          description: Exact case-insensitive ticker, including share-class punctuation.
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$'
+        - name: security_table
+          in: query
+          schema:
+            type: string
+            enum: [non_derivative, derivative]
+        - name: min_value
+          in: query
+          description: Inclusive minimum reported transaction value in dollars.
+          schema:
+            $ref: '#/components/schemas/ValueFilter'
+        - name: max_value
+          in: query
+          description: Inclusive maximum reported transaction value in dollars.
+          schema:
+            $ref: '#/components/schemas/ValueFilter'
+        - name: date_from
+          in: query
+          description: Inclusive transaction date, not filing date.
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          description: Inclusive transaction date, not filing date.
+          schema:
+            type: string
+            format: date
+        - name: sort
+          in: query
+          schema:
+            $ref: '#/components/schemas/TransactionSort'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          description: >-
+            Signed next_cursor from a preceding page; expires in 24 hours.
+            Repeat the same normalized filters and sort. Limit may change.
+            Later inserts are excluded; updates to existing rows remain visible.
+          schema:
+            type: string
+            maxLength: 8192
+      responses:
+        '200':
+          description: Matching reporting-owner rows and cursor metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      $ref: '#/components/schemas/InsiderTransaction'
+                  meta:
+                    $ref: '#/components/schemas/TransactionPageMeta'
+        '400':
+          description: Unknown or malformed parameter, invalid range, or invalid cursor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParameterError'
+components:
+  schemas:
+    Cik:
+      type: string
+      pattern: '^[0-9]{10}$'
+    NullableDecimal:
+      type: string
+      nullable: true
+      description: Exact reported or calculated decimal, encoded as a string.
+      example: '253.125'
+    NullableTimestamp:
+      type: string
+      format: date-time
+      nullable: true
+    ValueFilter:
+      type: string
+      pattern: '^[0-9]+(\.[0-9]+)?$'
+    TransactionSort:
+      type: string
+      enum: [filed_at, '-filed_at', transaction_date, '-transaction_date', value, '-value']
+      default: '-filed_at'
+    TransactionPageMeta:
+      type: object
+      required: [total_count, has_more, next_cursor, limit, sort, as_of]
+      properties:
+        total_count:
+          type: integer
+          minimum: 0
+          description: Matching reporting-owner rows before applying the cursor boundary.
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        sort:
+          $ref: '#/components/schemas/TransactionSort'
+        as_of:
+          type: string
+          format: date-time
+          description: Original first-page time used for filing visibility and data age.
+    InsiderTransaction:
+      type: object
+      required:
+        - id
+        - accession
+        - form_type
+        - insider_cik
+        - insider_name
+        - issuer
+        - role
+        - owner_sequence
+        - security_table
+        - transaction_sequence
+        - security_title
+        - transaction_date
+        - transaction_code
+        - activity_type
+        - direction
+        - shares
+        - price
+        - price_suspect
+        - price_suspect_reason
+        - value
+        - shares_owned_following
+        - acquired_disposed
+        - direct_or_indirect
+        - filed_at
+        - accepted_at
+        - ingested_at
+        - period_of_report
+        - data_age_days
+        - sec_url
+      properties:
+        id:
+          type: integer
+          format: int64
+        accession:
+          type: string
+          pattern: '^[0-9]{10}-[0-9]{2}-[0-9]{6}$'
+        form_type:
+          type: string
+          enum: ['4', 4/A]
+        insider_cik:
+          $ref: '#/components/schemas/Cik'
+        insider_name:
+          type: string
+          nullable: true
+        issuer:
+          type: object
+          required: [cik, name, ticker]
+          properties:
+            cik:
+              $ref: '#/components/schemas/Cik'
+            name:
+              type: string
+              nullable: true
+            ticker:
+              type: string
+              nullable: true
+        role:
+          type: object
+          required: [is_director, is_officer, is_ten_percent_owner, is_other, officer_title]
+          properties:
+            is_director:
+              type: boolean
+            is_officer:
+              type: boolean
+            is_ten_percent_owner:
+              type: boolean
+            is_other:
+              type: boolean
+            officer_title:
+              type: string
+              nullable: true
+        owner_sequence:
+          type: integer
+        security_table:
+          type: string
+          enum: [non_derivative, derivative]
+        transaction_sequence:
+          type: integer
+        security_title:
+          type: string
+          nullable: true
+        transaction_date:
+          type: string
+          format: date
+          nullable: true
+        transaction_code:
+          type: string
+          nullable: true
+        activity_type:
+          type: string
+          enum: [open_market, administrative]
+        direction:
+          type: string
+          enum: [purchase, sale, other]
+        shares:
+          $ref: '#/components/schemas/NullableDecimal'
+        price:
+          $ref: '#/components/schemas/NullableDecimal'
+        price_suspect:
+          type: boolean
+        price_suspect_reason:
+          type: string
+          nullable: true
+        value:
+          $ref: '#/components/schemas/NullableDecimal'
+        shares_owned_following:
+          $ref: '#/components/schemas/NullableDecimal'
+        acquired_disposed:
+          type: string
+          nullable: true
+        direct_or_indirect:
+          type: string
+          nullable: true
+        filed_at:
+          $ref: '#/components/schemas/NullableTimestamp'
+        accepted_at:
+          $ref: '#/components/schemas/NullableTimestamp'
+        ingested_at:
+          $ref: '#/components/schemas/NullableTimestamp'
+        period_of_report:
+          type: string
+          format: date
+          nullable: true
+        data_age_days:
+          type: integer
+          nullable: true
+        sec_url:
+          type: string
+          format: uri
+    ParameterError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [INVALID_PARAMETER]
+            message:
+              type: string

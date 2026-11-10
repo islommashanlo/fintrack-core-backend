@@ -51,25 +51,7 @@ module Api
 
       def transactions
         @filing.insider_transactions.order(:security_table, :owner_seq, :txn_seq).map do |transaction|
-          {
-            accession: transaction.accession_no,
-            insider_cik: transaction.insider_cik,
-            insider_name: transaction.insider_name,
-            owner_sequence: transaction.owner_seq,
-            security_table: transaction.security_table,
-            transaction_sequence: transaction.txn_seq,
-            security_title: transaction.security_title,
-            transaction_date: transaction.transaction_date,
-            transaction_code: transaction.transaction_code,
-            activity_type: transaction.open_market? ? "open_market" : "administrative",
-            direction: direction(transaction.transaction_code),
-            shares: transaction.shares,
-            price: transaction.price,
-            price_suspect: transaction.price_suspect,
-            shares_owned_following: transaction.shares_owned_following,
-            direct_or_indirect: transaction.direct_or_indirect,
-            sec_url: @filing.sec_url
-          }
+          InsiderTransactionSerializer.render(transaction, as_of: @as_of)
         end
       end
 
@@ -101,13 +83,6 @@ module Api
             sec_url: @filing.sec_url
           }
         end
-      end
-
-      def direction(code)
-        return "purchase" if code == "P"
-        return "sale" if code == "S"
-
-        "other"
       end
     end
   end

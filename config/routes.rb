@@ -9,6 +9,7 @@ Sidekiq::Web.use(Rack::Auth::Basic, "FilingsIntel ops") { |user, password| OpsAu
 Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
+      get "insiders/transactions" => "insider_transactions#index", as: :insider_transactions
       get "filings/:accession" => "filings#show", as: :filing,
           constraints: { accession: /\d{10}-\d{2}-\d{6}/ }
     end
