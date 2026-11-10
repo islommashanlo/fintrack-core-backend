@@ -32,9 +32,13 @@ module Api
             { cik: nil, name: position_data(row)["name_of_issuer"], ticker: row["ticker"] },
           position_change: source == "institutional" ? position_change(row) : nil
         )
-        if @scoring_bounds && transaction
-          assessment = ActivityScoring::InsiderAssessment.new(transaction:,
-            max_filing_id: @scoring_bounds.fetch("filings"), max_transaction_id: @scoring_bounds.fetch("transactions")).call
+        if @scoring_bounds
+          assessment = if transaction
+            ActivityScoring::InsiderAssessment.new(transaction:,
+              max_filing_id: @scoring_bounds.fetch("filings"), max_transaction_id: @scoring_bounds.fetch("transactions")).call
+          else
+            ActivityScoring::InstitutionalAssessment.new(row:, bounds: @scoring_bounds).call
+          end
           result.merge!(assessment.slice(:score, :level, :reasons), score_breakdown: assessment.fetch(:factors),
             scoring: assessment.except(:score, :level, :reasons, :factors))
         end

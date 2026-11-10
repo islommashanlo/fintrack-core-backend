@@ -20,6 +20,8 @@ RSpec.describe "API v1 methodology" do
     expect(proposal.fetch("maximum_lateness_penalty")).to eq(15)
     expect(score.fetch("insider_factors")).to include("status" => "draft", "detail_diagnostics" => "available",
       "history_days" => 365, "minimum_history" => 5, "staleness_full_penalty_days" => 30)
+    expect(score.fetch("institutional_factors")).to include("status" => "draft", "detail_diagnostics" => "available",
+      "history_quarters" => 8, "minimum_history" => 5, "participation_full_count" => 3, "staleness_full_penalty_days" => 90)
     expect(body.fetch("disclaimer")).to eq(FilingsIntel::DISCLAIMER)
   end
 

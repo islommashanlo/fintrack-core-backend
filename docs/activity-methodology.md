@@ -50,7 +50,7 @@ does not implement this new API's cluster definition.
 ## Activity Score proposal
 
 Scores remain unavailable. The API continues to return null scores/levels and
-empty overall reasons. Insider event details now return measured factor diagnostics
+empty overall reasons. Insider and institutional event details return measured factor diagnostics
 and explicit missing-input coverage; feed breakdowns remain empty. A published
 proposal or individual weighted contribution is not an overall score.
 The requested level thresholds are recorded now:
@@ -66,18 +66,18 @@ The initial proposed positive weights total 100:
 
 | Factor | Proposed weight | Current inputs |
 | --- | --- | --- |
-| Filer's own reported history | 25 | Partial; coverage and sample size still need explicit rules |
+| Filer's own reported history | 25 | Draft observed-history comparisons require at least five usable observations |
 | Issuer scale and liquidity | 25 | Unavailable; issuer market capitalization and daily trading volume are not stored |
-| Reported context | 15 | Partial; roles and transaction types exist, source-specific applicability needs definition |
-| Position-size change | 20 | Partial; normalized holdings/diffs exist, incomplete baselines remain unknown |
-| Corroborating reported activity | 15 | Partial; clusters exist, same-quarter fund participation still needs a defined calculation |
+| Reported context | 15 | Draft role mapping for insiders and change-type mapping for institutions |
+| Position-size change | 20 | Draft ratios from reported insider lines or complete adjacent-quarter institutional comparisons |
+| Corroborating reported activity | 15 | Draft participation among first-listed insiders or reporting funds, at the event's evaluation time |
 
 The proposal subtracts a lateness penalty of at most 15 points, then clamps the
 result to 0–100. It measures relative significance and unusualness of reported
 activity, with no interpretation as expected performance. No probabilities,
 forecasts or personalized guidance are implied by these labels or draft weights.
 
-### Implemented draft insider factors (1.1-draft)
+### Implemented draft insider factors
 
 `GET /api/v1/activity/insider_<transaction_id>` evaluates a canonical non-derivative
 P/S line at its filing's SEC acceptance timestamp. It returns six `score_breakdown`
@@ -127,6 +127,63 @@ requests remain `incomplete` (or `ineligible` for unsupported rows), with null
 score/level and empty overall reasons. Even complete synthetic inputs remain
 `draft` while the methodology is inactive.
 
-Institutional factors and the issuer-scale/liquidity factor remain pending.
-Activating scores, score-based feeds, ingest-time persistence and legal deadline
-checks are separate work. None is implied by the diagnostic endpoint.
+### Implemented draft institutional factors (1.2-draft)
+
+Institutional event details now return the same six-factor diagnostic shape and
+an additional `scoring.source_coverage` object. Evaluation uses the latest SEC
+acceptance time among the event's current and preceding report contexts. Signed
+event links pin the subject fund's exact report set, including when another
+revision shares the same acceptance timestamp. Later accepted amendments and
+peer reports cannot enter the assessment.
+
+Before a report context supplies factors, SQL checks its parsed row count and
+sum of raw reported values against the cover totals. Cover totals must be present;
+a report with zero cover entries and zero value can establish an empty position
+set. Suspect flags, invalid CUSIP shapes, nonpositive/nonfinite shares, invalid
+option/share types and negative/nonfinite raw values prevent use. Each amendment
+must have an original visible before it. A report cut off by the request's
+holding-ID bound fails its cover count. Both quarters must be adjacent and their
+full effective report sets must pass these checks. These checks establish
+internal consistency with the cover, not complete EDGAR or portfolio coverage.
+
+Normalized-value coverage is tracked separately. Values must be present, finite,
+nonnegative, and equal to the raw value times the stored unit multiplier (1 or
+1,000), with the holding and cover units agreeing. Unknown normalization cannot
+supply dollar-change history. It does not manufacture a zero value or alter raw
+numbers. A structurally complete comparison may still supply share-based factors
+when its normalized-value coverage is incomplete.
+
+| Factor | Implemented draft formula |
+| --- | --- |
+| Own history | Among at least five usable same-direction changes by this reporting fund, across position keys in the preceding eight quarters, count(abs(reported value change) <= event magnitude) / count(changes). Exclude the current quarter and comparisons first available at or after evaluation. Require complete adjacent-quarter contexts and usable normalized values. Ties count. |
+| Reported context | New and exited positions contribute 1; additions and reductions contribute 0.5. These mappings describe reported context, not expected outcomes. |
+| Position change | Use min(abs(changed shares) / preceding shares, 1). A position absent from a complete preceding report contributes 1; a full exit from a complete current report contributes 1. |
+| Participation | Count distinct reporting funds with the exact same quarter, CUSIP, put/call, share type and change type (new/add/trim/exit), using complete adjacent-quarter contexts known by evaluation. Use clamp((count − 1) / 2, 0, 1). |
+| Staleness | Calendar days from the reported quarter end to the Eastern evaluation date, divided by 90 and capped at 1, times the maximum 15-point penalty. A future report period remains unavailable. |
+| Issuer scale/liquidity | Remains unavailable; no market-data fetch is performed. |
+
+RESTATEMENT replaces the earlier base; subsequent NEW HOLDINGS reports add to it.
+Repeated information-table rows aggregate into one position per CUSIP, put/call
+and share type. Notices, skipped/failed/pending reports, unresolved additions and
+missing quarters cannot create comparison baselines or peer participation. A
+restatement without a visible original is withheld from diagnostic factors even
+though its reported data remains readable.
+
+`source_coverage` lists checked `report_ids`, `invalid_report_ids`,
+`missing_report_ids`, `value_incomplete_report_ids`, and the booleans
+`reports_complete` / `values_complete`. Structurally incomplete event contexts
+return `ineligible` with `eligibility_reason: incomplete_report_context`. Complete
+contexts with missing history or market inputs remain `incomplete`. All raw
+filing and position details remain available.
+
+The historical magnitude is a **reported value change**, including price and
+valuation effects between quarters; it is not a transaction amount or capital
+flow. Peer counts describe reporting funds, not independent decisions, and
+included managers may overlap. Staleness measures the age of a reported quarter,
+not legal filing lateness. Draft sample sizes, mappings and curves remain
+versioned implementation parameters. Fresh reads can include newly ingested
+backdated records; normalized rows are not immutable stored assessments.
+
+Overall scores, score-based feeds, ingest-time persistence, market-scale inputs
+and legal deadline checks remain separate work. This slice does not activate
+scoring, fetch external data or write derived rows.

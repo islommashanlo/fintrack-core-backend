@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.6.0
+  version: 1.7.0
   description: Implemented account, watchlist, plan-catalog and filing-data read APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1301,14 +1301,14 @@ paths:
       description: Insider links retain the original transaction after amendment.
         Signed institutional IDs reconstruct the exact original effective report set,
         even after a newer restatement. Public source data must still be retained
-        and parsed; altered or unknown identifiers return JSON 404. This endpoint
-        does not write derived activity rows. Insider details include draft point-in-time
-        factor diagnostics and missing-input coverage; no overall score is published
-        while required inputs are unavailable.
+        and parsed; altered or unknown identifiers return JSON 404. Both sources include
+        draft point-in-time factor diagnostics and missing-input coverage. Institutional
+        diagnostics verify the complete signed adjacent-quarter report contexts. Overall
+        scores remain unavailable; this endpoint does not write derived activity rows.
       responses:
         '200':
-          description: Event details with factual provenance; insider events include
-            draft factor diagnostics and explicit coverage.
+          description: Event details with factual provenance, draft factor diagnostics
+            and explicit input coverage.
           content:
             application/json:
               schema:
@@ -1440,12 +1440,11 @@ paths:
       summary: Read active cluster criteria and the draft score proposal
       security: []
       parameters: []
-      description: Cluster window and minimum criteria are active. Activity Scores
-        remain unavailable; proposed weights are a versioned draft, not computed scores
-        or expected-performance measures. Thresholds and input gaps are published.
-        Missing inputs are not zero-filled or silently reweighted. Version 1.1-draft
-        publishes implemented insider factor formulas, observed-history requirements,
-        role mapping and calendar-day staleness.
+      description: Cluster criteria are active. Version 1.2-draft publishes implemented
+        insider and institutional factor formulas, source coverage, observed-history
+        requirements, context mappings and calendar-day staleness. Overall Activity
+        Scores remain unavailable while required market inputs are missing and scoring
+        is inactive. Missing inputs are not zero-filled or reweighted.
       responses:
         '200':
           description: Public methodology definition from the version-controlled configuration.
@@ -2884,9 +2883,9 @@ components:
           type: array
           items:
             "$ref": "#/components/schemas/ActivityScoreFactor"
-          description: Draft measured and unavailable factors on insider event details;
-            empty on the feed and institutional details. Factor contributions are
-            not an overall score.
+          description: Draft measured and unavailable factors on both insider and
+            institutional event details; empty on the feed. Individual factor contributions
+            are not an overall score.
         transaction:
           type: object
           required:
@@ -3149,8 +3148,6 @@ components:
           nullable: true
         scoring:
           "$ref": "#/components/schemas/ActivityScoreDiagnostics"
-          description: Present only on insider event details; absent from feed entries
-            and institutional details.
     ActivityPageMeta:
       type: object
       required:
@@ -3425,6 +3422,7 @@ components:
           - levels
           - proposal
           - insider_factors
+          - institutional_factors
           properties:
             status:
               type: string
@@ -3592,6 +3590,81 @@ components:
                   type: string
                 unsupported_sources:
                   type: string
+            institutional_factors:
+              type: object
+              required:
+              - status
+              - detail_diagnostics
+              - evaluated_at
+              - source_coverage
+              - value_coverage
+              - history_quarters
+              - minimum_history
+              - history_formula
+              - history_scope
+              - change_type_values
+              - position_formula
+              - participation_full_count
+              - participation_formula
+              - participation_scope
+              - staleness_full_penalty_days
+              - staleness_formula
+              - staleness_scope
+              - version_policy
+              - required_coverage
+              properties:
+                status:
+                  type: string
+                detail_diagnostics:
+                  type: string
+                evaluated_at:
+                  type: string
+                source_coverage:
+                  type: string
+                value_coverage:
+                  type: string
+                history_quarters:
+                  type: integer
+                minimum_history:
+                  type: integer
+                history_formula:
+                  type: string
+                history_scope:
+                  type: string
+                change_type_values:
+                  type: object
+                  required:
+                  - new
+                  - exit
+                  - add
+                  - trim
+                  properties:
+                    new:
+                      type: number
+                    exit:
+                      type: number
+                    add:
+                      type: number
+                    trim:
+                      type: number
+                position_formula:
+                  type: string
+                participation_full_count:
+                  type: integer
+                participation_formula:
+                  type: string
+                participation_scope:
+                  type: string
+                staleness_full_penalty_days:
+                  type: integer
+                staleness_formula:
+                  type: string
+                staleness_scope:
+                  type: string
+                version_policy:
+                  type: string
+                required_coverage:
+                  type: string
     ActivityScoreFactor:
       type: object
       required:
@@ -3674,7 +3747,7 @@ components:
           - ineligible
           - draft
           - available
-          description: Current insider requests remain incomplete or ineligible. Complete
+          description: Current requests remain incomplete or ineligible. Complete
             inputs cannot produce a score while the methodology is inactive.
         eligibility_reason:
           type: string
@@ -3686,6 +3759,45 @@ components:
           format: date-time
         coverage:
           "$ref": "#/components/schemas/ActivityScoreCoverage"
+        source_coverage:
+          "$ref": "#/components/schemas/InstitutionalScoreSourceCoverage"
+    InstitutionalScoreSourceCoverage:
+      type: object
+      required:
+      - report_ids
+      - invalid_report_ids
+      - missing_report_ids
+      - value_incomplete_report_ids
+      - reports_complete
+      - values_complete
+      properties:
+        report_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+        invalid_report_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+        missing_report_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+        value_incomplete_report_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+        reports_complete:
+          type: boolean
+        values_complete:
+          type: boolean
+      description: Checks the retained comparison reports against cover totals, normalized
+        units and row integrity. Complete empty reports establish absence. This is
+        internal report consistency, not complete EDGAR or portfolio coverage.
   parameters:
     TransactionType:
       name: type

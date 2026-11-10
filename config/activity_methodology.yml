@@ -1,4 +1,4 @@
-version: "1.1-draft"
+version: "1.2-draft"
 purpose: "Describe the relative significance and unusualness of reported filing activity."
 disclaimer: "Data from public SEC filings. Not investment advice."
 clusters:
@@ -33,7 +33,27 @@ score:
     staleness_formula: "Clamp elapsed calendar days from transaction date to Eastern acceptance date / 30 to 0–1, multiplied by the maximum penalty. Missing or future transaction dates are unavailable."
     staleness_scope: "Calendar-day data age, not a determination of legal filing lateness or a business-day deadline calculation."
     required_coverage: "Every positive factor and staleness must be available, and scoring must be activated, before an overall score is returned. Missing factors are never zero-filled or reweighted."
-    unsupported_sources: "Institutional, derivative and administrative scoring factors remain unimplemented."
+    unsupported_sources: "Derivative and administrative insider scoring factors remain unimplemented."
+  institutional_factors:
+    status: draft
+    detail_diagnostics: available
+    evaluated_at: "Latest acceptance time among the signed event's current and prior comparison reports."
+    source_coverage: "Require both adjacent-quarter report contexts, matching cover row/value totals, valid positive-share rows, no suspect flags, and a visible original for amendments. Empty reports with zero cover totals remain valid."
+    value_coverage: "Normalized values must be present, nonnegative and consistent with the stored reported unit and cover unit; missing values cannot supply value-change history."
+    history_quarters: 8
+    minimum_history: 5
+    history_formula: "Across the same fund's preceding eight quarters, compare the absolute reported dollar value change with at least five usable adjacent-quarter changes of the same share-change direction. Exclude the current quarter and comparisons accepted at the evaluation timestamp."
+    history_scope: "Observed reported value changes include valuation effects and are not transaction values or capital flows. Missing quarters and incomplete report contexts do not supply history."
+    change_type_values: {new: 1.0, exit: 1.0, add: 0.5, trim: 0.5}
+    position_formula: "Use min(abs(changed shares) / preceding shares, 1); a new position absent from a complete preceding report contributes 1. Keep CUSIP, put/call and share type separate."
+    participation_full_count: 3
+    participation_formula: "Clamp (distinct reporting funds with the exact same quarter, CUSIP, put/call, share type and change type minus 1) / 2 to 0–1, using only complete adjacent-quarter contexts known by evaluation time."
+    participation_scope: "Counts reporting funds, not independent investment decisions; shared managers may overlap. Missing value normalization does not imply a missing share-change report."
+    staleness_full_penalty_days: 90
+    staleness_formula: "Clamp calendar days from quarter end to Eastern evaluation date / 90 to 0–1, multiplied by the maximum penalty. Future report periods are unavailable."
+    staleness_scope: "Age of the reported quarter when the comparison became available, not a legal deadline determination."
+    version_policy: "Pin the subject fund's current/prior reports to the signed event version; later accepted reports and amendments cannot enter any factor. Fresh reads may include newly ingested backdated records."
+    required_coverage: "Every positive factor and staleness must be available, and scoring must be activated, before an overall score is returned. Issuer scale/liquidity remains unavailable."
   levels:
     - {id: normal, label: Normal, minimum: 0, maximum: 39}
     - {id: elevated, label: Elevated, minimum: 40, maximum: 64}

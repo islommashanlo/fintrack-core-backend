@@ -441,7 +441,7 @@ open across HTTP requests.
 
 Overall Activity Scores and sector classifications remain unavailable.
 `score`, `level`, and `sector` remain null; overall `reasons` are empty.
-Feed `score_breakdown` arrays remain empty. Insider event details now contain
+Feed `score_breakdown` arrays remain empty. Insider and institutional event details contain
 draft factor diagnostics and explicit input coverage, as described below.
 Metadata reports `scoring_available: false`, `sector_available: false`, and
 `available_sources: ["insider", "institutional"]`. Score/level/sector filters
@@ -501,8 +501,8 @@ legacy HTML dashboard keeps its separate 2-insider/30-day grouping.
 
 `GET /api/v1/methodology` is public and publishes active cluster parameters, the
 required level thresholds, and an explicitly draft Activity Score proposal.
-Scores remain unavailable while required market inputs and other source factors
-are missing. No overall score or prediction is inferred from these draft
+Scores remain unavailable while required market inputs are missing and scoring
+is inactive. No overall score or prediction is inferred from these draft
 weights. See [`activity-methodology.md`](activity-methodology.md) for definitions,
 proposed weights, data gaps and activation requirements.
 
@@ -514,7 +514,7 @@ proposed weights, data gaps and activation requirements.
 {
   "status": "incomplete",
   "eligibility_reason": null,
-  "methodology_version": "1.1-draft",
+  "methodology_version": "1.2-draft",
   "evaluated_at": "2026-11-09T20:00:00.000Z",
   "coverage": {
     "available_weight": 75,
@@ -547,6 +547,48 @@ remain explicit; no zero filling, rescaling or partial aggregate is exposed.
 `score`, `level`, and overall `reasons` stay null/null/empty. Unsupported
 administrative/derivative events and unresolved amendments return `ineligible`
 with an `eligibility_reason`; their raw filing detail remains readable.
-Institutional details keep their empty breakdown and omit `scoring` until those
-factors are implemented. The feed omits `scoring` and keeps its existing empty
-breakdown, null score fields and `scoring_available: false` metadata.
+The feed omits `scoring` and keeps its existing empty breakdown, null score
+fields and `scoring_available: false` metadata.
+
+## Institutional score factor diagnostics
+
+`GET /api/v1/activity/<institutional_event_id>` now includes `scoring` and the
+same six `score_breakdown` entries. It evaluates the exact signed comparison
+report set at the latest acceptance time among those reports. A later amendment
+does not replace sources in an older event link's assessment.
+
+The `scoring` object also includes `source_coverage`:
+
+```json
+{
+  "report_ids": [12, 18],
+  "invalid_report_ids": [],
+  "missing_report_ids": [],
+  "value_incomplete_report_ids": [],
+  "reports_complete": true,
+  "values_complete": true
+}
+```
+
+Report coverage checks both adjacent-quarter contexts, cover row/value totals,
+reported row shapes, suspect flags and resolvable amendment originals. Complete
+empty reports can establish absence. Normalized values must also match their
+stored units before supplying dollar-change history; missing normalization stays
+separate from share coverage. Structurally incomplete sources return `ineligible`
+with `eligibility_reason: incomplete_report_context`, null factor values and
+unchanged raw position detail.
+
+Draft factors compare absolute reported value change against at least five
+usable same-direction observations from the fund's preceding eight quarters,
+map reported change context, measure share change against the prior holding,
+count exact matching peer changes and measure calendar-day quarter age. Peer
+matching uses CUSIP/put-call/share type, quarter and exact change type, with only
+complete comparisons accepted by evaluation time. History excludes the current
+quarter and observations first available at the evaluation timestamp. Reports
+after that time, missing quarters, notices and unresolved additions cannot
+supply the comparison. Fund counts do not establish independent decisions, and
+reported value deltas include valuation effects rather than measuring capital
+flows. See `/methodology` for every formula and threshold.
+
+These are read-only draft diagnostics. Market-cap/liquidity inputs remain
+unavailable, overall score/level remain null, and no partial aggregate is exposed.

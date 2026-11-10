@@ -4,12 +4,13 @@
 # Holdings are first aggregated by CUSIP, put/call and share type so repeated
 # information-table lines for one security do not become false diffs.
 class InstitutionalPositionDiffQuery
-  def initialize(institutional_filer_id: nil, period_of_report: nil, report_scope: nil, max_holding_id: nil, include_context: false)
+  def initialize(institutional_filer_id: nil, period_of_report: nil, report_scope: nil, max_holding_id: nil, include_context: false, holding_scope: nil)
     @institutional_filer_id = institutional_filer_id
     @period_of_report = period_of_report
     @report_scope = report_scope
     @max_holding_id = max_holding_id
     @include_context = include_context
+    @holding_scope = holding_scope
   end
 
   def call
@@ -77,7 +78,8 @@ class InstitutionalPositionDiffQuery
                MIN(h.name_of_issuer) AS name_of_issuer,
                MIN(h.title_of_class) AS title_of_class
         FROM effective_reports er
-        INNER JOIN institutional_holdings h ON h.institutional_report_id = er.report_id
+        INNER JOIN #{@holding_scope ? "(#{@holding_scope.select('institutional_holdings.*').to_sql})" : 'institutional_holdings'} h
+          ON h.institutional_report_id = er.report_id
         WHERE h.cusip ~ '^[0-9A-Z]{9}$'
           #{@max_holding_id ? 'AND h.id <= :max_holding_id' : ''}
         GROUP BY er.institutional_filer_id, er.period_of_report, h.cusip,
