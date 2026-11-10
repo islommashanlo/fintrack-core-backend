@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.7.0
+  version: 1.8.0
   description: Implemented account, watchlist, plan-catalog and filing-data read APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1459,6 +1459,56 @@ paths:
                     "$ref": "#/components/schemas/ActivityMethodology"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/screener/run":
+    post:
+      operationId: runScreener
+      summary: Screen companies, funds or insiders using typed filing-derived conditions
+      description: Anonymous and signed-in clients must fetch /auth/csrf and send
+        X-CSRF-Token with cookies. Applies flat AND conditions through field/operator
+        whitelists and Rails value quoting. No SQL expressions, offset/page numbers
+        or client entitlements are accepted. Free clients receive only the first three
+        matches across all cursor pages, with full total_count and truncated metadata.
+        Company/insider activity windows use acceptance time; fund values are normalized
+        reported holdings, not AUM. Missing or suspect totals remain null. Scores,
+        sectors, market caps and other unavailable metrics are rejected. This read-only
+        POST makes no external requests or data writes.
+      security:
+      - CsrfToken: []
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ScreenerRequest"
+      responses:
+        '200':
+          description: Matching filing-derived entities, provenance and plan-limited
+            cursor metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/ScreenerResult"
+                  meta:
+                    "$ref": "#/components/schemas/ScreenerPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
         '429':
           "$ref": "#/components/responses/RateLimited"
         '503':
@@ -3798,6 +3848,340 @@ components:
       description: Checks the retained comparison reports against cover totals, normalized
         units and row integrity. Complete empty reports establish absence. This is
         internal report consistency, not complete EDGAR or portfolio coverage.
+    ScreenerCondition:
+      type: object
+      required:
+      - field
+      - operator
+      properties:
+        field:
+          type: string
+          enum:
+          - name
+          - cik
+          - last_filed_on
+          - purchase_count
+          - sale_count
+          - open_market_count
+          - purchase_value
+          - sale_value
+          - net_open_market_value
+          - transactions_without_usable_value
+          - ticker
+          - insider_count
+          - issuer_count
+          - latest_is_director
+          - latest_is_officer
+          - latest_is_ten_percent_owner
+          - latest_is_other
+          - period_of_report
+          - holding_row_count
+          - position_count
+          - portfolio_value_usd
+          - suspect
+        operator:
+          type: string
+          enum:
+          - eq
+          - not_eq
+          - contains
+          - starts_with
+          - in
+          - is_null
+          - not_null
+          - gt
+          - gte
+          - lt
+          - lte
+          - between
+        value:
+          oneOf:
+          - type: string
+            maxLength: 200
+            nullable: true
+          - type: number
+          - type: boolean
+          - type: array
+            minItems: 1
+            maxItems: 20
+            items:
+              oneOf:
+              - type: string
+                maxLength: 200
+              - type: number
+              - type: boolean
+          description: Type follows the selected field. between requires two ascending
+            bounds. Null operators omit value or use null. Monetary decimal strings
+            preserve precision. Counts must fit a nonnegative signed 64-bit integer;
+            dates use the Gregorian calendar with years 0001 through 9999.
+      additionalProperties: false
+    ScreenerRequest:
+      type: object
+      required:
+      - entity
+      properties:
+        entity:
+          type: string
+          enum:
+          - companies
+          - funds
+          - insiders
+        filters:
+          type: array
+          maxItems: 20
+          items:
+            "$ref": "#/components/schemas/ScreenerCondition"
+          default: []
+        sort:
+          type: string
+          maxLength: 64
+          default: name
+          description: Whitelisted entity field or last_filed_at, optionally prefixed
+            with -. Nulls last; CIK breaks ties.
+        window_days:
+          type: integer
+          enum:
+          - 30
+          - 90
+          - 365
+          default: 90
+          description: Companies and insiders only; funds reject this parameter.
+        page:
+          type: object
+          properties:
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 50
+            cursor:
+              type: string
+              maxLength: 8192
+          additionalProperties: false
+          description: Cursor page object, not a number or offset. Nested/top-level
+            pagination keys cannot repeat.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+        cursor:
+          type: string
+          maxLength: 8192
+      additionalProperties: false
+    ScreenerCompaniesMetrics:
+      type: object
+      required:
+      - purchase_count
+      - sale_count
+      - open_market_count
+      - purchase_value
+      - sale_value
+      - net_open_market_value
+      - transactions_without_usable_value
+      - insider_count
+      properties:
+        purchase_count:
+          type: integer
+          minimum: 0
+        sale_count:
+          type: integer
+          minimum: 0
+        open_market_count:
+          type: integer
+          minimum: 0
+        purchase_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        sale_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        net_open_market_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        transactions_without_usable_value:
+          type: integer
+          minimum: 0
+        insider_count:
+          type: integer
+          minimum: 0
+    ScreenerInsidersMetrics:
+      type: object
+      required:
+      - purchase_count
+      - sale_count
+      - open_market_count
+      - purchase_value
+      - sale_value
+      - net_open_market_value
+      - transactions_without_usable_value
+      - issuer_count
+      - latest_is_director
+      - latest_is_officer
+      - latest_is_ten_percent_owner
+      - latest_is_other
+      properties:
+        purchase_count:
+          type: integer
+          minimum: 0
+        sale_count:
+          type: integer
+          minimum: 0
+        open_market_count:
+          type: integer
+          minimum: 0
+        purchase_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        sale_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        net_open_market_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        transactions_without_usable_value:
+          type: integer
+          minimum: 0
+        issuer_count:
+          type: integer
+          minimum: 0
+        latest_is_director:
+          type: boolean
+          nullable: false
+        latest_is_officer:
+          type: boolean
+          nullable: false
+        latest_is_ten_percent_owner:
+          type: boolean
+          nullable: false
+        latest_is_other:
+          type: boolean
+          nullable: false
+    ScreenerFundsMetrics:
+      type: object
+      required:
+      - holding_row_count
+      - position_count
+      - portfolio_value_usd
+      - suspect
+      properties:
+        holding_row_count:
+          type: integer
+          minimum: 0
+          nullable: true
+        position_count:
+          type: integer
+          minimum: 0
+          nullable: true
+        portfolio_value_usd:
+          "$ref": "#/components/schemas/NullableDecimal"
+        suspect:
+          type: boolean
+          nullable: true
+    ScreenerResult:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required:
+        - entity
+        - cik
+        - name
+        - ticker
+        - last_filed_at
+        - last_filed_on
+        - period_of_report
+        - window_days
+        - metrics
+        - source_filing_count
+        - latest_role
+        properties:
+          entity:
+            type: string
+            enum:
+            - companies
+            - funds
+            - insiders
+          cik:
+            "$ref": "#/components/schemas/Cik"
+          name:
+            type: string
+          ticker:
+            type: string
+            nullable: true
+          last_filed_at:
+            type: string
+            format: date-time
+          last_filed_on:
+            type: string
+            format: date
+          period_of_report:
+            type: string
+            format: date
+            nullable: true
+          window_days:
+            type: integer
+            enum:
+            - 30
+            - 90
+            - 365
+            nullable: true
+          metrics:
+            oneOf:
+            - "$ref": "#/components/schemas/ScreenerCompaniesMetrics"
+            - "$ref": "#/components/schemas/ScreenerFundsMetrics"
+            - "$ref": "#/components/schemas/ScreenerInsidersMetrics"
+          source_filing_count:
+            type: integer
+            minimum: 0
+          latest_role:
+            type: object
+            required:
+            - latest_role_issuer_cik
+            - officer_title
+            properties:
+              latest_role_issuer_cik:
+                "$ref": "#/components/schemas/Cik"
+              officer_title:
+                type: string
+                nullable: true
+            nullable: true
+    ScreenerPageMeta:
+      allOf:
+      - "$ref": "#/components/schemas/ReadPageMeta"
+      - type: object
+        required:
+        - entity
+        - window_days
+        - truncated
+        - feature
+        - preview_limit
+        - scoring_available
+        - sector_available
+        properties:
+          entity:
+            type: string
+            enum:
+            - companies
+            - funds
+            - insiders
+          window_days:
+            type: integer
+            nullable: true
+          truncated:
+            type: boolean
+          feature:
+            type: string
+            enum:
+            - screener_results
+          preview_limit:
+            type: integer
+            minimum: 0
+            nullable: true
+          scoring_available:
+            type: boolean
+            enum:
+            - false
+          sector_available:
+            type: boolean
+            enum:
+            - false
+      description: 'total_count counts every match. Pagination operates within the
+        server-entitled prefix: at most three Free results per screen across pages.
+        truncated may remain true when has_more is false.'
   parameters:
     TransactionType:
       name: type

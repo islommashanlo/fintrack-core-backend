@@ -24,6 +24,7 @@ Rails.application.routes.draw do
       get "activity" => "activity#index", as: :activity
       get "activity/:id" => "activity#show", as: :activity_event
       get "methodology" => "methodology#show", as: :methodology
+      post "screener/run" => "screener#run", as: :screener_run
       resources :funds, param: :cik, only: %i[index show] do
         get :holdings, on: :member
         get :history, on: :member

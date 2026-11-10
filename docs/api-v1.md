@@ -592,3 +592,109 @@ flows. See `/methodology` for every formula and threshold.
 
 These are read-only draft diagnostics. Market-cap/liquidity inputs remain
 unavailable, overall score/level remain null, and no partial aggregate is exposed.
+
+## Screener
+
+`POST /api/v1/screener/run` evaluates a flat AND list of typed conditions against
+stored filing data. It is available anonymously and to signed-in users. Fetch
+`GET /api/v1/auth/csrf` first and send `X-CSRF-Token` with this POST, including
+anonymous requests. Responses use `Cache-Control: no-store`; the query does not
+write data or contact an external provider.
+
+```json
+{
+  "entity": "companies",
+  "window_days": 90,
+  "filters": [
+    {"field": "purchase_count", "operator": "gte", "value": 2},
+    {"field": "purchase_value", "operator": "gte", "value": "100000.00"}
+  ],
+  "sort": "-purchase_value",
+  "page": {"limit": 3}
+}
+```
+
+`entity` is required: `companies`, `funds`, or `insiders`. `filters` defaults to
+`[]` and accepts up to 20 conditions. `sort` defaults to `name`; a leading `-`
+means descending. Sorts use the listed fields plus `last_filed_at`, with CIK as
+the deterministic tie breaker and nulls last in both directions. `window_days`
+is 30, 90 (default), or 365 for companies/insiders; fund screens reject it and
+use each fund's latest reported period instead.
+
+`page` is a cursor object with optional `limit` (1–100) and `cursor`; it is not
+an offset or page number. The same keys may appear at the top level for
+consistency with other endpoints, but duplicate nested/top-level keys are
+rejected. Repeat the entity, conditions, window and sort with the next cursor.
+Page size can change. Tokens expire after 24 hours and bind the query, signed-in
+identity, server entitlement, acceptance-time snapshot and source row-ID bounds.
+
+| Type | Operators | Values |
+| --- | --- | --- |
+| Text (`name`) | `eq`, `not_eq`, `contains`, `starts_with`, `in`, `is_null`, `not_null` | Nonblank string of at most 200 characters; lists contain 1–20 strings |
+| CIK | `eq`, `not_eq`, `in` | Ten-digit strings, preserving leading zeroes |
+| Ticker | `eq`, `not_eq`, `contains`, `starts_with`, `in`, `is_null`, `not_null` | Literal symbol strings, normalized to uppercase |
+| Count | `eq`, `not_eq`, `gt`, `gte`, `lt`, `lte`, `between`, `in`, `is_null`, `not_null` | Nonnegative 64-bit integer or integer string |
+| Decimal | Same as count | Finite signed number or decimal string; strings preserve monetary precision |
+| Date | Same as count | Strict Gregorian `YYYY-MM-DD` strings, years 0001–9999 |
+| Boolean | `eq`, `not_eq` | JSON `true` / `false` |
+
+`between` requires two inclusive, ascending bounds. `in` accepts 1–20 values.
+Null operators omit `value` or set it to null. Text equality is case-sensitive;
+`contains`/`starts_with` are case-insensitive and escape literal `%`/`_`/backslash
+characters. Conditions never accept SQL expressions, arbitrary operators, nested
+groups or client-supplied entitlements. Unknown fields and malformed values
+return HTTP 400 with `error.code = INVALID_PARAMETER`.
+
+All entities support `name`, `cik`, and `last_filed_on`. Additional fields:
+
+| Entity | Fields |
+| --- | --- |
+| Companies | `ticker`, `purchase_count`, `sale_count`, `open_market_count`, `insider_count`, `purchase_value`, `sale_value`, `net_open_market_value`, `transactions_without_usable_value` |
+| Insiders | Same transaction fields, `issuer_count` instead of `insider_count`, plus `latest_is_director`, `latest_is_officer`, `latest_is_ten_percent_owner`, `latest_is_other` |
+| Funds | `period_of_report`, `holding_row_count`, `position_count`, `portfolio_value_usd`, `suspect` |
+
+Company rows derive identity from parsed effective Form 4 issuer disclosures;
+insiders require reported transaction rows. Their metrics cover non-derivative
+P/S activity accepted strictly after the window start, with amendments resolved
+at the snapshot. Company totals count each joint-owner transaction once using
+`owner_seq = 1`; person totals retain each reporting owner's own disclosed lines.
+Latest-role fields describe the person's latest disclosed relationship for the
+named `latest_role_issuer_cik`, not a claim of current employment. Securities or
+issuers appearing only in 13F tables do not become company rows without a
+reported issuer CIK. No additional CIK/ticker resolution is performed.
+
+Missing, suspect, nonpositive or nonfinite shares/prices make the corresponding
+complete monetary total null. Net value is null if any eligible line lacks a
+usable value. Counts still include those lines and `transactions_without_usable_value`
+exposes the gap. A genuinely empty observed window has zero counts and values;
+this is not a claim of complete EDGAR coverage.
+
+Fund values combine the latest effective base/RESTATEMENT and subsequent NEW
+HOLDINGS reports for the latest reported period. Repeated raw rows count toward
+`holding_row_count`; `position_count` groups valid CUSIP/put-call/share-type keys.
+`portfolio_value_usd` sums stored normalized reported holdings and is not AUM,
+current market value or transaction flow. Cover-count/value mismatches, suspect
+or malformed rows and unknown/inconsistent normalization prevent a complete
+value total; `suspect` flags these derived quality gaps. Notice-only or unresolved
+additive periods have null holdings/value metrics. A complete empty holdings
+report has zero values. Failed/pending/skipped/future reports cannot supply data.
+
+Each result includes `entity`, `cik`, `name`, `ticker` (nullable), `last_filed_at`,
+`last_filed_on`, `period_of_report` (funds), `window_days` (companies/insiders),
+`metrics`, `source_filing_count`, and standard accession/SEC-link/freshness fields.
+The top-level filing is the latest identity/period disclosure; `source_filing_count`
+counts contributing window/effective-period reports. Filing provenance is loaded
+once per page. Existing normalized source rows can change through explicit
+reprocessing; pagination does not hold an open database snapshot.
+
+Free access returns at most the first **three matches for a screen**, across all
+its cursor pages. Smaller pages do not expose later matches; a limit of 100 still
+returns at most three. Metadata retains the full `total_count`, and reports
+`truncated`, `feature: screener_results`, `preview_limit: 3`, plus normal cursor
+metadata. `has_more`/`next_cursor` cover the accessible preview only; its last page
+can have `truncated: true` and no next cursor. Each changed filter/sort is a new
+screen. A future verified unlimited entitlement uses the same query without the
+preview cap; clients cannot enable it, and all current accounts remain Free.
+
+Scores, sectors, market caps, AUM, turnover and other unimplemented metrics are
+rejected as filter/sort fields. Saved-screen CRUD and exports remain pending.

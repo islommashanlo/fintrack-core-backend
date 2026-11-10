@@ -52,11 +52,20 @@ module Api
 
       # SQL projections use a unique text event_key instead of a model ID.
       # The caller supplies generated SQL and fixed sort expressions, never user SQL.
-      def call_sql(sql)
+      def call_sql(sql, maximum_records: nil)
         column = @sorts.fetch(@field)
         direction = @sort.start_with?("-") ? "DESC" : "ASC"
         connection = ApplicationRecord.connection
         count = connection.select_value("SELECT COUNT(*) FROM (#{sql}) activity").to_i
+        if maximum_records
+          raise ArgumentError, "Invalid record limit" unless maximum_records.is_a?(Integer) && maximum_records.positive?
+
+          sql = <<~SQL
+            SELECT activity.* FROM (#{sql}) activity
+            ORDER BY #{column} #{direction} NULLS LAST, activity.event_key #{direction}
+            LIMIT #{maximum_records}
+          SQL
+        end
         records = self.class.sql_rows(<<~SQL)
           SELECT activity.*, #{column} AS api_sort_value FROM (#{sql}) activity
           WHERE #{sql_boundary(column)}
