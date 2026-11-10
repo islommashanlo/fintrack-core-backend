@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "rails_helper"
+require "tmpdir"
 
 RSpec.describe Policy::BannedLanguageScan do
   it "recognizes banned recommendation terms and phrases" do
@@ -18,5 +19,16 @@ RSpec.describe Policy::BannedLanguageScan do
 
   it "passes the policy-scanned repository paths" do
     expect(described_class.new.violations).to be_empty
+  end
+
+  it "also scans the public methodology text stored in a configuration file" do
+    Dir.mktmpdir("filingsintel-policy") do |root|
+      path = Pathname(root).join("config/activity_methodology.yml")
+      path.dirname.mkpath
+      path.write("purpose: Strong Buy\n")
+      violations = described_class.new(root:).violations
+      expect(violations.size).to eq(1)
+      expect(violations.first).to have_attributes(path: "config/activity_methodology.yml", line: 1)
+    end
   end
 end

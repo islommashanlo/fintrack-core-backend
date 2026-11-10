@@ -2,7 +2,7 @@
 
 module Policy
   class BannedLanguageScan
-    ROOTS = %w[app/serializers app/mailers config/locales app/prompts lib/prompts].freeze
+    ROOTS = %w[app/serializers app/mailers config/locales app/prompts lib/prompts config/activity_methodology.yml].freeze
     FILE_EXTENSIONS = %w[.rb .erb .json .md .txt .yml .yaml].freeze
     BANNED_TERMS = /\b(?:buy|sell|bullish|bearish|strong\s+buy|opportunity)\b/i
     Violation = Data.define(:path, :line, :text)
@@ -29,6 +29,7 @@ module Policy
 
     def files_for(relative)
       directory = @root.join(relative)
+      return [ directory ] if directory.file? && FILE_EXTENSIONS.include?(directory.extname)
       return [] unless directory.directory?
 
       directory.glob("**/*").select { |path| path.file? && FILE_EXTENSIONS.include?(path.extname) }
