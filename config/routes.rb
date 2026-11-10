@@ -20,6 +20,10 @@ Rails.application.routes.draw do
         get :institutional, on: :member
       end
       get "insiders/transactions" => "insider_transactions#index", as: :insider_transactions
+      resources :insiders, param: :cik, only: :show do
+        get :transactions, on: :member
+        get :companies, on: :member
+      end
       get "filings/:accession" => "filings#show", as: :filing,
           constraints: { accession: /\d{10}-\d{2}-\d{6}/ }
     end

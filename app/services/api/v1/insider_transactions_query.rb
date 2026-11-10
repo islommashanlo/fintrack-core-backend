@@ -125,19 +125,8 @@ module Api
       end
 
       def filtered_scope
-        scope = InsiderTransaction.joins(:filing).where(filings: { parse_status: "parsed", form_type: Filing::FORM4_TYPES })
-          .where("filings.filed_at <= ? AND filings.id <= ? AND insider_transactions.id <= ?",
-                 @snapshot.fetch("as_of"), @snapshot.fetch("max_filing_id"), @snapshot.fetch("max_id"))
-          .where(<<~SQL, as_of: @snapshot.fetch("as_of"), max_filing_id: @snapshot.fetch("max_filing_id"))
-            NOT EXISTS (
-              SELECT 1 FROM filings later
-              WHERE later.amends_accession_no = COALESCE(filings.amends_accession_no, filings.accession_no)
-                AND later.parse_status = 'parsed'
-                AND later.id <= :max_filing_id
-                AND later.filed_at <= :as_of
-                AND (later.filed_at, later.accession_no) > (filings.filed_at, filings.accession_no)
-            )
-          SQL
+        scope = Form4ReadScope.new(as_of: @snapshot.fetch("as_of"), max_filing_id: @snapshot.fetch("max_filing_id"),
+                                   max_transaction_id: @snapshot.fetch("max_id")).transactions
         case @filters["type"]
         when "open_market" then scope = scope.where(transaction_code: InsiderTransaction::OPEN_MARKET_CODES)
         when "administrative" then scope = excluding_codes(scope, InsiderTransaction::OPEN_MARKET_CODES)

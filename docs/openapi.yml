@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel read API
-  version: 1.1.0
+  version: 1.2.0
   description: Implemented fund, company and insider transaction reads. Other planned
     routes are not described here yet. Data from public SEC filings. Not investment
     advice.
@@ -448,6 +448,133 @@ paths:
         not historical identity data.
     parameters:
     - "$ref": "#/components/parameters/CompanyTicker"
+  "/insiders/{cik}":
+    parameters:
+    - "$ref": "#/components/parameters/InsiderCik"
+    get:
+      operationId: getInsider
+      summary: Get an insider profile and 30/90/365-day summaries
+      description: Identity includes co-owners, administrative-only and derivative-only
+        owners and filings without transaction rows. Summaries use effective non-derivative
+        rows for this insider and acceptance-time windows; all codes are counted.
+        Unusable P/S values increment the missing-value count and make the net total
+        null. Stored values are unchanged.
+      parameters: []
+      responses:
+        '200':
+          description: Locally stored reported activity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/InsiderProfile"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+  "/insiders/{cik}/transactions":
+    parameters:
+    - "$ref": "#/components/parameters/InsiderCik"
+    get:
+      operationId: listInsiderTransactionsForOwner
+      summary: List one insider reporting owner's transactions
+      description: The same transaction-list contract, scoped to this exact insider
+        CIK, including all owner sequences and both security tables. Filters cannot
+        override insider_cik.
+      parameters:
+      - "$ref": "#/components/parameters/TransactionType"
+      - "$ref": "#/components/parameters/TransactionCode"
+      - "$ref": "#/components/parameters/TransactionDirection"
+      - "$ref": "#/components/parameters/TransactionRole"
+      - "$ref": "#/components/parameters/TransactionIssuerCik"
+      - "$ref": "#/components/parameters/TransactionTicker"
+      - "$ref": "#/components/parameters/TransactionSecurityTable"
+      - "$ref": "#/components/parameters/TransactionMinValue"
+      - "$ref": "#/components/parameters/TransactionMaxValue"
+      - "$ref": "#/components/parameters/TransactionDateFrom"
+      - "$ref": "#/components/parameters/TransactionDateTo"
+      - "$ref": "#/components/parameters/TransactionSort"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Locally stored reported activity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/InsiderTransaction"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+  "/insiders/{cik}/companies":
+    parameters:
+    - "$ref": "#/components/parameters/InsiderCik"
+    get:
+      operationId: listInsiderCompanies
+      summary: List historically reported company associations
+      description: One row per issuer CIK from known parsed Form 4 disclosures, including
+        history. Latest disclosure supplies name/ticker/provenance and this owner's
+        reported role. Roles are null when no owner transaction rows exist in that
+        disclosure; no current employment is inferred. Filters apply after selecting
+        the latest disclosure per issuer. Cursors bind owner, filters, sort and snapshot
+        IDs.
+      parameters:
+      - "$ref": "#/components/parameters/TransactionTicker"
+      - "$ref": "#/components/parameters/TransactionRole"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - filed_at
+          - "-filed_at"
+          - name
+          - "-name"
+          - ticker
+          - "-ticker"
+          - cik
+          - "-cik"
+          default: "-filed_at"
+      responses:
+        '200':
+          description: Locally stored reported activity.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/InsiderCompany"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
 components:
   schemas:
     Cik:
@@ -1230,6 +1357,111 @@ components:
               - NOT_FOUND
             message:
               type: string
+    InsiderSummary:
+      type: object
+      required:
+      - window_days
+      - purchase_count
+      - sale_count
+      - issuer_count
+      - transactions_without_usable_price
+      - counts_by_code
+      - purchase_value
+      - sale_value
+      - net_open_market_value
+      properties:
+        window_days:
+          type: integer
+          enum:
+          - 30
+          - 90
+          - 365
+        purchase_count:
+          type: integer
+          minimum: 0
+        sale_count:
+          type: integer
+          minimum: 0
+        issuer_count:
+          type: integer
+          minimum: 0
+        transactions_without_usable_price:
+          type: integer
+          minimum: 0
+        counts_by_code:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+        purchase_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        sale_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        net_open_market_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+    InsiderProfile:
+      type: object
+      required:
+      - cik
+      - name
+      - latest_filing
+      - summaries
+      properties:
+        cik:
+          "$ref": "#/components/schemas/Cik"
+        name:
+          type: string
+          nullable: true
+        latest_filing:
+          "$ref": "#/components/schemas/FilingProvenance"
+        summaries:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            "$ref": "#/components/schemas/InsiderSummary"
+    InsiderCompany:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required:
+        - cik
+        - name
+        - ticker
+        - role
+        properties:
+          cik:
+            "$ref": "#/components/schemas/Cik"
+          name:
+            type: string
+            nullable: true
+          ticker:
+            type: string
+            nullable: true
+          role:
+            type: object
+            required:
+            - is_director
+            - is_officer
+            - is_ten_percent_owner
+            - is_other
+            - officer_title
+            properties:
+              is_director:
+                type: boolean
+                nullable: true
+              is_officer:
+                type: boolean
+                nullable: true
+              is_ten_percent_owner:
+                type: boolean
+                nullable: true
+              is_other:
+                type: boolean
+                nullable: true
+              officer_title:
+                type: string
+                nullable: true
   parameters:
     TransactionType:
       name: type
@@ -1384,6 +1616,12 @@ components:
         enum:
         - SH
         - PRN
+    InsiderCik:
+      name: cik
+      in: path
+      required: true
+      schema:
+        "$ref": "#/components/schemas/Cik"
   responses:
     InvalidParameter:
       description: Unknown or malformed parameter, invalid range, invalid or expired

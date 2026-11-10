@@ -195,3 +195,60 @@ The new lists use signed 24-hour cursors bound to their resource, filters and
 sort. Snapshot ID bounds prevent late inserts from entering subsequent pages;
 updates to existing rows can still be reflected. Repeat filters and sort while
 paging. Reusing a cursor for another resource, fund, or company returns JSON 400.
+
+## Insider profiles
+
+| Route | Behavior |
+| --- | --- |
+| `GET /api/v1/insiders/:cik` | Stored identity, latest known Form 4 provenance and 30/90/365-day summaries |
+| `GET /api/v1/insiders/:cik/transactions` | Transaction rows using the global transaction filters, sorts and cursor contract |
+| `GET /api/v1/insiders/:cik/companies` | One historical company association per issuer CIK with latest reported role and filing provenance |
+
+CIKs retain all 10 digits. Malformed CIKs return JSON 400; unknown insiders return
+JSON 404. Identity requires a known parsed Form 4 referencing that owner, through
+the stored owner CIK array or a transaction row. Administrative-only and
+derivative-only owners and co-reporting owners are included. A stored filer name
+alone does not establish a publicly visible insider. Owners listed on filings
+without transaction rows can have a profile and companies while their
+transaction list is empty.
+
+The name comes from the latest known transaction row, falling back to the stored
+first-seen filer name. If neither exists, it is null. Latest filing provenance
+retains historical disclosures, even when their transactions have been superseded.
+Future, failed, pending, undated and non-Form-4 filings do not establish identity.
+
+`summaries` is an array with one entry for each `window_days` value: 30, 90, 365.
+Each entry contains `purchase_count`, `sale_count`, `issuer_count`, `purchase_value`,
+`sale_value`, `net_open_market_value`, `transactions_without_usable_price`, and
+`counts_by_code`. Windows use SEC acceptance time, with an exclusive lower bound
+and inclusive snapshot time. Only effective, non-derivative rows for this insider
+are included. Co-owner rows count for the identified insider; another reporting
+owner's copy of that transaction does not enter that insider's aggregates.
+
+Code counts include administrative transactions; a missing code uses the
+`unknown` key. `issuer_count` counts issuers across those non-derivative rows.
+Purchase/sale values sum usable reported shares times price for codes P/S;
+suspect or missing values stay out of these sums and increment the missing-value
+count. The net value is purchase value minus sale value only when every
+open-market row in the window has a usable value; otherwise it is null. When
+there are no open-market rows, calculated values remain null. Decimal totals are
+JSON strings. Original reported shares and prices are never changed.
+
+Transactions support all global filters except overriding `insider_cik`.
+Both security tables and every transaction type are available; amendments are
+resolved in SQL using the same shared Form 4 read scope as the other API queries.
+
+Companies support `ticker` (exact, case-insensitive), `role` (`director`, `officer`,
+`ten_percent_owner`, `other`), `sort`, `limit`, and `cursor`. Sort fields are
+`filed_at` (descending by default), `name` (case-insensitive), `ticker`, and `cik`,
+each with the optional descending `-` prefix. Unknown sort values and malformed
+parameters return JSON 400.
+
+Company associations come from all known parsed disclosures, including historical
+and superseded filings. The newest filing for each issuer supplies name, ticker
+and provenance. Roles come from this insider's rows in that filing; when that
+filing has no such rows, role fields are null. A reported role does not establish
+current employment. Role and ticker filters apply to the latest disclosure for
+each issuer, rather than resurrecting an older matching disclosure. These lists
+use the same signed, resource-bound, 24-hour cursors and snapshot ID bounds as
+other read lists; `total_count` counts distinct issuer CIKs.
