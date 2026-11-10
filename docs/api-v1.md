@@ -439,12 +439,14 @@ not write or reprocess filings. Normalized source rows can still change if they
 are explicitly reprocessed; cursor snapshots do not hold a database transaction
 open across HTTP requests.
 
-Activity scoring and sector classifications are not implemented in this slice.
-`score`, `level`, and `sector` remain null; `reasons` and `score_breakdown` are empty.
+Overall Activity Scores and sector classifications remain unavailable.
+`score`, `level`, and `sector` remain null; overall `reasons` are empty.
+Feed `score_breakdown` arrays remain empty. Insider event details now contain
+draft factor diagnostics and explicit input coverage, as described below.
 Metadata reports `scoring_available: false`, `sector_available: false`, and
 `available_sources: ["insider", "institutional"]`. Score/level/sector filters
 therefore return no rows instead of inventing classifications. The unusual
-activity route and Activity Score calculation remain pending. The active cluster
+activity route and score activation remain pending. The active cluster
 definition and draft score methodology are available through `/methodology`.
 
 ## Insider clusters and methodology
@@ -499,7 +501,52 @@ legacy HTML dashboard keeps its separate 2-insider/30-day grouping.
 
 `GET /api/v1/methodology` is public and publishes active cluster parameters, the
 required level thresholds, and an explicitly draft Activity Score proposal.
-Scores remain unavailable until factor formulas, source applicability and input
-coverage are implemented. No score or prediction is inferred from these draft
+Scores remain unavailable while required market inputs and other source factors
+are missing. No overall score or prediction is inferred from these draft
 weights. See [`activity-methodology.md`](activity-methodology.md) for definitions,
 proposed weights, data gaps and activation requirements.
+
+## Insider score factor diagnostics
+
+`GET /api/v1/activity/insider_<transaction_id>` includes a `scoring` object:
+
+```json
+{
+  "status": "incomplete",
+  "eligibility_reason": null,
+  "methodology_version": "1.1-draft",
+  "evaluated_at": "2026-11-09T20:00:00.000Z",
+  "coverage": {
+    "available_weight": 75,
+    "required_weight": 100,
+    "missing_factors": ["issuer_scale_and_liquidity"],
+    "lateness_available": true
+  }
+}
+```
+
+`score_breakdown` contains six entries: `own_history`,
+`issuer_scale_and_liquidity`, `reported_context`, `position_size_change`,
+`corroborating_activity`, and `lateness`. Each has `status`, `weight`, a normalized
+decimal-string `value`, weighted decimal-string `points`, a factual `reason`,
+`unavailable_reason`, and an `inputs` object. Unavailable values and points are
+null. A usable zero is distinct from a missing input. Staleness points are
+negative; positive-factor weights total 100 and the maximum penalty is 15.
+
+History and participation are SQL comparisons using only resolved filings
+accepted by the event's timestamp, bounded by the request's visible row IDs.
+No future reports or amendments enter those factors. At least five usable
+prior observations are required for the history comparison; this describes
+observed data rather than complete coverage. Position change uses the individual
+reported line's following shares, with explicit checks on direction and baseline.
+Staleness uses calendar days in Eastern time, not a legal deadline calculation.
+All formulas and caveats are published in `/methodology`.
+
+These diagnostics do not activate scores. Missing market-cap/liquidity inputs
+remain explicit; no zero filling, rescaling or partial aggregate is exposed.
+`score`, `level`, and overall `reasons` stay null/null/empty. Unsupported
+administrative/derivative events and unresolved amendments return `ineligible`
+with an `eligibility_reason`; their raw filing detail remains readable.
+Institutional details keep their empty breakdown and omit `scoring` until those
+factors are implemented. The feed omits `scoring` and keeps its existing empty
+breakdown, null score fields and `scoring_available: false` metadata.

@@ -23,7 +23,8 @@ module Api
         identifier = ActivityIdentifier.decode(params[:id])
         page = activity_page({})
         row = ActivityQuery.new(page:).find(identifier)
-        render json: { data: ActivitySerializer.new(rows: [ row ], as_of:).render(row) }
+        scoring_bounds = { "filings" => page.bound("filings"), "transactions" => page.bound("transactions") }
+        render json: { data: ActivitySerializer.new(rows: [ row ], as_of:, scoring_bounds:).render(row) }
       end
 
       private

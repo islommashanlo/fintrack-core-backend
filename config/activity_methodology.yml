@@ -1,4 +1,4 @@
-version: "1.0-draft"
+version: "1.1-draft"
 purpose: "Describe the relative significance and unusualness of reported filing activity."
 disclaimer: "Data from public SEC filings. Not investment advice."
 clusters:
@@ -15,6 +15,25 @@ score:
   status: unavailable
   minimum: 0
   maximum: 100
+  insider_factors:
+    status: draft
+    detail_diagnostics: available
+    eligible_rows: "First-listed, non-derivative P/S transactions from resolved Form 4 filings."
+    evaluated_at: "The event's SEC acceptance timestamp; later filings and amendments cannot enter its factors."
+    history_days: 365
+    minimum_history: 5
+    history_formula: "Fraction of usable observed prior same-direction canonical transaction values less than or equal to this value; exclude the current acceptance timestamp."
+    history_coverage: "Observed database history only; five values permit a comparison but do not establish complete EDGAR coverage."
+    role_values: {officer: 1.0, director: 0.75, ten_percent_owner: 0.5, other: 0.25}
+    role_policy: "Use the first checked role in the published order; no checked role contributes zero. Officer titles are not interpreted."
+    position_formula: "Infer preceding shares from reported following shares and P/A or S/D direction; use min(changed shares / preceding shares, 1), with zero preceding shares contributing 1."
+    position_scope: "The individual reported transaction line, not the person's complete direct and indirect holdings. Inconsistent direction or negative inferred shares are unavailable."
+    participation_formula: "Clamp (distinct same-direction first-listed owners within the preceding 14 days minus 1) / (cluster minimum minus 1) to 0–1."
+    staleness_full_penalty_days: 30
+    staleness_formula: "Clamp elapsed calendar days from transaction date to Eastern acceptance date / 30 to 0–1, multiplied by the maximum penalty. Missing or future transaction dates are unavailable."
+    staleness_scope: "Calendar-day data age, not a determination of legal filing lateness or a business-day deadline calculation."
+    required_coverage: "Every positive factor and staleness must be available, and scoring must be activated, before an overall score is returned. Missing factors are never zero-filled or reweighted."
+    unsupported_sources: "Institutional, derivative and administrative scoring factors remain unimplemented."
   levels:
     - {id: normal, label: Normal, minimum: 0, maximum: 39}
     - {id: elevated, label: Elevated, minimum: 40, maximum: 64}

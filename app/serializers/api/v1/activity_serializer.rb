@@ -3,8 +3,9 @@
 module Api
   module V1
     class ActivitySerializer
-      def initialize(rows:, as_of: Time.current)
+      def initialize(rows:, as_of: Time.current, scoring_bounds: nil)
         @as_of = as_of
+        @scoring_bounds = scoring_bounds
         @owners = InsiderTransaction.where(id: rows.flat_map { |row| row.fetch("reporting_owner_ids") })
           .includes(:filing).index_by(&:id)
         report_ids = rows.flat_map { |row| row.fetch("context_report_ids") }
@@ -17,7 +18,7 @@ module Api
         source = row.fetch("source")
         transaction = @owners.fetch(row.fetch("source_id")) if source == "insider"
         filing = @filings.fetch(row.fetch("primary_filing_id"))
-        FilingProvenance.render(filing, as_of: @as_of).merge(
+        result = FilingProvenance.render(filing, as_of: @as_of).merge(
           id: ActivityIdentifier.encode(row), source:, occurred_at: row.fetch("occurred_at"),
           period_of_report: row["period_of_report"], direction: row.fetch("direction"),
           activity_type: row.fetch("activity_type"), value: row["value"], score: nil, level: nil,
@@ -31,6 +32,13 @@ module Api
             { cik: nil, name: position_data(row)["name_of_issuer"], ticker: row["ticker"] },
           position_change: source == "institutional" ? position_change(row) : nil
         )
+        if @scoring_bounds && transaction
+          assessment = ActivityScoring::InsiderAssessment.new(transaction:,
+            max_filing_id: @scoring_bounds.fetch("filings"), max_transaction_id: @scoring_bounds.fetch("transactions")).call
+          result.merge!(assessment.slice(:score, :level, :reasons), score_breakdown: assessment.fetch(:factors),
+            scoring: assessment.except(:score, :level, :reasons, :factors))
+        end
+        result
       end
 
       private

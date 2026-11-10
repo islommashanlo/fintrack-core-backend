@@ -2,7 +2,7 @@
 
 module Policy
   class BannedLanguageScan
-    ROOTS = %w[app/serializers app/mailers config/locales app/prompts lib/prompts config/activity_methodology.yml].freeze
+    ROOTS = %w[app/serializers app/mailers config/locales app/prompts lib/prompts config/activity_methodology.yml app/services/activity_scoring].freeze
     FILE_EXTENSIONS = %w[.rb .erb .json .md .txt .yml .yaml].freeze
     BANNED_TERMS = /\b(?:buy|sell|bullish|bearish|strong\s+buy|opportunity)\b/i
     Violation = Data.define(:path, :line, :text)
