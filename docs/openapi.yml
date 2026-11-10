@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.3.0
+  version: 1.4.0
   description: Implemented account, watchlist, plan-catalog and filing-data read APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1152,6 +1152,172 @@ paths:
                 properties:
                   data:
                     "$ref": "#/components/schemas/FilingDetail"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/activity":
+    get:
+      operationId: listActivity
+      summary: List unified reported insider and institutional activity
+      security:
+      - {}
+      - CookieSession: []
+      description: SQL feed of effective Form 4 transaction lines and adjacent-quarter
+        13F changes. Joint reporting owners share one event. Institutional comparisons
+        require the preceding-quarter baseline and preserve options/share types. Only
+        existing unambiguous mappings supply tickers. Scores, levels and sectors are
+        null until implemented; their filters return no rows. 13dg/144 sources currently
+        have no events. Watchlist cursors bind the authenticated user and initial
+        membership IDs.
+      parameters:
+      - name: source
+        in: query
+        schema:
+          type: string
+          enum:
+          - insider
+          - institutional
+          - 13dg
+          - '144'
+      - name: direction
+        in: query
+        schema:
+          type: string
+          enum:
+          - purchase
+          - sale
+          - other
+          - increase
+          - decrease
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum:
+          - all
+          - open_market
+          - administrative
+          default: all
+      - name: level
+        in: query
+        schema:
+          type: string
+          enum:
+          - normal
+          - elevated
+          - high
+          - unusual
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - occurred_at
+          - "-occurred_at"
+          - value
+          - "-value"
+          - score
+          - "-score"
+          default: "-occurred_at"
+      - name: min_value
+        in: query
+        description: Inclusive usable dollar magnitude. Institutional magnitude is
+          the absolute normalized delta; raw signed deltas remain in the details.
+        schema:
+          "$ref": "#/components/schemas/ValueFilter"
+      - name: min_score
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          maximum: 100
+      - name: sector
+        in: query
+        schema:
+          type: string
+          maxLength: 80
+      - name: date_from
+        in: query
+        description: Inclusive UTC filing-availability date.
+        schema:
+          type: string
+          format: date
+      - name: date_to
+        in: query
+        description: Inclusive UTC filing-availability date.
+        schema:
+          type: string
+          format: date
+      - name: watchlist_only
+        in: query
+        description: True requires a cookie session; matches only that user's follows
+          and disables response caching.
+        schema:
+          type: boolean
+          default: false
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Matching events and cursor/capability metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/ActivityEvent"
+                  meta:
+                    "$ref": "#/components/schemas/ActivityPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/activity/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 8192
+    get:
+      operationId: getActivityEvent
+      summary: Read an event and its source comparison version
+      security: []
+      description: Insider links retain the original transaction after amendment.
+        Signed institutional IDs reconstruct the exact original effective report set,
+        even after a newer restatement. Public source data must still be retained
+        and parsed; altered or unknown identifiers return JSON 404. This endpoint
+        does not write derived activity rows.
+      responses:
+        '200':
+          description: Event details with factual provenance and explicitly unavailable
+            scoring fields.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/ActivityEvent"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
         '404':
           "$ref": "#/components/responses/NotFound"
         '429':
@@ -2363,6 +2529,529 @@ components:
           type: array
           items:
             "$ref": "#/components/schemas/FilingHolding"
+    ActivityPositionChange:
+      type: object
+      required:
+      - period_of_report
+      - prior_period_of_report
+      - cusip
+      - put_call
+      - share_type
+      - issuer_name
+      - title_of_class
+      - change_type
+      - shares_before
+      - shares_after
+      - shares_delta
+      - value_usd_before
+      - value_usd_after
+      - value_usd_delta
+      - current_suspect
+      - prior_suspect
+      - current_sources
+      - prior_sources
+      - comparison_sources
+      properties:
+        period_of_report:
+          type: string
+          format: date
+        prior_period_of_report:
+          type: string
+          format: date
+          nullable: true
+        cusip:
+          type: string
+        put_call:
+          type: string
+          nullable: true
+        share_type:
+          type: string
+        issuer_name:
+          type: string
+          nullable: true
+        title_of_class:
+          type: string
+          nullable: true
+        change_type:
+          type: string
+          enum:
+          - new
+          - added
+          - reduced
+          - exited
+        shares_before:
+          "$ref": "#/components/schemas/NullableDecimal"
+        shares_after:
+          "$ref": "#/components/schemas/NullableDecimal"
+        shares_delta:
+          "$ref": "#/components/schemas/NullableDecimal"
+        value_usd_before:
+          "$ref": "#/components/schemas/NullableDecimal"
+        value_usd_after:
+          "$ref": "#/components/schemas/NullableDecimal"
+        value_usd_delta:
+          "$ref": "#/components/schemas/NullableDecimal"
+        current_suspect:
+          type: boolean
+        prior_suspect:
+          type: boolean
+        current_sources:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FilingProvenance"
+        prior_sources:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FilingProvenance"
+        comparison_sources:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FilingProvenance"
+    ActivityReportingOwner:
+      type: object
+      required:
+      - insider_cik
+      - insider_name
+      - role
+      properties:
+        insider_cik:
+          "$ref": "#/components/schemas/Cik"
+        insider_name:
+          type: string
+          nullable: true
+        role:
+          type: object
+          required:
+          - is_director
+          - is_officer
+          - is_ten_percent_owner
+          - is_other
+          - officer_title
+          properties:
+            is_director:
+              type: boolean
+            is_officer:
+              type: boolean
+            is_ten_percent_owner:
+              type: boolean
+            is_other:
+              type: boolean
+            officer_title:
+              type: string
+              nullable: true
+    ActivityEvent:
+      type: object
+      required:
+      - accession
+      - form_type
+      - sec_url
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - data_age_days
+      - id
+      - source
+      - occurred_at
+      - period_of_report
+      - direction
+      - activity_type
+      - value
+      - score
+      - level
+      - sector
+      - reasons
+      - score_breakdown
+      - transaction
+      - reporting_owners
+      - fund
+      - issuer
+      - position_change
+      properties:
+        accession:
+          type: string
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+        form_type:
+          type: string
+        sec_url:
+          type: string
+          format: uri
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+        id:
+          type: string
+          maxLength: 8192
+          description: Opaque event identifier. Institutional identifiers are signed
+            and preserve the exact comparison report set.
+        source:
+          type: string
+          enum:
+          - insider
+          - institutional
+        occurred_at:
+          type: string
+          format: date-time
+          description: Latest filing availability among all inputs to this event.
+        period_of_report:
+          type: string
+          format: date
+          nullable: true
+        direction:
+          type: string
+          enum:
+          - purchase
+          - sale
+          - other
+          - increase
+          - decrease
+        activity_type:
+          type: string
+          enum:
+          - open_market
+          - administrative
+          - position_change
+        value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+          description: Null until the Activity Score implementation is available.
+        level:
+          type: string
+          enum:
+          - normal
+          - elevated
+          - high
+          - unusual
+          nullable: true
+        sector:
+          type: string
+          nullable: true
+        reasons:
+          type: array
+          items:
+            type: string
+          description: Currently empty; no significance reasons are invented.
+        score_breakdown:
+          type: array
+          items:
+            type: object
+          description: Currently empty.
+        transaction:
+          type: object
+          required:
+          - id
+          - accession
+          - form_type
+          - insider_cik
+          - insider_name
+          - issuer
+          - role
+          - owner_sequence
+          - security_table
+          - transaction_sequence
+          - security_title
+          - transaction_date
+          - transaction_code
+          - activity_type
+          - direction
+          - shares
+          - price
+          - price_suspect
+          - price_suspect_reason
+          - value
+          - shares_owned_following
+          - acquired_disposed
+          - direct_or_indirect
+          - filed_at
+          - accepted_at
+          - ingested_at
+          - period_of_report
+          - data_age_days
+          - sec_url
+          properties:
+            id:
+              type: integer
+              format: int64
+            accession:
+              type: string
+              pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+            form_type:
+              type: string
+              enum:
+              - '4'
+              - 4/A
+            insider_cik:
+              "$ref": "#/components/schemas/Cik"
+            insider_name:
+              type: string
+              nullable: true
+            issuer:
+              type: object
+              required:
+              - cik
+              - name
+              - ticker
+              properties:
+                cik:
+                  "$ref": "#/components/schemas/Cik"
+                name:
+                  type: string
+                  nullable: true
+                ticker:
+                  type: string
+                  nullable: true
+            role:
+              type: object
+              required:
+              - is_director
+              - is_officer
+              - is_ten_percent_owner
+              - is_other
+              - officer_title
+              properties:
+                is_director:
+                  type: boolean
+                is_officer:
+                  type: boolean
+                is_ten_percent_owner:
+                  type: boolean
+                is_other:
+                  type: boolean
+                officer_title:
+                  type: string
+                  nullable: true
+            owner_sequence:
+              type: integer
+            security_table:
+              type: string
+              enum:
+              - non_derivative
+              - derivative
+            transaction_sequence:
+              type: integer
+            security_title:
+              type: string
+              nullable: true
+            transaction_date:
+              type: string
+              format: date
+              nullable: true
+            transaction_code:
+              type: string
+              nullable: true
+            activity_type:
+              type: string
+              enum:
+              - open_market
+              - administrative
+            direction:
+              type: string
+              enum:
+              - purchase
+              - sale
+              - other
+            shares:
+              "$ref": "#/components/schemas/NullableDecimal"
+            price:
+              "$ref": "#/components/schemas/NullableDecimal"
+            price_suspect:
+              type: boolean
+            price_suspect_reason:
+              type: string
+              nullable: true
+            value:
+              "$ref": "#/components/schemas/NullableDecimal"
+            shares_owned_following:
+              "$ref": "#/components/schemas/NullableDecimal"
+            acquired_disposed:
+              type: string
+              nullable: true
+            direct_or_indirect:
+              type: string
+              nullable: true
+            filed_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            accepted_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            ingested_at:
+              "$ref": "#/components/schemas/NullableTimestamp"
+            period_of_report:
+              type: string
+              format: date
+              nullable: true
+            data_age_days:
+              type: integer
+              nullable: true
+            sec_url:
+              type: string
+              format: uri
+          nullable: true
+        reporting_owners:
+          type: array
+          items:
+            "$ref": "#/components/schemas/ActivityReportingOwner"
+        fund:
+          type: object
+          required:
+          - cik
+          - name
+          properties:
+            cik:
+              "$ref": "#/components/schemas/Cik"
+            name:
+              type: string
+          nullable: true
+        issuer:
+          type: object
+          required:
+          - cik
+          - name
+          - ticker
+          properties:
+            cik:
+              type: string
+              nullable: true
+            name:
+              type: string
+              nullable: true
+            ticker:
+              type: string
+              nullable: true
+        position_change:
+          type: object
+          required:
+          - period_of_report
+          - prior_period_of_report
+          - cusip
+          - put_call
+          - share_type
+          - issuer_name
+          - title_of_class
+          - change_type
+          - shares_before
+          - shares_after
+          - shares_delta
+          - value_usd_before
+          - value_usd_after
+          - value_usd_delta
+          - current_suspect
+          - prior_suspect
+          - current_sources
+          - prior_sources
+          - comparison_sources
+          properties:
+            period_of_report:
+              type: string
+              format: date
+            prior_period_of_report:
+              type: string
+              format: date
+              nullable: true
+            cusip:
+              type: string
+            put_call:
+              type: string
+              nullable: true
+            share_type:
+              type: string
+            issuer_name:
+              type: string
+              nullable: true
+            title_of_class:
+              type: string
+              nullable: true
+            change_type:
+              type: string
+              enum:
+              - new
+              - added
+              - reduced
+              - exited
+            shares_before:
+              "$ref": "#/components/schemas/NullableDecimal"
+            shares_after:
+              "$ref": "#/components/schemas/NullableDecimal"
+            shares_delta:
+              "$ref": "#/components/schemas/NullableDecimal"
+            value_usd_before:
+              "$ref": "#/components/schemas/NullableDecimal"
+            value_usd_after:
+              "$ref": "#/components/schemas/NullableDecimal"
+            value_usd_delta:
+              "$ref": "#/components/schemas/NullableDecimal"
+            current_suspect:
+              type: boolean
+            prior_suspect:
+              type: boolean
+            current_sources:
+              type: array
+              items:
+                "$ref": "#/components/schemas/FilingProvenance"
+            prior_sources:
+              type: array
+              items:
+                "$ref": "#/components/schemas/FilingProvenance"
+            comparison_sources:
+              type: array
+              items:
+                "$ref": "#/components/schemas/FilingProvenance"
+          nullable: true
+    ActivityPageMeta:
+      type: object
+      required:
+      - total_count
+      - has_more
+      - next_cursor
+      - limit
+      - sort
+      - as_of
+      - available_sources
+      - scoring_available
+      - sector_available
+      properties:
+        total_count:
+          type: integer
+          minimum: 0
+          description: All matching rows before the cursor boundary. Counts raw information-table
+            rows for holdings.
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        sort:
+          type: string
+        as_of:
+          type: string
+          format: date-time
+          description: Original first-page time used for filing visibility and data
+            age.
+        available_sources:
+          type: array
+          items:
+            type: string
+            enum:
+            - insider
+            - institutional
+        scoring_available:
+          type: boolean
+          example: false
+        sector_available:
+          type: boolean
+          example: false
   parameters:
     TransactionType:
       name: type

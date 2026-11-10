@@ -4,11 +4,12 @@
 # Holdings are first aggregated by CUSIP, put/call and share type so repeated
 # information-table lines for one security do not become false diffs.
 class InstitutionalPositionDiffQuery
-  def initialize(institutional_filer_id: nil, period_of_report: nil, report_scope: nil, max_holding_id: nil)
+  def initialize(institutional_filer_id: nil, period_of_report: nil, report_scope: nil, max_holding_id: nil, include_context: false)
     @institutional_filer_id = institutional_filer_id
     @period_of_report = period_of_report
     @report_scope = report_scope
     @max_holding_id = max_holding_id
+    @include_context = include_context
   end
 
   def call
@@ -57,6 +58,11 @@ class InstitutionalPositionDiffQuery
          AND amendment.submission_type = '13F-HR/A'
          AND amendment.amendment_type = 'NEW HOLDINGS'
          AND (COALESCE(#{report_time('amendment')}, TIMESTAMP 'epoch'), #{report_order('amendment')}) > (b.filed_at, b.order_key)
+      ), report_contexts AS (
+        SELECT institutional_filer_id, period_of_report,
+               ARRAY_AGG(report_id ORDER BY report_id) AS report_ids
+        FROM effective_reports
+        GROUP BY institutional_filer_id, period_of_report
       ), effective_lines AS (
         SELECT er.institutional_filer_id,
                er.period_of_report,
@@ -67,7 +73,7 @@ class InstitutionalPositionDiffQuery
                CASE WHEN COUNT(*) = COUNT(h.value_usd) THEN SUM(h.value_usd) END AS value_usd,
                BOOL_OR(h.suspect) AS suspect,
                (ARRAY_AGG(er.report_id ORDER BY er.filed_at DESC, er.order_key DESC))[1] AS report_id,
-               ARRAY_AGG(DISTINCT er.report_id) AS report_ids,
+               ARRAY_AGG(DISTINCT er.report_id ORDER BY er.report_id) AS report_ids,
                MIN(h.name_of_issuer) AS name_of_issuer,
                MIN(h.title_of_class) AS title_of_class
         FROM effective_reports er
@@ -141,11 +147,26 @@ class InstitutionalPositionDiffQuery
            OR current_line.cusip IS NULL
            OR current_line.shares <> prior_line.shares
       )
-      SELECT *
+      SELECT diffs.*
+        #{@include_context ? ', current_context.report_ids AS current_context_ids, prior_context.report_ids AS prior_context_ids' : ''}
       FROM diffs
+      #{context_joins}
       WHERE 1 = 1
         #{period_filter}
-      ORDER BY institutional_filer_id, period_of_report, cusip, put_call NULLS FIRST, share_type
+      ORDER BY diffs.institutional_filer_id, diffs.period_of_report, diffs.cusip, diffs.put_call NULLS FIRST, diffs.share_type
+    SQL
+  end
+
+  def context_joins
+    return "" unless @include_context
+
+    <<~SQL
+      INNER JOIN report_contexts current_context
+        ON current_context.institutional_filer_id = diffs.institutional_filer_id
+       AND current_context.period_of_report = diffs.period_of_report
+      LEFT JOIN report_contexts prior_context
+        ON prior_context.institutional_filer_id = diffs.institutional_filer_id
+       AND prior_context.period_of_report = diffs.prior_period_of_report
     SQL
   end
 
@@ -166,7 +187,7 @@ class InstitutionalPositionDiffQuery
   end
 
   def period_filter
-    @period_of_report ? "AND period_of_report = :period_of_report" : ""
+    @period_of_report ? "AND diffs.period_of_report = :period_of_report" : ""
   end
 
   def binds

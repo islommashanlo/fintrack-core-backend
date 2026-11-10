@@ -28,6 +28,11 @@ module Api
         @snapshot.fetch("bounds").fetch(name)
       end
 
+      def self.sql_rows(sql)
+        result = ApplicationRecord.connection.select_all(sql)
+        result.cast_values.map { |values| result.columns.zip(values).to_h }
+      end
+
       def call(scope, preload: [])
         table = scope.klass.table_name
         column = @sorts.fetch(@field)
@@ -40,7 +45,29 @@ module Api
         has_more = records.size > @limit
         records = records.first(@limit)
         Result.new(records:, meta: {
-          total_count: count, has_more:, next_cursor: has_more ? encode(records.last) : nil,
+          total_count: count, has_more:, next_cursor: has_more ? encode(records.last.id, records.last["api_sort_value"]) : nil,
+          limit: @limit, sort: @sort, as_of: @snapshot.fetch("as_of")
+        })
+      end
+
+      # SQL projections use a unique text event_key instead of a model ID.
+      # The caller supplies generated SQL and fixed sort expressions, never user SQL.
+      def call_sql(sql)
+        column = @sorts.fetch(@field)
+        direction = @sort.start_with?("-") ? "DESC" : "ASC"
+        connection = ApplicationRecord.connection
+        count = connection.select_value("SELECT COUNT(*) FROM (#{sql}) activity").to_i
+        records = self.class.sql_rows(<<~SQL)
+          SELECT activity.*, #{column} AS api_sort_value FROM (#{sql}) activity
+          WHERE #{sql_boundary(column)}
+          ORDER BY #{column} #{direction} NULLS LAST, activity.event_key #{direction}
+          LIMIT #{@limit + 1}
+        SQL
+        has_more = records.length > @limit
+        records = records.first(@limit)
+        last = records.last
+        Result.new(records:, meta: {
+          total_count: count, has_more:, next_cursor: has_more ? encode(last.fetch("event_key"), last["api_sort_value"]) : nil,
           limit: @limit, sort: @sort, as_of: @snapshot.fetch("as_of")
         })
       end
@@ -70,15 +97,28 @@ module Api
         end
       end
 
-      def encode(record)
-        value = record["api_sort_value"]
+      def sql_boundary(column)
+        return "TRUE" unless @snapshot.key?("last_id")
+
+        operator = @sort.start_with?("-") ? "<" : ">"
+        if @snapshot["last_value"].nil?
+          ApplicationRecord.sanitize_sql([ "(#{column}) IS NULL AND activity.event_key #{operator} ?", @snapshot.fetch("last_id") ])
+        else
+          ApplicationRecord.sanitize_sql([ <<~SQL, value: @snapshot.fetch("last_value"), id: @snapshot.fetch("last_id") ])
+            ((#{column}) #{operator} :value OR
+              ((#{column}) = :value AND activity.event_key #{operator} :id) OR (#{column}) IS NULL)
+          SQL
+        end
+      end
+
+      def encode(id, value)
         value = case value
         when Time, DateTime then value.iso8601(6)
         when Date then value.iso8601
         when BigDecimal then value.to_s("F")
         else value
         end
-        snapshot = @snapshot.merge("last_id" => record.id, "last_value" => value)
+        snapshot = @snapshot.merge("last_id" => id, "last_value" => value)
         verifier.generate({ "version" => 1, "context" => @context, "snapshot" => snapshot },
                           purpose: "pagination", expires_in: 24.hours)
       end

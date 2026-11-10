@@ -21,6 +21,8 @@ Rails.application.routes.draw do
       post "watchlist" => "watchlist#create"
       delete "watchlist" => "watchlist#destroy"
       delete "watchlist/:id" => "watchlist#destroy", as: :watchlist_item
+      get "activity" => "activity#index", as: :activity
+      get "activity/:id" => "activity#show", as: :activity_event
       resources :funds, param: :cik, only: %i[index show] do
         get :holdings, on: :member
         get :history, on: :member

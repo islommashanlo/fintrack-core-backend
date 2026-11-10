@@ -3,11 +3,12 @@
 # Shared read scope for reports that were known at a given time. A notice never
 # becomes a holdings base, and an unresolved additive amendment has no holdings.
 class InstitutionalReportScope
-  def initialize(as_of:, max_report_id: nil, max_filing_id: nil, max_holding_id: nil)
+  def initialize(as_of:, max_report_id: nil, max_filing_id: nil, max_holding_id: nil, report_ids: nil)
     @as_of = as_of
     @max_report_id = max_report_id
     @max_filing_id = max_filing_id
     @max_holding_id = max_holding_id
+    @report_ids = report_ids
   end
 
   def visible_reports
@@ -16,6 +17,7 @@ class InstitutionalReportScope
       .where("COALESCE(filings.filed_at, institutional_reports.filed_at) <= ?", @as_of)
     scope = scope.where("institutional_reports.id <= ?", @max_report_id) if @max_report_id
     scope = scope.where("filings.id <= ?", @max_filing_id) if @max_filing_id
+    scope = scope.where(id: @report_ids) if @report_ids
     scope.select("institutional_reports.*", "COALESCE(filings.filed_at, institutional_reports.filed_at) AS known_filed_at",
                  "filings.accession_no AS known_accession")
   end

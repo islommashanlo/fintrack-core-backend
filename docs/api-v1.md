@@ -367,3 +367,81 @@ Adding an API watchlist item does not create or enable an email alert. Removal
 returns 204 and removes private alert records linked to that membership; obsolete
 queued delivery jobs are discarded. Neither operation changes reported filing
 data. Alert-builder/digest work remains separate.
+
+## Unified activity
+
+`GET /api/v1/activity` combines reported insider transaction lines and derived
+institutional position changes in SQL. It returns the normal `data` / `meta`
+cursor envelope. `GET /api/v1/activity/:id` returns a single event with its
+transaction or position-change details and all source links.
+
+| Parameter | Accepted values |
+| --- | --- |
+| `source` | `insider`, `institutional`, `13dg`, `144`; the latter two currently have no ingested events |
+| `direction` | `purchase`, `sale`, `other` for insider rows; `increase`, `decrease` for institutional changes |
+| `type` | `all` (default), `open_market`, `administrative`; the latter two select insider activity |
+| `min_value` | Inclusive nonnegative dollar magnitude; missing/suspect values do not match |
+| `date_from`, `date_to` | Inclusive UTC filing-availability dates, not transaction or report-period dates |
+| `watchlist_only` | `true` or `false` (default); true requires sign-in |
+| `level` | `normal`, `elevated`, `high`, `unusual` |
+| `min_score` | Integer from 0 to 100 |
+| `sector` | Exact sector name, up to 80 characters |
+| `sort` | `occurred_at` (descending by default), `value`, `score`, each with optional `-` |
+| `limit`, `cursor` | The shared 1–100 page size and signed 24-hour cursor contract |
+
+Each event includes an opaque `id`, `source`, `occurred_at`, `period_of_report`,
+`direction`, `activity_type`, `value`, SEC provenance/freshness, issuer and fund
+references, and source-specific details. Raw shares/prices and signed position
+deltas remain visible in the details. `value` is a comparison magnitude: reported
+shares times usable reported price for insider activity, or the absolute
+normalized dollar delta for institutional changes. Suspect or unknown values
+produce null magnitude rather than a correction. Directions on 13F changes
+describe reported holdings; they do not assert a transaction occurred.
+
+Insider activity includes both security tables and all transaction codes.
+Joint filings produce one event per transaction line using its first-listed
+owner, with every reporting owner and role listed in `reporting_owners`. A follow
+on any listed owner can match that same event. Effective Form 4 amendments are
+resolved before filtering and paging.
+
+Institutional activity requires a report for the immediately preceding quarter.
+A first observed position or a gap in the available quarterly reports produces
+no feed event. Diffs aggregate by CUSIP, put/call, and share type; options remain
+distinct. RESTATEMENT and NEW HOLDINGS semantics use the same SQL as the fund
+read APIs. Notices and unresolved additive reports are not holdings bases.
+`current_sources` and `prior_sources` link contributing rows;
+`comparison_sources` also includes the complete effective reports that establish
+the comparison, including absence evidence for exits.
+
+`occurred_at` is when all inputs to an event were filed. For an institutional
+comparison it is the latest input filing timestamp, including a prior-quarter
+restatement filed after the current-quarter report. Primary provenance points
+to that latest filing; the event's `period_of_report` still identifies the
+current quarter being compared. A report timestamp can supply availability when the
+filing timestamp is missing; provenance retains the stored null instead of
+inventing a filing timestamp.
+
+Only existing, unambiguous local CUSIP mappings supply institutional tickers.
+An unmapped or ambiguous position still appears in the public feed with a null
+ticker and cannot match an issuer-ticker watchlist entry. Fund follows match
+the reporting fund's CIK directly. Watchlist matching uses EXISTS, so following
+several owners or both a fund and issuer does not duplicate events. The feed uses
+only the authenticated user's follows and sends `Cache-Control: no-store` when
+`watchlist_only=true`. Private cursors bind that user and bound the initial follow
+IDs; later adds do not enter those pages, and removals take effect immediately.
+
+Insider event links retain the original transaction even after amendment.
+Institutional IDs are signed identifiers for the exact effective report set and
+position key. A restatement creates a new version in the current feed; an older
+event link still reconstructs its original comparison from the retained reports.
+These are read projections, not new stored activity rows, and GET requests do
+not write or reprocess filings. Normalized source rows can still change if they
+are explicitly reprocessed; cursor snapshots do not hold a database transaction
+open across HTTP requests.
+
+Activity scoring and sector classifications are not implemented in this slice.
+`score`, `level`, and `sector` remain null; `reasons` and `score_breakdown` are empty.
+Metadata reports `scoring_available: false`, `sector_available: false`, and
+`available_sources: ["insider", "institutional"]`. Score/level/sector filters
+therefore return no rows instead of inventing classifications. The unusual
+activity route and Activity Score methodology remain pending.
