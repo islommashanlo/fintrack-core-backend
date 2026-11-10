@@ -8,6 +8,7 @@ Data from public SEC filings. Not investment advice.
 - `docs/gap-analysis.md` is the audit that started this rebuild.
 - `CLAUDE.md` has the invariants, conventions and commands.
 - `docs/api-v1.md` and `docs/openapi.yml` document the implemented JSON read APIs.
+- `docs/activity-methodology.md` explains the cluster definition and draft Activity Score proposal.
 
 ## Getting started
 

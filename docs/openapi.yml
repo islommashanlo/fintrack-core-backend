@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.4.0
+  version: 1.5.0
   description: Implemented account, watchlist, plan-catalog and filing-data read APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1320,6 +1320,142 @@ paths:
           "$ref": "#/components/responses/InvalidParameter"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/insiders/clusters":
+    get:
+      operationId: listInsiderClusters
+      summary: List rolling 14-day purchase and sale reporting clusters
+      security:
+      - {}
+      - CookieSession: []
+      parameters:
+      - name: direction
+        in: query
+        schema:
+          type: string
+          enum:
+          - all
+          - purchase
+          - sale
+          default: all
+      - name: ticker
+        in: query
+        description: Exact case-insensitive latest reported ticker for the window.
+        schema:
+          type: string
+          pattern: "^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$"
+      - name: issuer_cik
+        in: query
+        schema:
+          "$ref": "#/components/schemas/Cik"
+      - name: min_insiders
+        in: query
+        schema:
+          type: integer
+          minimum: 3
+          maximum: 1000
+          default: 3
+      - name: min_value
+        in: query
+        description: Inclusive complete total value. Incomplete totals do not match.
+        schema:
+          "$ref": "#/components/schemas/ValueFilter"
+      - name: date_from
+        in: query
+        description: Inclusive UTC window-end date; defaults to 90 dates before the
+          requested end/current snapshot. Earlier membership context is retained.
+        schema:
+          type: string
+          format: date
+      - name: date_to
+        in: query
+        description: Inclusive UTC window-end date.
+        schema:
+          type: string
+          format: date
+      - name: watchlist_only
+        in: query
+        description: Requires sign-in; matches only this user's issuer/person follows.
+          A co-owner follow can match a canonical member.
+        schema:
+          type: boolean
+          default: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - window_end
+          - "-window_end"
+          - insider_count
+          - "-insider_count"
+          - transaction_count
+          - "-transaction_count"
+          - total_value
+          - "-total_value"
+          default: "-window_end"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      description: At least three distinct first-listed insiders per issuer and direction,
+        with only effective non-derivative P/S lines. Joint-owner copies do not inflate
+        counts or value. Each distinct eligible acceptance time anchors an exclusive-start/inclusive-end
+        window; overlapping qualifying windows remain separate. Totals are null when
+        any member lacks a usable value, with the known subtotal retained. SQL read
+        projection; no stored cluster rows or background reprocessing. Watchlist cursors
+        bind the user and initial follow IDs.
+      responses:
+        '200':
+          description: Cluster windows and cursor metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/InsiderCluster"
+                  meta:
+                    "$ref": "#/components/schemas/InsiderClusterPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/methodology":
+    get:
+      operationId: getMethodology
+      summary: Read active cluster criteria and the draft score proposal
+      security: []
+      parameters: []
+      description: Cluster window and minimum criteria are active. Activity Scores
+        remain unavailable; proposed weights are a versioned draft, not computed scores
+        or expected-performance measures. Thresholds and input gaps are published.
+        Missing inputs are not zero-filled or silently reweighted.
+      responses:
+        '200':
+          description: Public methodology definition from the version-controlled configuration.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/ActivityMethodology"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
         '429':
           "$ref": "#/components/responses/RateLimited"
         '503':
@@ -3052,6 +3188,327 @@ components:
         sector_available:
           type: boolean
           example: false
+    InsiderCluster:
+      type: object
+      required:
+      - accession
+      - form_type
+      - sec_url
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - data_age_days
+      - id
+      - issuer
+      - direction
+      - window_start
+      - window_end
+      - window_days
+      - insider_count
+      - transaction_count
+      - total_value
+      - known_value_subtotal
+      - transactions_without_usable_price
+      - transaction_ids
+      - activity_ids
+      - insiders
+      - sources
+      properties:
+        accession:
+          type: string
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+        form_type:
+          type: string
+        sec_url:
+          type: string
+          format: uri
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+        id:
+          type: string
+          pattern: "^cluster_[a-f0-9]{64}$"
+          description: Digest of membership and cluster definition. There is no cluster-detail
+            lookup route in this version.
+        issuer:
+          type: object
+          required:
+          - cik
+          - name
+          - ticker
+          properties:
+            cik:
+              "$ref": "#/components/schemas/Cik"
+            name:
+              type: string
+              nullable: true
+            ticker:
+              type: string
+              nullable: true
+        direction:
+          type: string
+          enum:
+          - purchase
+          - sale
+        window_start:
+          type: string
+          format: date-time
+        window_end:
+          type: string
+          format: date-time
+        window_days:
+          type: integer
+          enum:
+          - 14
+        insider_count:
+          type: integer
+          format: int64
+          minimum: 3
+        transaction_count:
+          type: integer
+          format: int64
+          minimum: 3
+        total_value:
+          "$ref": "#/components/schemas/NullableDecimal"
+        known_value_subtotal:
+          "$ref": "#/components/schemas/NullableDecimal"
+        transactions_without_usable_price:
+          type: integer
+          format: int64
+          minimum: 0
+        transaction_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+          uniqueItems: true
+        activity_ids:
+          type: array
+          items:
+            type: string
+          uniqueItems: true
+        insiders:
+          type: array
+          items:
+            type: object
+            required:
+            - cik
+            - name
+            properties:
+              cik:
+                "$ref": "#/components/schemas/Cik"
+              name:
+                type: string
+                nullable: true
+        sources:
+          type: array
+          items:
+            "$ref": "#/components/schemas/FilingProvenance"
+    InsiderClusterPageMeta:
+      type: object
+      required:
+      - total_count
+      - has_more
+      - next_cursor
+      - limit
+      - sort
+      - as_of
+      - window_days
+      - minimum_insiders
+      - definition_minimum_insiders
+      properties:
+        total_count:
+          type: integer
+          minimum: 0
+          description: All matching rows before the cursor boundary. Counts raw information-table
+            rows for holdings.
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        sort:
+          type: string
+        as_of:
+          type: string
+          format: date-time
+          description: Original first-page time used for filing visibility and data
+            age.
+        window_days:
+          type: integer
+          enum:
+          - 14
+        minimum_insiders:
+          type: integer
+          minimum: 3
+          maximum: 1000
+        definition_minimum_insiders:
+          type: integer
+          enum:
+          - 3
+    ActivityMethodology:
+      type: object
+      required:
+      - version
+      - purpose
+      - disclaimer
+      - clusters
+      - score
+      properties:
+        version:
+          type: string
+        purpose:
+          type: string
+        disclaimer:
+          type: string
+        clusters:
+          type: object
+          required:
+          - status
+          - window_days
+          - minimum_insiders
+          - time_basis
+          - window_bounds
+          - directions
+          - eligible_table
+          - joint_owner_policy
+          - missing_values
+          properties:
+            status:
+              type: string
+              enum:
+              - available
+            window_days:
+              type: integer
+            minimum_insiders:
+              type: integer
+            time_basis:
+              type: string
+            window_bounds:
+              type: string
+            directions:
+              type: array
+              items:
+                type: string
+            eligible_table:
+              type: string
+            joint_owner_policy:
+              type: string
+            missing_values:
+              type: string
+        score:
+          type: object
+          required:
+          - status
+          - minimum
+          - maximum
+          - levels
+          - proposal
+          properties:
+            status:
+              type: string
+              enum:
+              - unavailable
+            minimum:
+              type: integer
+            maximum:
+              type: integer
+            levels:
+              type: array
+              items:
+                type: object
+                required:
+                - id
+                - label
+                - minimum
+                - maximum
+                properties:
+                  id:
+                    type: string
+                  label:
+                    type: string
+                  minimum:
+                    type: integer
+                  maximum:
+                    type: integer
+            proposal:
+              type: object
+              required:
+              - status
+              - positive_weight_total
+              - maximum_lateness_penalty
+              - factors
+              - lateness
+              - aggregation
+              - missing_data_policy
+              - history_policy
+              - reasons_policy
+              - activation_requirements
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - draft
+                positive_weight_total:
+                  type: integer
+                maximum_lateness_penalty:
+                  type: integer
+                factors:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - id
+                    - proposed_weight
+                    - description
+                    - data_status
+                    properties:
+                      id:
+                        type: string
+                      proposed_weight:
+                        type: integer
+                        minimum: 0
+                        maximum: 100
+                      description:
+                        type: string
+                      data_status:
+                        type: string
+                        enum:
+                        - available
+                        - partial
+                        - unavailable
+                lateness:
+                  type: object
+                  required:
+                  - description
+                  - data_status
+                  properties:
+                    description:
+                      type: string
+                    data_status:
+                      type: string
+                aggregation:
+                  type: string
+                missing_data_policy:
+                  type: string
+                history_policy:
+                  type: string
+                reasons_policy:
+                  type: string
+                activation_requirements:
+                  type: array
+                  items:
+                    type: string
   parameters:
     TransactionType:
       name: type

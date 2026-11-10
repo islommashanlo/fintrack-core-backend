@@ -444,4 +444,62 @@ Activity scoring and sector classifications are not implemented in this slice.
 Metadata reports `scoring_available: false`, `sector_available: false`, and
 `available_sources: ["insider", "institutional"]`. Score/level/sector filters
 therefore return no rows instead of inventing classifications. The unusual
-activity route and Activity Score methodology remain pending.
+activity route and Activity Score calculation remain pending. The active cluster
+definition and draft score methodology are available through `/methodology`.
+
+## Insider clusters and methodology
+
+`GET /api/v1/insiders/clusters` returns the normal cursor-paginated `data` / `meta`
+envelope. A window qualifies with at least three distinct first-listed insiders
+reporting P transactions, or separately S transactions, for the same issuer CIK
+within 14 days. Administrative and derivative rows do not count. Joint-owner
+copies of the same transaction do not inflate counts or values.
+
+| Parameter | Accepted values |
+| --- | --- |
+| `direction` | `all` (default), `purchase`, `sale` |
+| `ticker` | Exact case-insensitive latest reported ticker for the window |
+| `issuer_cik` | Ten digits, including leading zeroes |
+| `min_insiders` | Integer 3–1000, default 3; can raise the threshold |
+| `min_value` | Inclusive nonnegative complete dollar total; incomplete totals do not match |
+| `date_from`, `date_to` | Inclusive UTC dates for window endpoints |
+| `watchlist_only` | `true` or `false` (default); true requires sign-in |
+| `sort` | `window_end` (descending by default), `insider_count`, `transaction_count`, `total_value`, with optional `-` |
+| `limit`, `cursor` | Shared 1–100 page size and signed 24-hour cursor |
+
+Without `date_from`, endpoint search covers the preceding 90 UTC dates through
+the requested ending date/current snapshot, whichever is earlier. The query also
+loads the earlier 14-day membership context, so a member preceding `date_from`
+can still count in a window ending inside the requested range. This is not a
+fixed calendar bucket: every distinct eligible acceptance timestamp can anchor
+a window, with an exclusive start and inclusive end. Overlapping windows can
+therefore appear for the same issuer and direction.
+
+Each row contains issuer identity, direction, `window_start`, `window_end`,
+`window_days`, `insider_count`, `transaction_count`, `total_value`,
+`known_value_subtotal`, `transactions_without_usable_price`, `transaction_ids`,
+member `activity_ids`, the counted `insiders`, and distinct filing `sources`.
+Top-level provenance/freshness points to the latest member filing. Counts include
+rows with missing/suspect values; the complete total stays null when any member
+lacks a usable value. The known subtotal excludes only those unusable values.
+All decimal totals are JSON strings. Every reported row remains unchanged.
+
+Metadata includes `window_days`, the applied `minimum_insiders`, and the
+definition's `definition_minimum_insiders` (3). Exact-ticker or person follows can
+match private results; a co-owner follow can match a member without increasing
+the cluster's distinct-first-owner count. Fund follows do not match insider
+clusters. Watchlist cursors bind the authenticated user and initial follow IDs,
+and private results are not cached. Aggregate filters are applied after
+membership is determined, so a filter cannot manufacture a smaller cluster.
+
+The endpoint computes read projections rather than writing stored cluster rows.
+There is no `/insiders/clusters/:id` lookup in this slice. Use `activity_ids` or
+SEC URLs to inspect members. Membership changes can change the digest ID. The
+legacy HTML dashboard keeps its separate 2-insider/30-day grouping.
+
+`GET /api/v1/methodology` is public and publishes active cluster parameters, the
+required level thresholds, and an explicitly draft Activity Score proposal.
+Scores remain unavailable until factor formulas, source applicability and input
+coverage are implemented. No score or prediction is inferred from these draft
+weights. See [`activity-methodology.md`](activity-methodology.md) for definitions,
+proposed weights, data gaps and activation requirements.

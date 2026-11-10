@@ -1,0 +1,59 @@
+version: "1.0-draft"
+purpose: "Describe the relative significance and unusualness of reported filing activity."
+disclaimer: "Data from public SEC filings. Not investment advice."
+clusters:
+  status: available
+  window_days: 14
+  minimum_insiders: 3
+  time_basis: filed_at
+  window_bounds: "Exclusive start, inclusive end; anchored at a qualifying SEC acceptance timestamp."
+  directions: [purchase, sale]
+  eligible_table: non_derivative
+  joint_owner_policy: "Count each transaction line once with its first-listed reporting owner; joint-owner copies do not add count or value."
+  missing_values: "Retain counts and a known-value subtotal; the full total is null if any member lacks a usable value."
+score:
+  status: unavailable
+  minimum: 0
+  maximum: 100
+  levels:
+    - {id: normal, label: Normal, minimum: 0, maximum: 39}
+    - {id: elevated, label: Elevated, minimum: 40, maximum: 64}
+    - {id: high, label: High, minimum: 65, maximum: 84}
+    - {id: unusual, label: Unusual, minimum: 85, maximum: 100}
+  proposal:
+    status: draft
+    positive_weight_total: 100
+    maximum_lateness_penalty: 15
+    factors:
+      - id: own_history
+        proposed_weight: 25
+        description: "Reported size compared with the same filer's available prior history."
+        data_status: partial
+      - id: issuer_scale_and_liquidity
+        proposed_weight: 25
+        description: "Reported size compared with issuer market capitalization and average daily dollar volume."
+        data_status: unavailable
+      - id: reported_context
+        proposed_weight: 15
+        description: "Reported role, transaction type, or institutional position context."
+        data_status: partial
+      - id: position_size_change
+        proposed_weight: 20
+        description: "Reported change as a fraction of the available preceding holding."
+        data_status: partial
+      - id: corroborating_activity
+        proposed_weight: 15
+        description: "Distinct reported insider participation or other funds reporting the same position change."
+        data_status: partial
+    lateness:
+      description: "Reduce the score when the reported activity is stale at filing time."
+      data_status: partial
+    aggregation: "Normalize each applicable factor to 0–1, apply its proposed weight, subtract the lateness penalty, then clamp to 0–100."
+    missing_data_policy: "Do not substitute zero or rescale missing factors into a full score. Required input coverage and source-specific applicability must be defined before activating scoring."
+    history_policy: "Use only filings accepted by the event's evaluation timestamp; unresolved amendments and incomplete baselines cannot supply comparison history."
+    reasons_policy: "Generate 2–4 factual template-based reasons from measured factors; do not generate predictions or personalized guidance."
+    activation_requirements:
+      - "Define source-specific factor formulas, applicability and minimum history coverage."
+      - "Implement point-in-time factor queries and missing-input checks."
+      - "Test factor bounds, level thresholds, late filings and amendment revisions."
+      - "Version and publish the implemented methodology before returning scores."

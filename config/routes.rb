@@ -23,6 +23,7 @@ Rails.application.routes.draw do
       delete "watchlist/:id" => "watchlist#destroy", as: :watchlist_item
       get "activity" => "activity#index", as: :activity
       get "activity/:id" => "activity#show", as: :activity_event
+      get "methodology" => "methodology#show", as: :methodology
       resources :funds, param: :cik, only: %i[index show] do
         get :holdings, on: :member
         get :history, on: :member
@@ -34,6 +35,7 @@ Rails.application.routes.draw do
         get :institutional, on: :member
       end
       get "insiders/transactions" => "insider_transactions#index", as: :insider_transactions
+      get "insiders/clusters" => "insider_clusters#index", as: :insider_clusters
       resources :insiders, param: :cik, only: :show do
         get :transactions, on: :member
         get :companies, on: :member
