@@ -12,7 +12,8 @@ module Billing
         INNER JOIN billing_customers ON billing_customers.stripe_id = billing_events.stripe_customer_id
           AND billing_customers.livemode = billing_events.livemode
       SQL
-      if customers.where.not(id: terminal).exists? || customers.where(id: nonterminal).exists? || pending.exists?
+      checkouts = user.billing_checkouts.where(status: %w[pending open needs_review]).exists? || user.billing_checkouts.unresolved_completed.exists?
+      if checkouts || customers.where.not(id: terminal).exists? || customers.where(id: nonterminal).exists? || pending.exists?
         raise CancellationRequired
       end
     end

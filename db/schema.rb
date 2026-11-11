@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_030000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_041000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -103,6 +103,29 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_030000) do
     t.datetime "updated_at", null: false
     t.index ["day"], name: "index_backfill_runs_on_day", unique: true
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'running'::character varying::text, 'done'::character varying::text, 'no_index'::character varying::text, 'failed'::character varying::text])", name: "backfill_runs_status_check"
+  end
+
+  create_table "billing_checkouts", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "billing_customer_id"
+    t.string "request_id", null: false
+    t.boolean "livemode", null: false
+    t.string "interval", null: false
+    t.string "price_id", null: false
+    t.string "status", default: "pending", null: false
+    t.string "stripe_id"
+    t.text "success_url", null: false
+    t.text "cancel_url", null: false
+    t.datetime "expires_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "stripe_subscription_id"
+    t.index ["billing_customer_id"], name: "index_billing_checkouts_on_billing_customer_id"
+    t.index ["user_id", "livemode", "request_id"], name: "index_billing_checkouts_on_user_id_and_livemode_and_request_id", unique: true
+    t.index ["user_id", "livemode", "status"], name: "index_billing_checkouts_on_user_id_and_livemode_and_status"
+    t.index ["user_id"], name: "index_billing_checkouts_on_user_id"
+    t.check_constraint "\"interval\"::text = ANY (ARRAY['month'::character varying, 'year'::character varying]::text[])", name: "billing_checkout_interval"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'open'::character varying, 'complete'::character varying, 'expired'::character varying, 'needs_review'::character varying]::text[])", name: "billing_checkout_status"
   end
 
   create_table "billing_customers", force: :cascade do |t|
@@ -502,6 +525,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_030000) do
   add_foreign_key "alert_event_states", "users"
   add_foreign_key "alert_rule_settings", "alert_rules"
   add_foreign_key "alert_rules", "follows"
+  add_foreign_key "billing_checkouts", "billing_customers"
+  add_foreign_key "billing_checkouts", "users"
   add_foreign_key "billing_customers", "users", on_delete: :nullify
   add_foreign_key "cusip_security_mappings", "securities"
   add_foreign_key "filing_explanations", "filings"

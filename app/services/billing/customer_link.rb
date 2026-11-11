@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Billing
-  # Internal seam for future checkout; never called from webhook metadata or public params.
+  # Internal checkout binding; never called from webhook metadata or public params.
   class CustomerLink
     class Conflict < StandardError; end
 

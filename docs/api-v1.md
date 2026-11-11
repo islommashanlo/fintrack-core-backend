@@ -475,7 +475,9 @@ generic HTTP 503 rather than accepting unprotected requests.
 ### Plans and watchlists
 
 `GET /plans` returns Free and Pro limits; null means unlimited. Plan definitions
-are shared with enforcement and account serialization. Accounts default to Free;
+are shared with enforcement and account serialization. Each entry also exposes
+`checkout_intervals` (month/year), empty for Free and when checkout is unavailable.
+The catalog does not expose provider prices or create subscriptions. Accounts default to Free;
 configured billing can grant Pro from verified current Stripe subscription records
 (see Billing below). Clients cannot set a plan through signup or account updates.
 No paid status is seeded or inferred from email/metadata. Watchlist, rule, instant
@@ -852,6 +854,37 @@ rejected as filter/sort fields. Exports remain pending.
 It prefers an eligible subscription, otherwise the latest local row in the
 configured mode. Provider IDs, keys, receipts and other users' details are omitted.
 
+`POST /api/v1/billing/checkout` accepts `{ interval: "month" | "year", request_id }`.
+`request_id` must be a caller-generated UUIDv4. Authentication and CSRF are required.
+HTTP 200 returns no-store `{ data: { url, request_id, expires_at } }`; navigate to
+the Stripe-hosted URL. Persist the returned request ID and reuse it after errors.
+The server chooses an approved price and fixed return URLs, persists the attempt,
+and resumes unfinished work even if another UUID is supplied. Concurrent requests
+create one session. A changed interval/price cannot overwrite an existing attempt.
+
+`POST /api/v1/billing/portal` accepts only `{ request_id }` and returns
+`{ data: { url } }` for the authenticated user's stored customer. It also requires
+CSRF. Neither route accepts customer, price, amount, plan or callback overrides.
+Sessions never grant Pro. After returning from Stripe, read `/billing/subscription`;
+the verified subscription webhook path controls entitlement.
+
+Both routes share ten attempts/minute/user. Invalid inputs return 400, missing auth
+401, invalid CSRF 403, limiting 429, malformed provider data generic 502
+`BILLING_PROVIDER_ERROR`, and disabled/missing configuration or transient transport
+errors 503 `BILLING_UNAVAILABLE` with `Retry-After: 60`. Checkout intents survive
+transport errors; retry the same UUID instead of opening another purchase flow.
+HTTP 409 codes: `CHECKOUT_CONFLICT` (different interval/price), `CHECKOUT_EXPIRED`
+(use a new UUID after confirmed expiry), `CHECKOUT_PENDING_CONFIRMATION`
+(completed/unresolved billing), `CHECKOUT_REVIEW_REQUIRED` (unknown creation older
+than 22 hours or invalid provider response), `BILLING_ALREADY_EXISTS` (nonterminal
+subscription; use portal), and `BILLING_CUSTOMER_REQUIRED` (portal has no owned customer).
+
+Checkout additionally needs mapped `STRIPE_PRO_MONTHLY_PRICE_ID` and/or
+`STRIPE_PRO_YEARLY_PRICE_ID` in the approved price list. Both sessions use the fixed
+`STRIPE_BILLING_RETURN_URL`; checkout appends a success/canceled navigation hint.
+Unfinished and unresolved completed checkout attempts also block local account
+deletion. No automatic checkout recovery/reconciliation task is implemented yet.
+
 `POST /api/v1/webhooks/stripe` verifies the exact raw body against `Stripe-Signature`
 before JSON parsing. Signing timestamps must be within five minutes; any valid v1
 signature suffices, with other header entries ignored. Browser session/CSRF are not
@@ -882,8 +915,8 @@ affect current gates and queued instant delivery checks.
 
 Account deletion returns 409 `BILLING_CANCELLATION_REQUIRED` for active, unknown or
 unreconciled billing. Verified terminal subscriptions allow deletion while detached
-replay guards remain. Local deletion does not cancel anything in Stripe. Checkout,
-portal and live activation remain pending. See [billing.md](billing.md) for supported
+replay guards remain. Local deletion does not cancel anything in Stripe. Provider
+setup and live activation remain pending. See [billing.md](billing.md) for supported
 shapes, sources, retries, operational limits and launch decisions.
 
 ## Saved screens

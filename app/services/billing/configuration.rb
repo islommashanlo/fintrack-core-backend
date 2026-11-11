@@ -26,5 +26,29 @@ module Billing
         raise Unavailable
       end
     end
+
+    def self.return_url
+      value = ENV["STRIPE_BILLING_RETURN_URL"].to_s
+      uri = URI.parse(value)
+      allowed = uri.scheme == "https" || (!Rails.env.production? && uri.scheme == "http" && %w[localhost 127.0.0.1].include?(uri.host))
+      raise Unavailable unless allowed && uri.host && !uri.userinfo && !uri.query && !uri.fragment
+
+      value
+    rescue URI::InvalidURIError
+      raise Unavailable
+    end
+
+    def self.checkout_prices
+      { "month" => ENV["STRIPE_PRO_MONTHLY_PRICE_ID"], "year" => ENV["STRIPE_PRO_YEARLY_PRICE_ID"] }
+        .select { |_interval, id| price_ids.include?(id) }
+    end
+
+    def self.checkout_intervals
+      require_webhooks!
+      return_url
+      checkout_prices.keys
+    rescue Unavailable
+      []
+    end
   end
 end

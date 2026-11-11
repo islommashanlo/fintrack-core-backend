@@ -20,6 +20,8 @@ Rails.application.routes.draw do
       get "plans" => "plans#index", as: :plans
       post "webhooks/stripe", to: Billing::StripeWebhookEndpoint.new, as: :stripe_webhook
       get "billing/subscription" => "billing#show", as: :billing_subscription
+      post "billing/checkout" => "billing#checkout", as: :billing_checkout
+      post "billing/portal" => "billing#portal", as: :billing_portal
       get "me" => "accounts#show", as: :me
       patch "me" => "accounts#update"
       delete "me" => "accounts#destroy"

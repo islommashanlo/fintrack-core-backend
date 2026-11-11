@@ -9,4 +9,7 @@ The tested API version is `2026-10-28.endive`. The fixture uses item-level billi
 periods, as described in Stripe's [period-field migration](https://docs.stripe.com/changelog/basil/2025-03-31/deprecate-subscription-current-period-start-and-end).
 The support helper sets period timestamps relative to each test's clock and wraps
 this object in synthetic events. Delivery signatures are generated locally.
-Provider GETs are mocked with WebMock; every unstubbed HTTP request is blocked.
+Hosted-session request and concurrency specs use synthetic responses based on the
+[Checkout Session](https://docs.stripe.com/api/checkout/sessions/object) and
+[portal session](https://docs.stripe.com/api/customer_portal/sessions/object) objects.
+Provider GETs and POSTs are mocked with WebMock; every unstubbed HTTP request is blocked.

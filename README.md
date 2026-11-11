@@ -75,6 +75,9 @@ Returned query definitions can be sent directly to `/api/v1/screener/run`.
 
 Billing is disabled by default. `/api/v1/webhooks/stripe` accepts authenticated
 Stripe snapshot events and queues current-subscription refresh; `/api/v1/billing/subscription`
-returns private status. The new migration creates empty storage only. Checkout,
-portal, provider setup and live activation remain pending. See `docs/billing.md`
+returns private status. `/api/v1/billing/checkout` and `/api/v1/billing/portal` return
+hosted session URLs using server-owned customer links, approved interval prices and
+fixed callbacks. Checkout retries resume a durable attempt; sessions do not grant
+access. Local migrations create empty storage only. Provider setup, reconciliation
+operations and live activation remain pending. See `docs/billing.md`
 before configuring keys, prices or account cancellation.

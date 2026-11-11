@@ -2,10 +2,13 @@
 
 module BillingFixtures
   def with_billing_config
-    keys = %w[STRIPE_BILLING_MODE STRIPE_WEBHOOK_SECRET STRIPE_SECRET_KEY STRIPE_PRO_PRICE_IDS]
+    keys = %w[STRIPE_BILLING_MODE STRIPE_WEBHOOK_SECRET STRIPE_SECRET_KEY STRIPE_PRO_PRICE_IDS
+      STRIPE_PRO_MONTHLY_PRICE_ID STRIPE_PRO_YEARLY_PRICE_ID STRIPE_BILLING_RETURN_URL]
     previous = ENV.to_h.slice(*keys)
     ENV.update("STRIPE_BILLING_MODE" => "test", "STRIPE_WEBHOOK_SECRET" => "whsec_fixture",
-      "STRIPE_SECRET_KEY" => "sk_test_fixture", "STRIPE_PRO_PRICE_IDS" => "price_fixture_pro")
+      "STRIPE_SECRET_KEY" => "sk_test_fixture", "STRIPE_PRO_PRICE_IDS" => "price_fixture_pro",
+      "STRIPE_PRO_MONTHLY_PRICE_ID" => "price_fixture_pro", "STRIPE_PRO_YEARLY_PRICE_ID" => "",
+      "STRIPE_BILLING_RETURN_URL" => "https://app.example.com/settings/billing")
     yield
   ensure
     keys.each { |key| previous.key?(key) ? ENV[key] = previous.fetch(key) : ENV.delete(key) }

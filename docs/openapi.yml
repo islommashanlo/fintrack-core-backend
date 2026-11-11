@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.15.0
+  version: 1.16.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1034,6 +1034,124 @@ paths:
       description: Deletes private follows, linked alert records and sessions. Public
         filings and normalized reported rows are retained. Active/unknown/unreconciled
         billing blocks deletion; terminal billing records are retained with detached ownership.
+  "/billing/checkout":
+    post:
+      operationId: createBillingCheckout
+      summary: Create or resume the authenticated account's hosted subscription checkout
+      description: No-store. Strict inputs; approved server-side interval price and
+        fixed callbacks only. Commits a durable attempt before provider effects.
+        Concurrent requests and new UUIDs resume unfinished work. Retry transport
+        failures with the same UUID and inputs. Known sessions are retrieved;
+        uncertain creation older than 22 hours requires review. Completion never
+        grants access; read private subscription status after returning. Shares
+        a limit of ten attempts/minute/user with portal creation.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - interval
+              - request_id
+              properties:
+                interval:
+                  type: string
+                  enum: [month, year]
+                request_id:
+                  "$ref": "#/components/schemas/BillingRequestId"
+      responses:
+        '200':
+          description: Hosted checkout URL for the existing or newly created attempt.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [url, request_id, expires_at]
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                        description: HTTPS URL on checkout.stripe.com.
+                      request_id:
+                        "$ref": "#/components/schemas/BillingRequestId"
+                      expires_at:
+                        type: string
+                        format: date-time
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '409':
+          "$ref": "#/components/responses/BillingConflict"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '502':
+          "$ref": "#/components/responses/BillingProviderError"
+        '503':
+          "$ref": "#/components/responses/BillingUnavailable"
+  "/billing/portal":
+    post:
+      operationId: createBillingPortal
+      summary: Create a hosted portal session for the authenticated account's customer
+      description: No-store. Uses the owned current-mode customer and fixed return
+        URL only. Never accepts customer IDs or changes entitlements. UUID scopes
+        the provider idempotency key. Shares checkout's ten attempts/minute/user.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [request_id]
+              properties:
+                request_id:
+                  "$ref": "#/components/schemas/BillingRequestId"
+      responses:
+        '200':
+          description: Short-lived hosted portal URL; navigate to the returned URL.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [url]
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                        description: HTTPS URL on billing.stripe.com.
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '409':
+          "$ref": "#/components/responses/BillingConflict"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '502':
+          "$ref": "#/components/responses/BillingProviderError"
+        '503':
+          "$ref": "#/components/responses/BillingUnavailable"
   "/billing/subscription":
     get:
       operationId: getBillingSubscription
@@ -1193,9 +1311,10 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
-      description: Null limits mean unlimited. This catalog does not create a subscription
-        or grant paid entitlements. Watchlist limits are enforced; other gates are
-        being built with their features.
+      description: Null limits mean unlimited. checkout_intervals lists configured
+        month/year checkout choices, empty for Free or when unavailable. No provider
+        prices are exposed and this route does not grant access. Gates for features
+        still being built apply when those features are implemented.
   "/watchlist":
     get:
       operationId: listWatchlist
@@ -3728,6 +3847,7 @@ components:
       required:
       - id
       - limits
+      - checkout_intervals
       properties:
         id:
           type: string
@@ -3736,6 +3856,13 @@ components:
           - pro
         limits:
           "$ref": "#/components/schemas/PlanLimits"
+        checkout_intervals:
+          type: array
+          uniqueItems: true
+          maxItems: 2
+          items:
+            type: string
+            enum: [month, year]
     Account:
       type: object
       required:
@@ -3761,6 +3888,11 @@ components:
           - pro
         limits:
           "$ref": "#/components/schemas/PlanLimits"
+    BillingRequestId:
+      type: string
+      format: uuid
+      pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+      description: Caller-generated UUIDv4. Reuse the same UUID and inputs on retries.
     BillingSubscription:
       type: object
       nullable: true
@@ -6142,6 +6274,34 @@ components:
           description: Seconds before retrying.
           schema:
             type: string
+    BillingConflict:
+      description: CHECKOUT_CONFLICT for interval/price changes; CHECKOUT_EXPIRED
+        requires a new UUID after verified expiry; CHECKOUT_PENDING_CONFIRMATION
+        for completed/unresolved work; CHECKOUT_REVIEW_REQUIRED for uncertain or
+        invalid provider outcomes; BILLING_ALREADY_EXISTS for a nonterminal
+        subscription; BILLING_CUSTOMER_REQUIRED when portal has no owned customer.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/AccountError"
+    BillingProviderError:
+      description: Malformed or rejected provider response; no provider details exposed.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/AccountError"
+    BillingUnavailable:
+      description: Billing disabled/missing configuration, transient provider failure
+        or limiter unavailable. Checkout intents survive failures; retry the same UUID.
+      headers:
+        Retry-After:
+          schema:
+            type: string
+          description: Seconds before retrying (60 for billing configuration/transport).
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/AccountError"
     ProRequired:
       description: A server-side entitlement or feature limit prevents this action.
       content:
