@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_210000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_220000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -534,6 +534,36 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_210000) do
     t.check_constraint "shares_delta <> 0::numeric", name: "position_diffs_nonzero_share_delta"
   end
 
+  create_table "price_series", force: :cascade do |t|
+    t.bigint "security_id", null: false
+    t.string "provider", null: false
+    t.string "provider_symbol", null: false
+    t.string "currency", null: false
+    t.string "adjustment", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["security_id", "provider", "provider_symbol", "currency", "adjustment"], name: "index_price_series_on_identity", unique: true
+    t.index ["security_id"], name: "index_price_series_on_security_id"
+    t.check_constraint "adjustment::text = ANY (ARRAY['unadjusted'::character varying, 'split_adjusted'::character varying]::text[])", name: "price_series_adjustment"
+    t.check_constraint "currency::text ~ '^[A-Z]{3}$'::text", name: "price_series_currency"
+    t.check_constraint "provider::text ~ '^[a-z][a-z0-9_]{0,39}$'::text AND char_length(btrim(provider_symbol::text)) >= 1 AND char_length(btrim(provider_symbol::text)) <= 100", name: "price_series_provider_identity"
+  end
+
+  create_table "prices_daily", force: :cascade do |t|
+    t.bigint "price_series_id", null: false
+    t.date "session_date", null: false
+    t.decimal "open", null: false
+    t.decimal "high", null: false
+    t.decimal "low", null: false
+    t.decimal "close", null: false
+    t.decimal "volume", null: false
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["price_series_id", "session_date"], name: "index_prices_daily_on_price_series_id_and_session_date", unique: true
+    t.check_constraint "open > 0::numeric AND low > 0::numeric AND close > 0::numeric AND high >= open AND high >= close AND low <= open AND low <= close AND volume >= 0::numeric AND volume = trunc(volume) AND (open <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric])) AND (high <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric])) AND (low <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric])) AND (close <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric])) AND (volume <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric]))", name: "prices_daily_ohlcv"
+  end
+
   create_table "saved_screens", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "name", limit: 100, null: false
@@ -653,6 +683,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_210000) do
   add_foreign_key "position_diffs", "institutional_filers"
   add_foreign_key "position_diffs", "institutional_reports"
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"
+  add_foreign_key "price_series", "securities"
+  add_foreign_key "prices_daily", "price_series"
   add_foreign_key "saved_screens", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "subscriptions", "billing_customers"

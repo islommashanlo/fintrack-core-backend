@@ -136,3 +136,8 @@ before configuring keys, prices or account cancellation.
 Factual filing explanations preview five identities per list and report whether
 cover identities were captured; legacy reports remain unknown until authorized
 reprocessing. See [filing explanations](docs/filing-explanations.md).
+
+The [market-price foundation](docs/market-data.md) adds exact daily OHLCV storage,
+provider-specific series identities and bounded session gap filling. The default
+provider is disabled; no price fetching, API redistribution, scheduled price jobs
+or price-based scoring is enabled.
