@@ -22,7 +22,7 @@ module Api
         end
       end
 
-      attr_reader :reports
+      attr_reader :reports, :period
 
       def initialize(page:, filters:)
         @page = page
@@ -32,9 +32,12 @@ module Api
       end
 
       def for_fund(fund, period: nil)
-        period ||= @reports.visible_reports.where(institutional_filer_id: fund.id).except(:select).maximum(:period_of_report)
+        chosen = @page.snapshot_value("holding_period") do
+          (period || @reports.visible_reports.where(institutional_filer_id: fund.id).except(:select).maximum(:period_of_report))&.iso8601
+        end
+        @period = chosen && Date.iso8601(chosen)
         filter(@reports.holdings.where(institutional_report_id: @reports.effective_reports
-          .where(institutional_filer_id: fund.id, period_of_report: period).select(:id)))
+          .where(institutional_filer_id: fund.id, period_of_report: @period).select(:id)))
       end
 
       def for_company(ticker, period: nil)

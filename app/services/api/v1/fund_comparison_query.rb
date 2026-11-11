@@ -16,10 +16,7 @@ module Api
           report_ids: InstitutionalReport.where(institutional_filer_id: @funds.map(&:id)).select(:id))
         chosen = page.snapshot_value("comparison_period") { (period || latest_common_period)&.iso8601 }
         @period = chosen && Date.iso8601(chosen)
-        if @period && @history
-          earliest = ((page.as_of.to_date.beginning_of_quarter - 1.day) << ((@history - 1) * 3)).end_of_quarter
-          raise PlanCatalog::Required.new(feature: "history_quarters", limit: @history) if @period < earliest
-        end
+        HistoryWindow.new(limit: @history).check!(@period, as_of: page.as_of)
       end
 
       def call

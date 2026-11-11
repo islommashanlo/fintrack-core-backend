@@ -97,13 +97,83 @@ funds use feature `fund_compare` and limit 2. The adjacent baseline is context f
 the selected quarter, even if it falls just outside that four-quarter window.
 Pro has full comparison history and a technical ten-fund request bound. Unknown
 local funds return 404, invalid inputs/cursors 400, shared throttles 429 and
-limiter unavailability 503. Existing historical fund/company read-route gates
-remain separate follow-up work; this change enforces these limits on comparison.
+limiter unavailability 503. Quarterly fund/company read routes share the same
+history window described below.
 
 Regression tests cover report amendments, missing/empty books, repeated rows,
 quality flags, precise key overlap, adjacent changes, pagination through parsing
 updates, downgrade gates and batch loading. Production-scale latency remains
 unbenchmarked. No schema migration or new dependency is required.
+
+## Institutional history access
+
+The shared `HistoryWindow` policy enforces `PlanCatalog.history_quarters` on:
+
+- `/funds/:cik/holdings`
+- `/funds/:cik/changes`
+- `/funds/:cik/history`
+- `/companies/:ticker/institutional`
+
+Fund comparison uses the same cutoff check. These routes remain usable without
+authentication under Free limits. Verified Pro removes the history cutoff.
+All four routes now return `Cache-Control: no-store`, including errors, because
+the response depends on the current account's entitlement.
+
+Free permits the last four completed report quarters, with the lower bound
+anchored to the page's UTC snapshot time. For a November 2026 snapshot, the earliest
+allowed period is December 31, 2025, inclusive. Selection is based on reported
+quarter, not acceptance time: a recent amendment of an older quarter does not
+bring that quarter into the Free window. A fresh request recalculates the cutoff
+when a calendar quarter rolls over; an unexpired cursor retains its original
+snapshot window for consistent pagination.
+
+An explicitly selected older period returns HTTP 402:
+
+```json
+{ "code": "PRO_REQUIRED", "feature": "history_quarters", "limit": 4 }
+```
+
+Fund holdings and changes resolve their default latest known period first, then
+check it. A stale default is also 402; no different quarter is substituted.
+Resolved default periods are pinned in signed cursors, so a pending report
+finishing parsing cannot change the selected quarter halfway through paging.
+Funds without reports retain empty-list behavior.
+
+Report-history lists without a period, and company ownership lists using each
+fund's latest known period, clip older output in SQL. Their metadata includes:
+
+| Field | Meaning |
+| --- | --- |
+| `total_count` | All matching rows before the history cutoff and cursor boundary |
+| `accessible_count` | Matching rows within the current plan's history window, before the cursor boundary |
+| `truncated` | True when the history cap hides matching rows; independent of pagination/page size |
+| `feature` | `history_quarters` |
+| `history_quarters` | 4 for Free, null for verified Pro |
+| `earliest_period` | Earliest permitted report quarter, or null for Pro |
+
+`has_more` and `next_cursor` refer only to accessible rows. A list with only older
+matches returns empty `data`, `truncated: true`, and no continuation, allowing the
+frontend to show an upgrade preview. A genuinely empty list has zero counts and
+`truncated: false`. Counts include only normally visible parsed data and honor
+the original filters and ingestion ID bounds. Single-period holdings/changes use
+the same metadata, with equal total/accessible counts after the period check.
+
+Gates operate on selected output, preserving the existing amendment resolution
+and prior-period calculation inputs. An allowed change can retain older baseline
+values and their source filings as comparison evidence. The fund changes endpoint
+continues to use its documented preceding available report period; comparison's
+adjacent-quarter rules remain separate. No reported value or stored row is changed.
+
+**Cursor compatibility:** these quarterly read cursors now bind the actor and
+current history entitlement. Cursors issued before this update, by another actor,
+or under a different plan return 400 and must be restarted. Every request rechecks
+entitlements; a downgraded Pro cursor cannot continue full-history browsing.
+Authenticated browser clients must include credentials when requesting Pro data.
+
+This policy governs quarterly portfolio-history navigation. Public fund/company
+identity metadata, latest-report cover information, canonical filing/source links,
+Form 4 lists and other public activity reads keep their existing contracts.
+No schema, provider request, backfill or new dependency is involved.
 
 ## Grouped search
 
@@ -458,8 +528,8 @@ depending on a materialization job being current.
 
 Report history preserves each cover page's totals, units, amendment information,
 other-manager count and suspect flags. It is report history, not portfolio
-performance. Plan-based history restrictions remain part of the forthcoming
-billing/gating work.
+performance. The quarterly history policy above applies to holdings, changes and
+report-history browsing, with explicit truncation metadata and Pro access.
 
 ## Companies
 
@@ -495,6 +565,9 @@ or share classes into an unsupported economic total. Only stored mappings marked
 `mapped` with an exact ticker match are used; ambiguous, stale, and unmapped
 results are excluded. Mappings are the current local cache, not historical ticker
 identity data. Mapping IDs and first-seen times are bounded when paging.
+Quarterly history limits filter the final institutional ownership rows after
+per-fund period and effective-report resolution. Default mixed-period results can
+therefore be truncated for Free; explicitly older periods require Pro.
 
 The new lists use signed 24-hour cursors bound to their resource, filters and
 sort. Snapshot ID bounds prevent late inserts from entering subsequent pages;

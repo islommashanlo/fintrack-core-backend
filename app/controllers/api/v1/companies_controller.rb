@@ -3,6 +3,8 @@
 module Api
   module V1
     class CompaniesController < BaseController
+      prepend_before_action :private_response!, only: :institutional
+
       def show
         read_parameters(allowed: [], path_keys: [ :ticker ])
         render json: { data: CompanySerializer.render(company, as_of:) }
@@ -35,11 +37,14 @@ module Api
         values = read_parameters(allowed: %w[period cusip put_call share_type sort limit cursor], path_keys: [ :ticker ])
         period = period_parameter(values["period"])
         InstitutionalHoldingsQuery.validate_filters!(values)
-        page = CursorPage.new(parameters: values, context: { "resource" => "company_institutional", "ticker" => company.ticker },
+        history = HistoryWindow.new(limit: PlanCatalog.limit_for(Current.user, :history_quarters), user_id: Current.user&.id)
+        page = CursorPage.new(parameters: values, context: history.context.merge("resource" => "company_institutional", "ticker" => company.ticker),
                               sorts: InstitutionalHoldingsQuery::SORTS, default_sort: "-value_usd",
                               bounds: InstitutionalHoldingsQuery::BOUNDS.merge("mappings" => CusipSecurityMapping), as_of:)
+        history.check!(period, as_of: page.as_of)
         scope = InstitutionalHoldingsQuery.new(page:, filters: values).for_company(company.ticker, period:)
-        result = page.call(scope, preload: [ { institutional_report: [ :filing, :institutional_filer ] } ])
+        result = history.preview(page:, scope:, allowed_scope: history.holdings(scope, as_of: page.as_of),
+          preload: [ { institutional_report: [ :filing, :institutional_filer ] } ])
         render_read_page(result, InstitutionalHoldingSerializer)
       end
 

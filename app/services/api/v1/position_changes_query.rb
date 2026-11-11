@@ -8,12 +8,17 @@ module Api
         "cusip" => "position_diffs.cusip"
       }.freeze
 
+      attr_reader :period
+
       def initialize(fund:, page:, period: nil, change_type: nil)
         @fund = fund
         @page = page
         @reports = InstitutionalReportScope.new(as_of: page.as_of, max_report_id: page.bound("reports"),
                                                 max_filing_id: page.bound("filings"))
-        @period = period || @reports.visible_reports.where(institutional_filer_id: fund.id).except(:select).maximum(:period_of_report)
+        chosen = page.snapshot_value("changes_period") do
+          (period || @reports.visible_reports.where(institutional_filer_id: fund.id).except(:select).maximum(:period_of_report))&.iso8601
+        end
+        @period = chosen && Date.iso8601(chosen)
         @change_type = PositionChangeSerializer::CHANGE_TYPES.key(change_type)
         raise InvalidParameter, "Invalid change_type parameter" if change_type && !@change_type
       end

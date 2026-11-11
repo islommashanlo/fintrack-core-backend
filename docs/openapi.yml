@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.19.0
+  version: 1.20.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -336,7 +336,7 @@ paths:
       - "$ref": "#/components/parameters/TransactionCursor"
       responses:
         '200':
-          description: Locally stored filing data.
+          description: No-store quarterly data with plan-aware history metadata. Free has four completed quarters; older selected periods require Pro. Restart cursors after account or plan changes.
           content:
             application/json:
               schema:
@@ -351,9 +351,11 @@ paths:
                     items:
                       "$ref": "#/components/schemas/InstitutionalHolding"
                   meta:
-                    "$ref": "#/components/schemas/ReadPageMeta"
+                    "$ref": "#/components/schemas/HistoryReadPageMeta"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
         '404':
           "$ref": "#/components/responses/NotFound"
         '429':
@@ -387,7 +389,7 @@ paths:
       - "$ref": "#/components/parameters/TransactionCursor"
       responses:
         '200':
-          description: Locally stored filing data.
+          description: No-store quarterly data with plan-aware history metadata. Free has four completed quarters; older selected periods require Pro. Restart cursors after account or plan changes.
           content:
             application/json:
               schema:
@@ -402,9 +404,11 @@ paths:
                     items:
                       "$ref": "#/components/schemas/InstitutionalReport"
                   meta:
-                    "$ref": "#/components/schemas/ReadPageMeta"
+                    "$ref": "#/components/schemas/HistoryReadPageMeta"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
         '404':
           "$ref": "#/components/responses/NotFound"
         '429':
@@ -445,7 +449,7 @@ paths:
       - "$ref": "#/components/parameters/TransactionCursor"
       responses:
         '200':
-          description: Locally stored filing data.
+          description: No-store quarterly data with plan-aware history metadata. Free has four completed quarters; older selected periods require Pro. Restart cursors after account or plan changes.
           content:
             application/json:
               schema:
@@ -460,9 +464,11 @@ paths:
                     items:
                       "$ref": "#/components/schemas/PositionChange"
                   meta:
-                    "$ref": "#/components/schemas/ReadPageMeta"
+                    "$ref": "#/components/schemas/HistoryReadPageMeta"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
         '404':
           "$ref": "#/components/responses/NotFound"
         '429':
@@ -631,7 +637,7 @@ paths:
       - "$ref": "#/components/parameters/TransactionCursor"
       responses:
         '200':
-          description: Locally stored filing data.
+          description: No-store quarterly data with plan-aware history metadata. Free has four completed quarters; older selected periods require Pro. Restart cursors after account or plan changes.
           content:
             application/json:
               schema:
@@ -646,9 +652,11 @@ paths:
                     items:
                       "$ref": "#/components/schemas/InstitutionalHolding"
                   meta:
-                    "$ref": "#/components/schemas/ReadPageMeta"
+                    "$ref": "#/components/schemas/HistoryReadPageMeta"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
         '404':
           "$ref": "#/components/responses/NotFound"
         '429':
@@ -4329,6 +4337,36 @@ components:
         superseded_by:
           type: string
           nullable: true
+    HistoryReadPageMeta:
+      allOf:
+      - "$ref": "#/components/schemas/ReadPageMeta"
+      - type: object
+        required: [accessible_count, truncated, feature, history_quarters, earliest_period]
+        properties:
+          total_count:
+            type: integer
+            minimum: 0
+            description: All matching rows before entitlement clipping and the cursor boundary.
+          accessible_count:
+            type: integer
+            minimum: 0
+            description: Matching accessible rows before the cursor boundary. has_more and next_cursor use this subset.
+          truncated:
+            type: boolean
+            description: History entitlement hides matching rows; independent of page size.
+          feature:
+            type: string
+            enum: [history_quarters]
+          history_quarters:
+            type: integer
+            minimum: 1
+            nullable: true
+            description: Free is four quarters; verified Pro has no cutoff.
+          earliest_period:
+            type: string
+            format: date
+            nullable: true
+            description: Earliest allowed reported quarter at the original UTC page snapshot; null for Pro.
     ReadPageMeta:
       type: object
       required:

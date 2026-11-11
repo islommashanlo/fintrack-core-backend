@@ -62,6 +62,12 @@ adjacent-quarter change classifications. Free comparisons enforce two funds and
 four quarters; missing coverage stays unknown. See `docs/api-v1.md` for source and
 amendment semantics. No provider calls or schema change are needed.
 
+Fund holdings/changes/report history and company institutional ownership share the
+four-quarter Free history window. Older selected periods require Pro; collection
+previews disclose hidden history in metadata. These responses are no-store and
+cursors bind account/plan, so clients must restart cursors after this update or a
+plan change. Calculation baselines and public source links remain intact.
+
 Public `/api/v1/search?q=...` groups ranked local company, fund and insider results.
 It supports exact identifiers, name prefixes/substrings, fuzzy names and signed
 per-group cursors. Local migrations enable PostgreSQL `pg_trgm`; no provider or
