@@ -12,12 +12,11 @@ class AlertDeliveryPolicy
     return AlertDelivery.none if limit && user.alert_rules.retained.count > limit
     return AlertDelivery.none if frequency == "instant" && !PlanCatalog.limit_for(user, :instant_alerts)
 
-    AlertDelivery.joins(alert_rule: [ :setting, :follow ])
+    scope = AlertDelivery.joins(alert_rule: [ :setting, :follow ])
       .where(frequency:, alert_rules: { active: true }, follows: { user_id: user.id, removed_at: nil },
         alert_rule_settings: { archived_at: nil, frequency: })
       .where("alert_deliveries.created_at >= alert_rule_settings.enabled_at AND alert_deliveries.created_at >= ?", preference.email_enabled_at)
       .where("alert_deliveries.rule_revision = alert_rule_settings.revision")
-      .where("alert_deliveries.insider_transaction_id IS NULL OR alert_deliveries.filing_id IN (?)",
-        Form4ReadScope.new(as_of: Time.current).effective_filings.select(:id))
+    AlertSourceValidity.apply(scope, as_of: Time.current)
   end
 end

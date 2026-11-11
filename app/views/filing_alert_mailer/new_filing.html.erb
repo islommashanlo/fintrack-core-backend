@@ -1,4 +1,4 @@
-<p><%= @transaction ? TransactionAlertText.render(@transaction) : "A new SEC filing matches your FilingsIntel alert." %></p>
+<p><% if @cluster %><%= ClusterAlertText.render(@cluster) %><% else %><%= @transaction ? TransactionAlertText.render(@transaction) : "A new SEC filing matches your FilingsIntel alert." %><% end %></p>
 
 <p>
   Followed <strong><%= @follow.target_type.humanize %> <%= @follow.target_key %></strong><br>
@@ -7,5 +7,9 @@
 </p>
 
 <p><%= link_to "View the filing at SEC.gov", @filing.edgar_url %></p>
+<% if @cluster %>
+<ul><% @cluster_sources.each do |source| %><li><%= link_to source.accession_no, source.sec_url %></li><% end %></ul>
+<% if @cluster.filing_ids.length > @cluster_sources.length %><p>Additional cluster source filings are available in your alert history.</p><% end %>
+<% end %>
 
 <p>Data from public SEC filings. Not investment advice.</p>

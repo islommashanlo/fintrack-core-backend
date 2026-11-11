@@ -66,7 +66,7 @@ RSpec.describe "API v1 notification workflows" do
     post_rule(target, frequency: "instant")
     expect(response).to have_http_status(:payment_required)
     expect(AlertRule.count).to eq(0)
-    [ { frequency: nil }, { active: "true" }, { trigger: "cluster" }, { channels: [ "push" ] }, { conditions: { min_value: 1 } } ].each do |values|
+    [ { frequency: nil }, { active: "true" }, { trigger: "unusual_activity" }, { channels: [ "push" ] }, { conditions: { min_value: 1 } } ].each do |values|
       post_rule(target, **values)
       expect(response).to have_http_status(:bad_request)
     end

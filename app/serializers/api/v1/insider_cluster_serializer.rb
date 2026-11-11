@@ -14,7 +14,7 @@ module Api
           id: "cluster_#{row.fetch('event_key')}",
           issuer: { cik: row.fetch("issuer_cik"), name: row["issuer_name"], ticker: row["issuer_ticker"] },
           direction: row.fetch("transaction_code") == "P" ? "purchase" : "sale",
-          window_start: row.fetch("window_start"), window_end: row.fetch("window_end"), window_days: ActivityMethodology.window_days,
+          window_start: row.fetch("window_start"), window_end: row.fetch("window_end"), window_days: row["window_days"] || ActivityMethodology.window_days,
           insider_count: row.fetch("insider_count"), transaction_count: row.fetch("transaction_count"),
           total_value: row["total_value"], known_value_subtotal: row["known_value_subtotal"],
           transactions_without_usable_price: row.fetch("transactions_without_usable_price"),

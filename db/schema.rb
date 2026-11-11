@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_180000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -27,12 +27,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_180000) do
     t.bigint "insider_transaction_id"
     t.string "event_type", default: "new_filing", null: false
     t.bigint "rule_revision", default: 1, null: false
-    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true, where: "(insider_transaction_id IS NULL)"
+    t.bigint "insider_cluster_snapshot_id"
+    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true, where: "((insider_transaction_id IS NULL) AND (insider_cluster_snapshot_id IS NULL))"
+    t.index ["alert_rule_id", "insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_rule_and_cluster", unique: true, where: "(insider_cluster_snapshot_id IS NOT NULL)"
     t.index ["alert_rule_id", "insider_transaction_id"], name: "index_alert_deliveries_on_rule_and_transaction", unique: true, where: "(insider_transaction_id IS NOT NULL)"
     t.index ["alert_rule_id"], name: "index_alert_deliveries_on_alert_rule_id"
     t.index ["filing_id"], name: "index_alert_deliveries_on_filing_id"
+    t.index ["insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_insider_cluster_snapshot_id"
     t.index ["insider_transaction_id"], name: "index_alert_deliveries_on_insider_transaction_id"
-    t.check_constraint "event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL", name: "alert_delivery_source"
+    t.check_constraint "event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND insider_cluster_snapshot_id IS NULL OR event_type::text = 'cluster'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NOT NULL", name: "alert_delivery_source"
     t.check_constraint "frequency::text = ANY (ARRAY['instant'::character varying::text, 'daily_digest'::character varying::text])", name: "alert_delivery_frequency"
     t.check_constraint "rule_revision > 0", name: "alert_delivery_revision"
   end
@@ -270,6 +273,38 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_180000) do
     t.index ["user_id", "removed_at"], name: "index_follows_on_user_id_and_removed_at"
     t.index ["user_id", "target_type", "target_key"], name: "index_follows_on_user_id_and_target_type_and_target_key", unique: true
     t.index ["user_id"], name: "index_follows_on_user_id"
+  end
+
+  create_table "insider_cluster_snapshots", force: :cascade do |t|
+    t.string "event_key", null: false
+    t.string "issuer_cik", null: false
+    t.string "issuer_name"
+    t.string "issuer_ticker"
+    t.string "transaction_code", null: false
+    t.datetime "window_start", null: false
+    t.datetime "window_end", null: false
+    t.integer "window_days", null: false
+    t.integer "definition_minimum_insiders", null: false
+    t.integer "insider_count", null: false
+    t.integer "transaction_count", null: false
+    t.decimal "total_value"
+    t.decimal "known_value_subtotal"
+    t.integer "transactions_without_usable_price", null: false
+    t.bigint "transaction_ids", null: false, array: true
+    t.string "insider_ciks", null: false, array: true
+    t.bigint "filing_ids", null: false, array: true
+    t.bigint "primary_filing_id", null: false
+    t.jsonb "insiders", null: false
+    t.datetime "observed_at", null: false
+    t.bigint "max_filing_id", null: false
+    t.bigint "max_transaction_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_key"], name: "index_insider_cluster_snapshots_on_event_key", unique: true
+    t.index ["primary_filing_id"], name: "index_insider_cluster_snapshots_on_primary_filing_id"
+    t.check_constraint "event_key::text ~ '^[0-9a-f]{64}$'::text AND issuer_cik::text ~ '^[0-9]{10}$'::text AND (transaction_code::text = ANY (ARRAY['P'::character varying, 'S'::character varying]::text[]))", name: "cluster_snapshot_identity"
+    t.check_constraint "insider_count >= definition_minimum_insiders AND insider_count = cardinality(insider_ciks) AND transaction_count = cardinality(transaction_ids) AND transaction_count >= insider_count AND cardinality(filing_ids) > 0 AND (primary_filing_id = ANY (filing_ids)) AND transactions_without_usable_price >= 0 AND transactions_without_usable_price <= transaction_count", name: "cluster_snapshot_membership"
+    t.check_constraint "window_days > 0 AND window_start < window_end AND observed_at >= window_end AND definition_minimum_insiders >= 3", name: "cluster_snapshot_window"
   end
 
   create_table "insider_transactions", force: :cascade do |t|
@@ -537,6 +572,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_180000) do
 
   add_foreign_key "alert_deliveries", "alert_rules"
   add_foreign_key "alert_deliveries", "filings"
+  add_foreign_key "alert_deliveries", "insider_cluster_snapshots"
   add_foreign_key "alert_deliveries", "insider_transactions"
   add_foreign_key "alert_digest_batches", "users"
   add_foreign_key "alert_digest_items", "alert_deliveries"
@@ -551,6 +587,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_180000) do
   add_foreign_key "cusip_security_mappings", "securities"
   add_foreign_key "filing_explanations", "filings"
   add_foreign_key "follows", "users"
+  add_foreign_key "insider_cluster_snapshots", "filings", column: "primary_filing_id"
   add_foreign_key "insider_transactions", "filings"
   add_foreign_key "institutional_holdings", "institutional_reports"
   add_foreign_key "institutional_report_managers", "institutional_reports"

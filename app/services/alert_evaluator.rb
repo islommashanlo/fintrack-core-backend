@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# Matches filing rules once per filing and transaction rules once per reported
-# line. SQL resolves joint owners before source-level deduplication.
+# Matches filing, transaction-line and rolling-cluster rules from local sources.
+# SQL resolves membership before source-level deduplication.
 class AlertEvaluator
   def self.call(filing)
     new(filing:).call
@@ -15,15 +15,17 @@ class AlertEvaluator
     return [] unless @filing&.parse_status == "parsed"
 
     enqueue(matching_rules, event_type: "new_filing", unique_by: :index_alert_deliveries_on_alert_rule_id_and_filing_id) +
-      enqueue(TransactionAlertMatcher.call(@filing), event_type: "insider_transaction", unique_by: :index_alert_deliveries_on_rule_and_transaction)
+      enqueue(TransactionAlertMatcher.call(@filing), event_type: "insider_transaction", unique_by: :index_alert_deliveries_on_rule_and_transaction) +
+      enqueue(ClusterAlertMatcher.call(@filing), event_type: "cluster", unique_by: :index_alert_deliveries_on_rule_and_cluster)
   end
 
   private
 
   def enqueue(matches, event_type:, unique_by:)
     rows = matches.map do |rule|
-      { alert_rule_id: rule.fetch("id"), filing_id: @filing.id, status: "pending", frequency: rule.fetch("frequency"),
+      { alert_rule_id: rule.fetch("id"), filing_id: rule["filing_id"] || @filing.id, status: "pending", frequency: rule.fetch("frequency"),
         event_type:, rule_revision: rule.fetch("rule_revision"), insider_transaction_id: rule["insider_transaction_id"],
+        insider_cluster_snapshot_id: rule["insider_cluster_snapshot_id"],
         created_at: Time.current, updated_at: Time.current }
     end
     return [] if rows.empty?

@@ -1479,7 +1479,7 @@ reprocesses past filings or sends mail synchronously.
 | Route | Behavior |
 | --- | --- |
 | `GET /api/v1/alert-rules` | List owned, unarchived rules with signed cursor pagination |
-| `POST /api/v1/alert-rules` | Create/restore a follow-scoped filing or insider-transaction email rule, idempotent by follow/trigger/channel |
+| `POST /api/v1/alert-rules` | Create/restore a follow-scoped filing, insider-transaction or cluster email rule, idempotent by follow/trigger/channel |
 | `PATCH /api/v1/alert-rules/:id` | Change active state/frequency/conditions; activation checks consent and server plan |
 | `DELETE /api/v1/alert-rules/:id` | Idempotently archive and pause; retain delivery history |
 | `GET /api/v1/alert-events` | List owned delivery history with filing provenance and independent read timestamps |
@@ -1506,8 +1506,8 @@ A rule request uses an existing owned, current watchlist follow:
 {"follow_id":12,"trigger":"new_filing","channels":["email"],"conditions":{},"frequency":"daily_digest","active":true}
 ```
 
-The triggers are `new_filing` and `insider_transaction`; the channel is email.
-Filing rules require empty conditions. Transaction conditions are described below.
+The triggers are `new_filing`, `insider_transaction` and `cluster`; the channel is email.
+Filing rules require empty conditions. Transaction/cluster conditions are described below.
 New rules default to paused daily digests. Duplicate creates keep
 the existing ID and settings unless changes are explicitly requested. Restoring
 an archived rule retains its ID/history and defaults to daily digest frequency.
@@ -1529,7 +1529,7 @@ different trigger. One follow may have one email rule of each supported trigger.
 
 Rule rows contain ID/follow ID, trigger, `entity: {type,key}` (issuer/fund/person),
 conditions, channels, stored frequency, active state and creation/update times.
-Rule filters: `active=true|false`, `trigger=new_filing|insider_transaction`, `entity_type=issuer|fund|person`; sorts:
+Rule filters: `active=true|false`, `trigger=new_filing|insider_transaction|cluster`, `entity_type=issuer|fund|person`; sorts:
 `created_at` (descending default), `active`, `entity_key`, with optional `-`.
 
 Event rows contain ID/rule ID, trigger/entity/channel, the frequency recorded at
@@ -1538,7 +1538,8 @@ matching time, pending/sent/failed status, delivery/creation/update timestamps,
 freshness fields. Transaction events additionally contain `transaction`, using the
 existing insider-transaction serializer with the matched owner's identity, role,
 reported quantities/prices/flags, and provenance. Filing events have
-`transaction:null`. The trigger is stored with each event. A rule's later
+`transaction:null`. Cluster events contain `cluster` as described below; other
+events have `cluster:null`. The trigger is stored with each event. A rule's later
 configuration change does not rewrite old events.
 Provider errors stay private; failures expose only `error_code: DELIVERY_FAILED`.
 Read state is independent of sending: a read event may still await its digest.
@@ -1559,14 +1560,14 @@ parameters and malformed boolean/ID/filter values return JSON 400.
 
 Metadata publishes the shared rule limit, supported trigger/channel/frequencies
 and capability flags. Creation, archival, pause, digest and read tracking are
-available; `condition_filters` is true for transaction rules, and
-`transaction_condition_fields` lists the supported keys. Free supported frequencies
+available; `condition_filters` is true for transaction/cluster rules, and
+`transaction_condition_fields` / `cluster_condition_fields` list their supported keys. Free supported frequencies
 contain only `daily_digest`; `instant_alerts` indicates trusted paid entitlement.
 
 ### Insider transaction conditions
 
 Transaction rules apply to an owned issuer or person follow. Fund follows return
-422 for this trigger. The existing Free three-rule quota counts both trigger
+422 for this trigger. The existing Free three-rule quota counts all trigger
 types; instant transaction email requires verified Pro. Example:
 
 ```json
@@ -1619,6 +1620,82 @@ partial deduplication indexes and an active-trigger lookup index. Existing event
 default to filing alerts/version 1; no reported SEC fields are changed. It is
 applied locally in development/test. Rollback requires reviewing transaction alert
 history and is deliberately not automatic. No provider or worker is activated.
+
+### Cluster alerts
+
+Use `trigger:"cluster"` with an owned issuer or person follow. Fund follows return
+422. Rules share consent, time-zone, quota, pause/archive, immutable-trigger and
+configuration-version controls. New rules are paused daily digests; verified Pro
+can configure instant email. Supported conditions combine with AND:
+
+| Condition | Values |
+| --- | --- |
+| `direction` | `purchase` or `sale`; omitted matches both independently |
+| `min_insiders` | JSON integer from 3 through 1,000; omitted uses the methodology minimum of 3 |
+| `min_value` | Inclusive complete cluster dollar total; same exact string/integer format as transaction rules |
+
+```json
+{"follow_id":12,"trigger":"cluster","conditions":{"direction":"purchase","min_insiders":3,"min_value":"10000"},"frequency":"daily_digest","active":false}
+```
+
+`{}` imposes only the methodology minimum. The window is fixed at 14 days; window
+overrides, transaction-specific fields, unknown keys, nulls, fractional counts and
+count strings return 400. Missing/suspect prices contribute to counts but keep
+the complete value unknown; a minimum-value condition never treats the known
+subtotal as a complete total. Values and counts describe local reported data,
+not complete EDGAR coverage or independently verified economic exposure.
+
+The alert matcher and `/insiders/clusters` share `InsiderClusterWindows` SQL.
+Only effective parsed Form 4 / 4/A, non-derivative P/S rows and first-listed owners
+contribute. Distinct insider CIKs qualify; joint-owner copies and repeated trades
+do not inflate the insider count. Windows are `(window_end - 14 days, window_end]`
+in acceptance time, with a separate state at each qualifying acceptance timestamp.
+Issuer rules match the window's exact reported ticker; person rules match a
+constituent reported owner, including a co-owner without adding that co-owner to
+the canonical count. No identity enrichment occurs.
+
+Post-ingest evaluation checks windows containing the incoming filing, from its
+acceptance timestamp through the following 14-day boundary, bounded by the
+current snapshot. This finds later windows completed by delayed parsing. The
+incoming filing must be at or after both current follow start and rule activation /
+configuration time. Older constituents can supply context; configuring a rule
+does not replay older filings. SQL ingestion ID ceilings keep one evaluation's
+membership bounded. Failed, future and superseded source filings cannot contribute.
+
+`insider_cluster_snapshots` stores each matched state once, shared across rules,
+with its event hash, definition, observed time, counts/values, member IDs, names,
+and filing references. Snapshots are immutable. The hash uses the same window,
+direction, definition and member IDs as the read API. A unique rule/snapshot key
+makes retries idempotent. A later acceptance anchor is a separate window; delayed
+membership can also produce a new state for an existing anchor. These states can
+each alert independently, while older states remain history. This is a window
+state feed, not a single notification per continuous episode.
+
+Cluster event `cluster` uses the existing cluster serializer: public cluster ID,
+issuer, direction, captured window/definition, insider/transaction counts,
+nullable total, known subtotal, unusable-price count, member/activity IDs, insider
+names and full source provenance. It additionally includes `observed_at`, when
+the application captured that local state, and `definition_minimum_insiders`.
+Stored window days and the definition minimum are retained even
+if methodology configuration changes later. Parent provenance uses the latest
+constituent filing, which can differ from the incoming filing after delayed parsing.
+`transaction` is null. Reads hydrate snapshots and source filings in batches.
+
+Digest planning and both delivery paths reject a snapshot if any constituent
+filing is no longer effective. Later membership alone does not erase an earlier
+observed state. Rule edits, consent changes, removal, quotas and paid eligibility
+are rechecked as for transaction alerts. Factual mail copy states the count,
+direction, window end and known complete value; source-link previews contain at
+most 20 filings and disclose additional sources in alert history. All source links
+remain available in the private event API. HTML is escaped and the same disclaimer /
+unsubscribe headers apply. Transport uncertainty retains the existing limits.
+
+Migration `20261111190000` adds the snapshot table and nullable delivery reference,
+extends source checks, and separates cluster uniqueness from filing/transaction
+keys. It is applied locally to development/test and does not modify reported SEC
+values. Removing it requires explicit review of stored cluster history; automatic
+rollback is disabled. Account deletion purges private delivery/read/rule data but
+retains shared source snapshots and SEC data. No worker or provider was activated.
 
 ### Digest and watchlist behavior
 

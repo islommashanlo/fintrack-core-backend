@@ -84,6 +84,11 @@ SQL deduplicates joint owners; source references and configuration versions keep
 delivery retries and edits safe. Free uses daily digests; verified Pro can use
 instant email. See `docs/api-v1.md` for consent, amendment and lifecycle rules.
 
+`cluster` alert rules use the same 14-day first-listed-insider SQL as the cluster
+API, with direction, minimum-insider and complete-value conditions. Matched window
+states retain immutable source snapshots; delayed parsing, amendments, retries and
+delivery checks are covered. See `docs/api-v1.md` for window-state semantics.
+
 Public `/api/v1/search?q=...` groups ranked local company, fund and insider results.
 It supports exact identifiers, name prefixes/substrings, fuzzy names and signed
 per-group cursors. Local migrations enable PostgreSQL `pg_trgm`; no provider or

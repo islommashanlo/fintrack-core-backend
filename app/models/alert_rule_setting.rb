@@ -7,7 +7,8 @@ class AlertRuleSetting < ApplicationRecord
   validates :frequency, inclusion: { in: FREQUENCIES }
   validates :revision, numericality: { only_integer: true, greater_than: 0 }
   validate do
-    normalized = TransactionAlertConditions.normalize(conditions)
+    normalizer = alert_rule.event_type == "cluster" ? ClusterAlertConditions : TransactionAlertConditions
+    normalized = normalizer.normalize(conditions)
     errors.add(:conditions, "do not match the trigger") if conditions != normalized || (alert_rule.event_type == "new_filing" && conditions != {})
   rescue TransactionAlertConditions::Invalid
     errors.add(:conditions, "are invalid")

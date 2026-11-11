@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.23.0
+  version: 1.24.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -2535,10 +2535,10 @@ paths:
   "/alert-rules":
     get:
       operationId: listAlertRules
-      summary: List owned filing and insider-transaction email rules
+      summary: List owned filing, transaction and cluster email rules
       security:
       - CookieSession: []
-      description: Owned unarchived filing/transaction email rules with typed conditions and stored frequency. Free
+      description: Owned unarchived filing/transaction/cluster email rules with typed conditions and stored frequency. Free
         supported frequencies contain daily_digest; paused rules count toward the
         three-rule limit. Legacy over-limit rules remain readable. Ownership and cursor
         snapshots are enforced; current active state remains mutable.
@@ -2547,7 +2547,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [new_filing, insider_transaction]
+          enum: [new_filing, insider_transaction, cluster]
       - name: entity_type
         in: query
         schema:
@@ -2617,8 +2617,9 @@ paths:
         reuses the same ID. Free limits count unarchived drafts and active rules.
         Activation requires explicit email consent/time zone; instant configuration
         is server-gated. Filing rules require empty conditions. Transaction rules
-        support direction, codes, role, type, security table and minimum known value
-        for issuer/person follows. Triggers are immutable; no old filings are reprocessed.
+        support direction, codes, role, type, security table and minimum known value.
+        Cluster rules support direction, minimum insider count and complete value;
+        transaction/cluster rules require issuer/person follows. Triggers are immutable; no old filings are reprocessed.
       security:
       - CookieSession: []
         CsrfToken: []
@@ -2757,12 +2758,12 @@ paths:
   "/alert-events":
     get:
       operationId: listAlertEvents
-      summary: Read owned filing and transaction alert delivery history
+      summary: Read owned filing, transaction and cluster alert delivery history
       security:
       - CookieSession: []
       description: Owned delivery history with independent read_at timestamps,
         source trigger and frequency captured at matching time. Transaction events
-        include the matched normalized row. Dates filter UTC delivery creation. Provider
+        include the matched normalized row; cluster events include immutable window evidence. Dates filter UTC delivery creation. Provider
         error text remains private. Owner/route/filter-bound cursors exclude later
         source IDs; read/delivery state can change between pages.
       parameters:
@@ -2770,7 +2771,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [new_filing, insider_transaction]
+          enum: [new_filing, insider_transaction, cluster]
       - name: entity_type
         in: query
         schema:
@@ -6917,6 +6918,37 @@ components:
           - type: integer
             minimum: 0
             maximum: 999999999999999999999999999999
+    ClusterAlertConditions:
+      type: object
+      additionalProperties: false
+      description: Optional AND conditions for cluster rules. The acceptance-time
+        window remains fixed at the captured methodology definition, currently
+        14 days and three first-listed non-derivative P/S owners. A minimum value
+        requires a complete usable total. Rule edits require pause and invalidate
+        queued older configuration versions. Only issuer/person follows supported.
+      properties:
+        direction:
+          type: string
+          enum: [purchase, sale]
+        min_insiders:
+          type: integer
+          minimum: 3
+          maximum: 1000
+        min_value:
+          description: Inclusive complete dollar total; normalized exact decimal
+            string. Same input bounds as transaction amounts; floats rejected.
+          oneOf:
+          - type: string
+            pattern: "^[0-9]{1,30}(\\.[0-9]{1,12})?$"
+          - type: integer
+            minimum: 0
+            maximum: 999999999999999999999999999999
+    AlertRuleConditions:
+      description: Schema is selected by trigger. Filing rules require an empty
+        object; insider_transaction and cluster accept only their own listed fields.
+      anyOf:
+      - "$ref": "#/components/schemas/TransactionAlertConditions"
+      - "$ref": "#/components/schemas/ClusterAlertConditions"
     FilingAlertRule:
       type: object
       required:
@@ -6944,6 +6976,7 @@ components:
           enum:
           - new_filing
           - insider_transaction
+          - cluster
         entity:
           type: object
           required:
@@ -6959,7 +6992,7 @@ components:
             key:
               type: string
         conditions:
-          "$ref": "#/components/schemas/TransactionAlertConditions"
+          "$ref": "#/components/schemas/AlertRuleConditions"
         channels:
           type: array
           items:
@@ -7000,6 +7033,7 @@ components:
         - period_of_report
         - read_at
         - transaction
+        - cluster
         properties:
           id:
             type: integer
@@ -7014,6 +7048,22 @@ components:
             enum:
             - new_filing
             - insider_transaction
+            - cluster
+          cluster:
+            type: object
+            nullable: true
+            allOf:
+            - "$ref": "#/components/schemas/InsiderCluster"
+            - type: object
+              required: [observed_at, definition_minimum_insiders]
+              properties:
+                observed_at:
+                  type: string
+                  format: date-time
+                definition_minimum_insiders:
+                  type: integer
+                  minimum: 3
+            description: Immutable observed window evidence with full sources; null for other triggers.
           transaction:
             type: object
             nullable: true
@@ -7078,6 +7128,7 @@ components:
       - supported_channels
       - supported_frequencies
       - transaction_condition_fields
+      - cluster_condition_fields
       properties:
         capabilities:
           type: object
@@ -7123,6 +7174,13 @@ components:
             enum:
             - new_filing
             - insider_transaction
+            - cluster
+        cluster_condition_fields:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: [direction, min_insiders, min_value]
         transaction_condition_fields:
           type: array
           uniqueItems: true
@@ -7163,6 +7221,7 @@ components:
           enum:
           - new_filing
           - insider_transaction
+          - cluster
         channels:
           type: array
           items:
@@ -7172,7 +7231,7 @@ components:
           minItems: 1
           maxItems: 1
         conditions:
-          "$ref": "#/components/schemas/TransactionAlertConditions"
+          "$ref": "#/components/schemas/AlertRuleConditions"
     FilingAlertRuleCreate:
       type: object
       required:
@@ -7190,6 +7249,7 @@ components:
           enum:
           - new_filing
           - insider_transaction
+          - cluster
         channels:
           type: array
           items:
@@ -7199,7 +7259,7 @@ components:
           minItems: 1
           maxItems: 1
         conditions:
-          "$ref": "#/components/schemas/TransactionAlertConditions"
+          "$ref": "#/components/schemas/AlertRuleConditions"
         follow_id:
           type: integer
           format: int64

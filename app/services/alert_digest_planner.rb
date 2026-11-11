@@ -15,11 +15,10 @@ class AlertDigestPlanner
         .where(frequency: "daily_digest", status: %w[pending failed])
         .where(alert_rules: { active: true }, alert_rule_settings: { archived_at: nil, frequency: "daily_digest" }, follows: { removed_at: nil })
         .where("alert_deliveries.rule_revision = alert_rule_settings.revision")
-        .where("alert_deliveries.insider_transaction_id IS NULL OR alert_deliveries.filing_id IN (?)",
-          Form4ReadScope.new(as_of: as_of).effective_filings.select(:id))
         .where("alert_deliveries.created_at < ? AND alert_deliveries.created_at >= ? AND alert_deliveries.created_at >= alert_rule_settings.enabled_at",
           cutoff, preference.email_enabled_at)
         .where.not(id: AlertDigestItem.select(:alert_delivery_id))
+      eligible = AlertSourceValidity.apply(eligible, as_of:)
       return unless eligible.exists?
 
       batch = user.alert_digest_batches.create!(local_date: local.to_date, time_zone: preference.time_zone)

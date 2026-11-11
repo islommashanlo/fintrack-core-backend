@@ -13,12 +13,15 @@ module Api
         invalid! if values.key?("channels") && values["channels"] != [ "email" ]
         result = values.slice("active", "frequency").symbolize_keys
         result[:event_type] = values["trigger"] if values.key?("trigger")
-        result[:conditions] = TransactionAlertConditions.normalize(values["conditions"]) if values.key?("conditions")
         if create
           result[:event_type] ||= "new_filing"
           result[:follow_id] = AlertParameters.id!(values["follow_id"].to_s)
         end
         selected_trigger = create ? result[:event_type] : trigger
+        if values.key?("conditions")
+          normalizer = selected_trigger == "cluster" ? ClusterAlertConditions : TransactionAlertConditions
+          result[:conditions] = normalizer.normalize(values["conditions"])
+        end
         invalid! if selected_trigger == "new_filing" && result[:conditions].present?
         result
       rescue TransactionAlertConditions::Invalid

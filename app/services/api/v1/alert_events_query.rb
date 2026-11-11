@@ -22,7 +22,7 @@ module Api
         SQL
         projected = AlertDelivery.from("(#{sql}) alert_deliveries")
         projected = projected.where("api_read_at IS #{filters['unread'] == 'true' ? '' : 'NOT '}NULL") if filters["unread"]
-        page.call(projected, preload: [ :filing, { alert_rule: :follow }, { insider_transaction: :filing } ])
+        page.call(projected, preload: [ :filing, :insider_cluster_snapshot, { alert_rule: :follow }, { insider_transaction: :filing } ])
       end
     end
   end

@@ -13,6 +13,7 @@ module Api
           limits: { alert_rules: PlanCatalog.limit_for(user, :alert_rules) },
           supported_triggers: AlertRule::EVENT_TYPES, supported_channels: %w[email],
           transaction_condition_fields: TransactionAlertConditions::ENUMS.keys + %w[codes min_value],
+          cluster_condition_fields: ClusterAlertConditions::FIELDS,
           supported_frequencies: PlanCatalog.limit_for(user, :instant_alerts) ? %w[daily_digest instant] : %w[daily_digest]
         }
       end
