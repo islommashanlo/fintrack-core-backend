@@ -475,12 +475,12 @@ generic HTTP 503 rather than accepting unprotected requests.
 ### Plans and watchlists
 
 `GET /plans` returns Free and Pro limits; null means unlimited. Plan definitions
-are shared with enforcement and account serialization. Currently all accounts
-have Free entitlements. Clients cannot set a plan through signup or account
-updates. Verified Stripe subscription records will become the entitlement source
-when billing is implemented; no paid status is inferred or seeded now. The
-watchlist item limit is enforced in this slice; other plan gates remain part of
-their feature/billing work.
+are shared with enforcement and account serialization. Accounts default to Free;
+configured billing can grant Pro from verified current Stripe subscription records
+(see Billing below). Clients cannot set a plan through signup or account updates.
+No paid status is seeded or inferred from email/metadata. Watchlist, rule, instant
+email, saved-screen and screener gates use this same catalog. Features still being
+built do not become implemented merely because the catalog lists their limits.
 
 | Route | Behavior |
 | --- | --- |
@@ -838,10 +838,53 @@ returns at most three. Metadata retains the full `total_count`, and reports
 metadata. `has_more`/`next_cursor` cover the accessible preview only; its last page
 can have `truncated: true` and no next cursor. Each changed filter/sort is a new
 screen. A future verified unlimited entitlement uses the same query without the
-preview cap; clients cannot enable it, and all current accounts remain Free.
+preview cap; clients cannot enable it through request fields.
 
 Scores, sectors, market caps, AUM, turnover and other unimplemented metrics are
 rejected as filter/sort fields. Exports remain pending.
+
+## Billing
+
+`GET /api/v1/billing/subscription` requires authentication and returns no-store
+`{ data: { plan, subscription } }`. The nullable subscription contains `status`,
+`sync_status`, `current_period_end`, `trial_end`, `cancel_at` and
+`cancel_at_period_end`. Dates may be null for deletion received before refresh.
+It prefers an eligible subscription, otherwise the latest local row in the
+configured mode. Provider IDs, keys, receipts and other users' details are omitted.
+
+`POST /api/v1/webhooks/stripe` verifies the exact raw body against `Stripe-Signature`
+before JSON parsing. Signing timestamps must be within five minutes; any valid v1
+signature suffices, with other header entries ignored. Browser session/CSRF are not
+used on this route. It has a 1 MiB cap and a separate 300 deliveries/minute/IP limit.
+
+HTTP 200 `{ data: { received: true, duplicate } }` acknowledges a durable receipt
+and any required enqueue, not payment or completed access. Pending/failed duplicate
+events can recover enqueue; completed receipts are skipped. Invalid signature,
+JSON/version/mode/context is 400 `INVALID_WEBHOOK`, conflicting identity is 409
+`EVENT_CONFLICT`, oversize is 413 `PAYLOAD_TOO_LARGE`, limiting is 429, and missing
+configuration/queue/storage availability is generic 503. Retryable responses have
+`Retry-After`; all responses are no-store.
+
+Billing defaults to off. Operation requires `STRIPE_BILLING_MODE`,
+`STRIPE_WEBHOOK_SECRET`, `STRIPE_SECRET_KEY` and approved `STRIPE_PRO_PRICE_IDS`.
+The pinned version is `2026-10-28.endive`, own-account snapshot format. Production
+accepts live mode only. Supported subscription events refresh current state in a
+background job; timestamps never order events. Customer ownership must already be
+bound internally. Metadata, emails, submitted IDs, checkout completion and invoice
+payloads cannot grant Pro.
+
+Pro requires verified matching-mode ownership/source, an approved price, active
+or trialing status, a current unexpired item period, and any trial/cancellation
+deadline still in the future, without paused collection. Other cases use Free
+limits; past_due has no grace in this build. Scheduled period-end cancellation
+keeps access until its deadline. Downgrades retain private data and immediately
+affect current gates and queued instant delivery checks.
+
+Account deletion returns 409 `BILLING_CANCELLATION_REQUIRED` for active, unknown or
+unreconciled billing. Verified terminal subscriptions allow deletion while detached
+replay guards remain. Local deletion does not cancel anything in Stripe. Checkout,
+portal and live activation remain pending. See [billing.md](billing.md) for supported
+shapes, sources, retries, operational limits and launch decisions.
 
 ## Saved screens
 
@@ -856,8 +899,8 @@ rejected as filter/sort fields. Exports remain pending.
 All five routes require authentication and a server-side `saved_screens: true`
 entitlement. Free accounts receive HTTP 402 with
 `{ "code": "PRO_REQUIRED", "feature": "saved_screens", "limit": 0 }`, including
-list, read and delete. All real accounts remain Free until verified billing is
-implemented; request fields cannot enable access. Downgrading retains saved rows
+list, read and delete. Verified billing records determine access when configured;
+request fields cannot enable access. Downgrading retains saved rows
 but gates all five routes. Account deletion still removes its own private screens.
 Responses are `Cache-Control: no-store`, use the normal API request limits, and
 mutations require `X-CSRF-Token`. Entitlement is rechecked inside write transactions.
@@ -975,7 +1018,7 @@ Activation requires explicit email consent and a valid zone, otherwise 422
 `ALERT_CONFIGURATION_REQUIRED`. Free attempts to configure/activate instant
 email return 402 `{ "code":"PRO_REQUIRED", "feature":"instant_alerts",
 "limit":0 }`. Rule-count gates use `feature: alert_rules` and the catalog limit.
-All current accounts remain Free until verified billing entitlements exist.
+Verified billing determines paid entitlement when configured; the default is Free.
 Active frequency changes require pausing, which may be included atomically as
 `active:false` in the same PATCH. Rule settings are never reinterpreted as new
 conditions or triggers that the matcher does not implement.

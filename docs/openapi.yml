@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.14.0
+  version: 1.15.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -708,7 +708,7 @@ paths:
               additionalProperties: false
       description: Normalized email; minimum eight-character password. Rotates browser
         session and CSRF state; replace the client token with the returned token.
-        All accounts are Free until verified billing entitlements exist.
+        Accounts default to Free; only verified configured billing can grant Pro.
   "/auth/login":
     post:
       operationId: login
@@ -1011,6 +1011,12 @@ paths:
           "$ref": "#/components/responses/AccountUnauthorized"
         '403':
           "$ref": "#/components/responses/InvalidCsrfToken"
+        '409':
+          description: BILLING_CANCELLATION_REQUIRED until owned billing is verified terminal and reconciled.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
       requestBody:
         required: true
         content:
@@ -1026,7 +1032,141 @@ paths:
                   writeOnly: true
               additionalProperties: false
       description: Deletes private follows, linked alert records and sessions. Public
-        filings and normalized reported rows are retained.
+        filings and normalized reported rows are retained. Active/unknown/unreconciled
+        billing blocks deletion; terminal billing records are retained with detached ownership.
+  "/billing/subscription":
+    get:
+      operationId: getBillingSubscription
+      summary: Read the authenticated account's verified billing status
+      description: No-store. Prefers an eligible subscription, otherwise the latest
+        local row for the configured mode. Omits provider IDs, keys and receipts.
+        Missing configuration or eligibility uses Free access; no subscription is
+        created. Unknown parameters are rejected.
+      security:
+      - CookieSession: []
+      responses:
+        '200':
+          description: Current account plan and nullable subscription summary.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - plan
+                    - subscription
+                    properties:
+                      plan:
+                        type: string
+                        enum:
+                        - free
+                        - pro
+                      subscription:
+                        "$ref": "#/components/schemas/BillingSubscription"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/webhooks/stripe":
+    post:
+      operationId: receiveStripeWebhook
+      summary: Verify and record a Stripe snapshot event for background refresh
+      description: Verifies exact raw bytes, a valid v1 HMAC and a signing timestamp
+        within five minutes. No browser session or CSRF required here. Requires
+        configured mode/secrets/prices; production accepts live only. Uses own-account
+        snapshot version 2026-10-28.endive and subscription created/updated/deleted/
+        paused/resumed events. Other signed types are ignored. Jobs refresh current
+        provider state without ordering by timestamps. Limit 1 MiB and a separate
+        300 deliveries/minute/IP. No-store; HTTP 200 confirms receipt, not payment.
+      security:
+      - StripeSignature: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              required:
+              - id
+              - object
+              - api_version
+              - type
+              - created
+              - livemode
+              properties:
+                id:
+                  type: string
+                  pattern: "^evt_[A-Za-z0-9_]{1,200}$"
+                object:
+                  type: string
+                  enum:
+                  - event
+                api_version:
+                  type: string
+                  enum:
+                  - 2026-10-28.endive
+                type:
+                  type: string
+                created:
+                  type: integer
+                livemode:
+                  type: boolean
+                data:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Receipt committed and any pending work enqueued.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - received
+                    - duplicate
+                    properties:
+                      received:
+                        type: boolean
+                        enum:
+                        - true
+                      duplicate:
+                        type: boolean
+        '400':
+          description: Invalid signature, body, version, mode or account context.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '409':
+          description: Conflicting immutable identity for an existing event ID.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '413':
+          description: Payload exceeds 1 MiB.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/plans":
     get:
       operationId: listPlans
@@ -1713,8 +1853,8 @@ paths:
     get:
       operationId: listSavedScreens
       summary: List owned saved screens with server-side Pro gating
-      description: Returns no-store. All current accounts remain Free until verified
-        billing is implemented. Downgraded accounts retain their screens but receive
+      description: Returns no-store. Verified configured billing determines paid
+        access; default is Free. Downgraded accounts retain their screens but receive
         402. Cursors bind the account, filters and sort; rows created after initial
         bounds are excluded. Existing names/definitions remain mutable between pages.
       security:
@@ -3621,6 +3761,41 @@ components:
           - pro
         limits:
           "$ref": "#/components/schemas/PlanLimits"
+    BillingSubscription:
+      type: object
+      nullable: true
+      required:
+      - status
+      - sync_status
+      - current_period_end
+      - trial_end
+      - cancel_at
+      - cancel_at_period_end
+      properties:
+        status:
+          type: string
+          enum:
+          - active
+          - trialing
+          - past_due
+          - canceled
+          - unpaid
+          - paused
+          - incomplete
+          - incomplete_expired
+        sync_status:
+          type: string
+          enum:
+          - verified
+          - needs_review
+        current_period_end:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        trial_end:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        cancel_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        cancel_at_period_end:
+          type: boolean
     AccountPreferences:
       type: object
       additionalProperties: false
@@ -5974,6 +6149,12 @@ components:
           schema:
             "$ref": "#/components/schemas/ProRequired"
   securitySchemes:
+    StripeSignature:
+      type: apiKey
+      in: header
+      name: Stripe-Signature
+      description: Stripe-generated t/v1 signatures authenticate the unmodified
+        raw body. Timestamp tolerance is five minutes; browser CSRF is not used.
     CookieSession:
       type: apiKey
       in: cookie

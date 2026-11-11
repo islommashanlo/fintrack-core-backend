@@ -1,0 +1,30 @@
+{
+  "id": "sub_fixture",
+  "object": "subscription",
+  "customer": "cus_fixture",
+  "livemode": false,
+  "status": "active",
+  "cancel_at_period_end": false,
+  "cancel_at": null,
+  "ended_at": null,
+  "trial_end": null,
+  "pause_collection": null,
+  "items": {
+    "object": "list",
+    "has_more": false,
+    "data": [{
+      "id": "si_fixture",
+      "object": "subscription_item",
+      "subscription": "sub_fixture",
+      "quantity": 1,
+      "current_period_start": 1794351600,
+      "current_period_end": 1796943600,
+      "price": {
+        "id": "price_fixture_pro",
+        "object": "price",
+        "type": "recurring",
+        "livemode": false
+      }
+    }]
+  }
+}

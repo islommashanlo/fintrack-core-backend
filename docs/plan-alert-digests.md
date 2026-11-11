@@ -99,5 +99,6 @@ state/read-all bounds, time-zone/DST cutoffs, transport retries, post-acceptance
 failure handling, stale unsubscribe tokens and queue/scheduler separation.
 Mail is tested exclusively with the test adapter; WebMock blocks external HTTP
 in specs. Email templates are included in the recommendation-language CI scan.
-Advanced alert triggers, push delivery, verified billing entitlements and
-production mail setup remain separate work.
+Advanced alert triggers, push delivery and production mail setup remain separate
+work. Verified subscription entitlements now feed the catalog and queued delivery
+checks; see `docs/billing.md`. Legacy conversion excludes verified Pro accounts.

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_020000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_030000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -103,6 +103,40 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_020000) do
     t.datetime "updated_at", null: false
     t.index ["day"], name: "index_backfill_runs_on_day", unique: true
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'running'::character varying::text, 'done'::character varying::text, 'no_index'::character varying::text, 'failed'::character varying::text])", name: "backfill_runs_status_check"
+  end
+
+  create_table "billing_customers", force: :cascade do |t|
+    t.bigint "user_id"
+    t.string "stripe_id", null: false
+    t.boolean "livemode", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["stripe_id", "livemode"], name: "index_billing_customers_on_stripe_id_and_livemode", unique: true
+    t.index ["user_id", "livemode"], name: "index_billing_customers_on_user_id_and_livemode", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["user_id"], name: "index_billing_customers_on_user_id"
+  end
+
+  create_table "billing_events", force: :cascade do |t|
+    t.string "stripe_id", null: false
+    t.string "event_type", null: false
+    t.string "api_version", null: false
+    t.boolean "livemode", null: false
+    t.datetime "provider_created_at", null: false
+    t.string "stripe_customer_id"
+    t.string "stripe_subscription_id"
+    t.string "payload_digest", null: false
+    t.string "status", default: "pending", null: false
+    t.string "reason"
+    t.integer "attempts", default: 0, null: false
+    t.datetime "verified_at", null: false
+    t.datetime "processed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status", "created_at"], name: "index_billing_events_on_status_and_created_at"
+    t.index ["stripe_customer_id", "livemode"], name: "index_billing_events_on_stripe_customer_id_and_livemode"
+    t.index ["stripe_id", "livemode"], name: "index_billing_events_on_stripe_id_and_livemode", unique: true
+    t.check_constraint "attempts >= 0", name: "billing_event_attempts"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'processed'::character varying, 'ignored'::character varying, 'failed'::character varying, 'needs_review'::character varying]::text[])", name: "billing_event_status"
   end
 
   create_table "cusip_security_mappings", force: :cascade do |t|
@@ -415,6 +449,31 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_020000) do
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
+  create_table "subscriptions", force: :cascade do |t|
+    t.bigint "billing_customer_id", null: false
+    t.bigint "billing_event_id", null: false
+    t.string "stripe_id", null: false
+    t.boolean "livemode", null: false
+    t.string "status", null: false
+    t.string "price_id"
+    t.string "sync_status", default: "verified", null: false
+    t.datetime "current_period_start"
+    t.datetime "current_period_end"
+    t.datetime "trial_end"
+    t.datetime "cancel_at"
+    t.boolean "cancel_at_period_end", default: false, null: false
+    t.boolean "collection_paused", default: false, null: false
+    t.datetime "verified_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["billing_customer_id"], name: "index_subscriptions_on_billing_customer_id"
+    t.index ["billing_event_id"], name: "index_subscriptions_on_billing_event_id"
+    t.index ["status", "sync_status", "current_period_end"], name: "index_subscriptions_on_entitlement"
+    t.index ["stripe_id", "livemode"], name: "index_subscriptions_on_stripe_id_and_livemode", unique: true
+    t.check_constraint "status::text = ANY (ARRAY['active'::character varying, 'trialing'::character varying, 'past_due'::character varying, 'canceled'::character varying, 'unpaid'::character varying, 'paused'::character varying, 'incomplete'::character varying, 'incomplete_expired'::character varying]::text[])", name: "subscription_status"
+    t.check_constraint "sync_status::text = ANY (ARRAY['verified'::character varying, 'needs_review'::character varying]::text[])", name: "subscription_sync_status"
+  end
+
   create_table "user_preferences", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "theme", default: "system", null: false
@@ -443,6 +502,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_020000) do
   add_foreign_key "alert_event_states", "users"
   add_foreign_key "alert_rule_settings", "alert_rules"
   add_foreign_key "alert_rules", "follows"
+  add_foreign_key "billing_customers", "users", on_delete: :nullify
   add_foreign_key "cusip_security_mappings", "securities"
   add_foreign_key "filing_explanations", "filings"
   add_foreign_key "follows", "users"
@@ -457,5 +517,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_020000) do
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"
   add_foreign_key "saved_screens", "users"
   add_foreign_key "sessions", "users"
+  add_foreign_key "subscriptions", "billing_customers"
+  add_foreign_key "subscriptions", "billing_events"
   add_foreign_key "user_preferences", "users"
 end

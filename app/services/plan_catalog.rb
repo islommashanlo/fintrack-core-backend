@@ -12,9 +12,8 @@ class PlanCatalog
     }.freeze
   }.freeze
 
-  def self.for_user(_user)
-    # Subscription entitlements will come from verified billing records.
-    "free"
+  def self.for_user(user)
+    Billing::Entitlements.pro?(user) ? "pro" : "free"
   end
 
   def self.limit_for(user, feature)

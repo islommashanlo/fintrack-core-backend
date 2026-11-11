@@ -11,6 +11,7 @@ Data from public SEC filings. Not investment advice.
 - `docs/activity-methodology.md` explains the cluster definition and draft Activity Score proposal.
 - `docs/plan-alert-digests.md` documents digest delivery, read tracking, and history-preserving unfollows.
 - `docs/filing-explanations.md` describes cached factual summaries and the provider interface.
+- `docs/billing.md` describes signed webhook intake, subscription refresh and verified entitlements.
 
 ## Getting started
 
@@ -69,5 +70,11 @@ fields and remain separate from notification consent.
 
 Saved-screen CRUD is available at `/api/v1/saved-screens` and
 `/api/v1/saved-screens/:id`. These private routes require the server's Pro
-entitlement; all current accounts remain Free until verified billing is connected.
+entitlement; accounts remain Free unless configured billing verifies an eligible subscription.
 Returned query definitions can be sent directly to `/api/v1/screener/run`.
+
+Billing is disabled by default. `/api/v1/webhooks/stripe` accepts authenticated
+Stripe snapshot events and queues current-subscription refresh; `/api/v1/billing/subscription`
+returns private status. The new migration creates empty storage only. Checkout,
+portal, provider setup and live activation remain pending. See `docs/billing.md`
+before configuring keys, prices or account cancellation.

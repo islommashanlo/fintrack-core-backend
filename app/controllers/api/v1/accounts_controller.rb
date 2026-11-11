@@ -35,11 +35,14 @@ module Api
         user.with_lock do
           return render_reauthentication unless user.authenticate(values["current_password"])
 
+          Billing::AccountDeletionGuard.check!(user)
           AccountNotificationCleanup.call(user)
           user.destroy!
         end
         clear_api_session
         head :no_content
+      rescue Billing::AccountDeletionGuard::CancellationRequired
+        render json: { error: { code: "BILLING_CANCELLATION_REQUIRED", message: "Resolve subscription cancellation before deleting this account" } }, status: :conflict
       end
 
       private

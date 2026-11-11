@@ -21,11 +21,21 @@ class OpsMetrics
       poller_lag_seconds: poller_lag,
       parse_failures: parse_failures,
       filings: { pending: Filing.form4.pending.count, parsed_last_24h: recent.parsed.count },
-      queue_depth: queue_depth
+      queue_depth: queue_depth,
+      billing: billing
     }
   end
 
   private
+
+  def billing
+    counts = BillingEvent.group(:status).count
+    oldest = BillingEvent.where(status: "pending").minimum(:created_at)
+    { pending: counts.fetch("pending", 0), failed: counts.fetch("failed", 0),
+      needs_review: counts.fetch("needs_review", 0),
+      unmatched: BillingEvent.where(reason: "unmatched_customer").count,
+      oldest_pending_age_seconds: oldest && [ (@now - oldest).round, 0 ].max }
+  end
 
   def recent
     Filing.form4.where(created_at: (@now - WINDOW)..)

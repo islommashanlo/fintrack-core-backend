@@ -18,6 +18,8 @@ Rails.application.routes.draw do
       post "auth/password/forgot" => "passwords#forgot", as: :password_forgot
       post "auth/password/reset" => "passwords#reset", as: :password_reset
       get "plans" => "plans#index", as: :plans
+      post "webhooks/stripe", to: Billing::StripeWebhookEndpoint.new, as: :stripe_webhook
+      get "billing/subscription" => "billing#show", as: :billing_subscription
       get "me" => "accounts#show", as: :me
       patch "me" => "accounts#update"
       delete "me" => "accounts#destroy"
