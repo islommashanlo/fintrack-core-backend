@@ -78,6 +78,8 @@ Stripe snapshot events and queues current-subscription refresh; `/api/v1/billing
 returns private status. `/api/v1/billing/checkout` and `/api/v1/billing/portal` return
 hosted session URLs using server-owned customer links, approved interval prices and
 fixed callbacks. Checkout retries resume a durable attempt; sessions do not grant
-access. Local migrations create empty storage only. Provider setup, reconciliation
-operations and live activation remain pending. See `docs/billing.md`
+access. Operator tasks `billing:recover_events` and `billing:recover_checkouts` preview
+stale work without writes or requests; execution requires confirmation and a request
+budget (see `docs/billing-recovery.md`). Local migrations create empty storage only.
+Provider setup, unknown-outcome recovery and live activation remain pending. See `docs/billing.md`
 before configuring keys, prices or account cancellation.

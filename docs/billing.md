@@ -113,12 +113,15 @@ three times after the initial attempt. Transient failure leaves the last verifie
 access bounded by its dates; missing configuration is recorded without a transport
 retry. No provider error text is exposed.
 
-Database receipt insertion and Redis enqueue are not atomic. There is no automatic
-sweep, reconciliation CLI, checkout-expiry recovery task or unmatched-event replay
-yet. A known open checkout can be refreshed through the checkout API, but uncertain
-and review states require operator resolution. Stripe redelivery can recover failed
-enqueue; operators must resolve stranded work. `/ops/metrics` adds
-pending, failed, needs-review and unmatched counts plus oldest pending age. HTTP 200
+Database receipt insertion and Redis enqueue are not atomic. Operator tasks
+`billing:recover_events` and `billing:recover_checkouts` reconcile stale known work,
+with a dry run by default and explicit request budgets; see
+[billing-recovery.md](billing-recovery.md). Explicit IDs are required to retry review
+states. Unknown session IDs and ignored/unmatched events remain manual cases.
+There is no automatic sweep or discovery of never-received events. Stripe redelivery
+can also recover failed enqueue. `/ops/metrics` adds pending, failed, needs-review
+and unmatched counts plus oldest pending age, checkout counts by status and the
+number of unresolved attempts without session IDs. HTTP 200
 confirms receipt, not payment or completed entitlement processing. Live delivery
 and latency have not been validated.
 
@@ -149,7 +152,7 @@ minimal billing/replay records. This does not cancel anything in Stripe.
 Before launch, confirm commercial policy: this build defaults to Free for past_due,
 unpaid, paused, incomplete/expired, canceled, paused collection, unknown prices and
 incomplete verification, with no grace period. Actual prices, trial duration,
-enabled intervals, grace policy, receipt retention, reconciliation operations
+enabled intervals, grace policy, receipt retention, remaining reconciliation operations
 and cancellation UX remain launch decisions. No actual trial or customer is created.
 
 ## Primary sources and fixtures

@@ -883,7 +883,9 @@ Checkout additionally needs mapped `STRIPE_PRO_MONTHLY_PRICE_ID` and/or
 `STRIPE_PRO_YEARLY_PRICE_ID` in the approved price list. Both sessions use the fixed
 `STRIPE_BILLING_RETURN_URL`; checkout appends a success/canceled navigation hint.
 Unfinished and unresolved completed checkout attempts also block local account
-deletion. No automatic checkout recovery/reconciliation task is implemented yet.
+deletion. Operator recovery tasks preview and refresh known stale work with explicit
+budgets; see [billing-recovery.md](billing-recovery.md). They never create sessions
+or grant access from checkout status. There is no automatic recovery sweep.
 
 `POST /api/v1/webhooks/stripe` verifies the exact raw body against `Stripe-Signature`
 before JSON parsing. Signing timestamps must be within five minutes; any valid v1

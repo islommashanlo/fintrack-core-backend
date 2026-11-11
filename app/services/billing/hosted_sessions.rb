@@ -57,9 +57,7 @@ module Billing
               "success_url" => attempt.success_url, "cancel_url" => attempt.cancel_url
             })
           end
-          validate_checkout!(data, attempt:, customer:)
-          attempt.update!(stripe_id: data.fetch("id"), stripe_subscription_id: data["subscription"],
-            status: data.fetch("status"), expires_at: Time.at(data.fetch("expires_at")).utc)
+          attempt.update!(CheckoutSnapshot.parse(data, attempt:, customer:))
           raise Conflict.new("CHECKOUT_PENDING_CONFIRMATION") if attempt.status == "complete"
           raise Conflict.new("CHECKOUT_EXPIRED") if attempt.status == "expired" || attempt.expires_at <= Time.current
 
@@ -103,19 +101,6 @@ module Billing
       end
     end
 
-    def self.validate_checkout!(data, attempt:, customer:)
-      unless data.is_a?(Hash) && data["object"] == "checkout.session" && data["mode"] == "subscription" &&
-          data["customer"] == customer.stripe_id && data["livemode"] == live? && data["client_reference_id"] == attempt.request_id &&
-          data["id"].is_a?(String) && data["id"].match?(/\Acs_[A-Za-z0-9_]{1,200}\z/) &&
-          %w[open complete expired].include?(data["status"]) && data["expires_at"].is_a?(Integer) && data["expires_at"].between?(1, 253_402_300_799) &&
-          (attempt.stripe_id.nil? || attempt.stripe_id == data["id"])
-        raise StripeClient::InvalidResponse
-      end
-      unless data["subscription"].nil? || (data["subscription"].is_a?(String) && data["subscription"].match?(/\Asub_[A-Za-z0-9_]{1,200}\z/))
-        raise StripeClient::InvalidResponse
-      end
-    end
-
     def self.hosted_url!(value, host:)
       uri = URI.parse(value.to_s)
       raise StripeClient::InvalidResponse unless uri.scheme == "https" && uri.host == host && uri.port == 443 && !uri.userinfo
@@ -131,6 +116,6 @@ module Billing
     def self.live?
       Configuration.mode == "live"
     end
-    private_class_method :ensure_no_subscription!, :validate_checkout!, :hosted_url!, :key, :live?
+    private_class_method :ensure_no_subscription!, :hosted_url!, :key, :live?
   end
 end

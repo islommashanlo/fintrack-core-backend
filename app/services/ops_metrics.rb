@@ -34,7 +34,9 @@ class OpsMetrics
     { pending: counts.fetch("pending", 0), failed: counts.fetch("failed", 0),
       needs_review: counts.fetch("needs_review", 0),
       unmatched: BillingEvent.where(reason: "unmatched_customer").count,
-      oldest_pending_age_seconds: oldest && [ (@now - oldest).round, 0 ].max }
+      oldest_pending_age_seconds: oldest && [ (@now - oldest).round, 0 ].max,
+      checkouts: BillingCheckout.group(:status).count,
+      checkouts_without_session: BillingCheckout.where(status: %w[pending open needs_review], stripe_id: nil).count }
   end
 
   def recent

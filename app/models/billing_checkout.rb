@@ -8,7 +8,8 @@ class BillingCheckout < ApplicationRecord
   validates :interval, inclusion: { in: %w[month year] }
 
   scope :unresolved_completed, -> {
-    where(status: "complete").where(<<~SQL.squish)
+    # A retained subscription identity must not be cleared by another session status.
+    where("billing_checkouts.status = 'complete' OR billing_checkouts.stripe_subscription_id IS NOT NULL").where(<<~SQL.squish)
       NOT EXISTS (
         SELECT 1 FROM subscriptions
         WHERE subscriptions.stripe_id = billing_checkouts.stripe_subscription_id
