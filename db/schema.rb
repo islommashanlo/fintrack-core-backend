@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_041000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+  enable_extension "pg_trgm"
 
   create_table "alert_deliveries", force: :cascade do |t|
     t.bigint "alert_rule_id", null: false
@@ -186,6 +187,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_041000) do
     t.string "filer_type", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index "lower((name)::text) gin_trgm_ops", name: "search_filers_name", using: :gin
     t.index ["cik"], name: "index_filers_on_cik", unique: true
   end
 
@@ -233,6 +235,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_041000) do
     t.string "owner_ciks", default: [], null: false, array: true
     t.datetime "accepted_at"
     t.datetime "ingested_at"
+    t.index "lower((issuer_name)::text) gin_trgm_ops", name: "search_filings_issuer_name", using: :gin
+    t.index "lower((issuer_ticker)::text) gin_trgm_ops", name: "search_filings_issuer_ticker", using: :gin
+    t.index "upper((issuer_ticker)::text), filed_at DESC, accession_no DESC", name: "search_latest_company_filing", where: "(((parse_status)::text = 'parsed'::text) AND ((form_type)::text = ANY ((ARRAY['4'::character varying, '4/A'::character varying])::text[])))"
     t.index ["accepted_at"], name: "index_filings_on_accepted_at"
     t.index ["accession_no"], name: "index_filings_on_accession_no", unique: true
     t.index ["filed_at"], name: "index_filings_on_filed_at"
@@ -295,6 +300,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_041000) do
     t.string "footnote_ids", default: [], null: false, array: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index "lower((insider_name)::text) gin_trgm_ops", name: "search_insider_transactions_insider_name", using: :gin
     t.index ["accession_no", "insider_cik", "security_table", "txn_seq"], name: "index_insider_transactions_on_natural_key", unique: true
     t.index ["filing_id"], name: "index_insider_transactions_on_filing_id"
     t.index ["insider_cik", "transaction_date"], name: "index_insider_transactions_on_insider_cik_and_transaction_date"
@@ -308,6 +314,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_041000) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index "lower((name)::text) gin_trgm_ops", name: "search_institutional_filers_name", using: :gin
     t.index ["cik"], name: "index_institutional_filers_on_cik", unique: true
   end
 
@@ -460,6 +467,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_041000) do
     t.string "source", default: "openfigi", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index "lower((name)::text) gin_trgm_ops", name: "search_securities_name", using: :gin
+    t.index "lower((ticker)::text) gin_trgm_ops", name: "search_securities_ticker", using: :gin
     t.index ["figi"], name: "index_securities_on_figi", unique: true
   end
 

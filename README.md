@@ -56,6 +56,11 @@ changes create new cached versions, and large tables use bounded examples.
 Browser requests require a CSRF token. See the API documentation for coverage,
 limits and unsupported formats.
 
+Public `/api/v1/search?q=...` groups ranked local company, fund and insider results.
+It supports exact identifiers, name prefixes/substrings, fuzzy names and signed
+per-group cursors. Local migrations enable PostgreSQL `pg_trgm`; no provider or
+enrichment requests are involved. See `docs/api-v1.md` for matching and provenance.
+
 The private `/api/v1/dashboard` combines local filing counts, ranked cluster windows,
 watchlist activity and the next 13F deadline. It shares snapshot ID ceilings and
 existing activity/cluster cursors, respects account scope and plan limits, and

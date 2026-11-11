@@ -7,6 +7,85 @@ built. The machine-readable contract is in
 
 Data from public SEC filings. Not investment advice.
 
+## Grouped search
+
+`GET /api/v1/search?q=Acme` searches public, locally stored companies, funds and
+insiders. Authentication is optional; account, billing and watchlist data never
+enter search results. The endpoint makes no provider requests, creates no records
+or jobs, and does not enrich or guess security identities. The older HTML discovery
+search remains separate.
+
+| Parameter | Accepted values |
+| --- | --- |
+| `q` | Required UTF-8 string, 1–100 characters after whitespace normalization; at most 400 input bytes; control characters rejected |
+| `type` | `all` (default), `companies`, `funds`, `insiders` |
+| `sort` | `relevance` only (default); ranking is server-controlled |
+| `limit` | 1–20 results **per group**, default 5 |
+| `cursor` | A group's signed `next_cursor`; requires that single group in `type` |
+
+The response is `{ data: { companies: [], funds: [], insiders: [] }, meta: { q,
+groups: { companies: { ... }, funds: { ... }, insiders: { ... } }, disclaimer } }`.
+With a single `type`, only that data/metadata group appears. Each group's meta
+includes `total_count`, `has_more`, `next_cursor`, `limit`, `sort` and `as_of`.
+For another page, repeat the returned `q`, the group as `type`, optional
+`sort=relevance`, and `next_cursor` as `cursor`. Page size can change. A cursor
+cannot move to another query, group or endpoint, and expires after 24 hours.
+Initial groups share ingestion ID ceilings; late inserts are excluded from cursor
+continuations. Changes to existing records still affect results.
+
+Each result contains `entity_type` (`issuer`, `fund`, `person`), `entity_key`
+(normalized ticker or 10-digit CIK), nullable `cik`/`ticker`/`name`, `match_type`,
+and a relative `profile_path` for the existing JSON profile endpoint. Latest known
+filing evidence supplies `accession`, `sec_url`, `form_type`, `filed_at`,
+`accepted_at`, `ingested_at` and `data_age_days`. These fields are null when a
+directory fund or mapped company has no known valid filing; no dates or evidence
+are fabricated.
+
+Ranking within each group is: `exact_ticker`, `exact_cik`, `exact_name`, `prefix`,
+`substring`, then `fuzzy`. Numeric queries of at most ten digits also match the
+zero-padded CIK exactly. Name/ticker matching is case-insensitive, and ticker
+punctuation is retained (`BRK.A` and `BRK.B` remain separate). Fuzzy matching applies
+only to names, for queries of at least three characters containing a letter or
+number. It uses a fixed PostgreSQL trigram threshold of 0.3. Within a tier, greater
+name similarity comes first, then lowercase display name and the stable entity key.
+Internal similarity/relevance values are not Activity Scores and are not exposed.
+Percent, underscore, quotes, backslashes and placeholder-like text are bound as
+literal search input, never as caller-supplied SQL or wildcard expressions.
+
+Sources follow the existing profile rules:
+
+- Companies use the latest known parsed Form 4 for each ticker, including
+  administrative-only filings and filings without transactions. When none exists,
+  a stored security with a `mapped` CUSIP link known by the snapshot can supply the
+  name/ticker; CIK/filing evidence remain null. No mapping is requested or inferred.
+- Insiders include all transaction codes, security tables and reporting owners,
+  deduplicated by CIK. The latest known transaction name is used, with local filer
+  fallback for blank names or header-only owners. A visible Form 4 must support
+  the CIK; orphan filer metadata is excluded.
+- Funds use current local directory names, whether or not a report exists. Latest
+  report evidence includes only parsed reports attached to parsed filings known
+  by the snapshot. Future/failed reports do not provide provenance. Directory and
+  mapping metadata are current local caches, not historical identity archives.
+
+Candidate matches are resolved to the latest profile before final matching, so a
+historical name cannot substitute for the latest name. Failed/future/unsupported
+filings do not establish company/insider identities. Source files and as-reported
+data remain unchanged.
+
+Invalid inputs/cursors return JSON 400; shared IP/user request limits return 429
+with `Retry-After`, and limiter unavailability returns 503. Empty groups are 200
+with zero counts. The feature is public with the same bounds for Free and Pro.
+
+Migration `20261111170000` enables PostgreSQL `pg_trgm` and adds expression GIN
+indexes for candidate names/tickers plus a company identity lookup index. No gem
+or search-provider account is needed. The database role must be allowed to create
+the extension; this is covered by local/test migrations. Indexes use regular
+transactional builds and can lock writes while building, so production rollout
+needs its own operational plan. No production migration was run. Behavior and
+index support follow the [PostgreSQL 16 pg_trgm documentation](https://www.postgresql.org/docs/16/pgtrgm.html).
+Tests cover batch loading and query-count growth; production-scale latency and
+very broad short-query costs have not been benchmarked.
+
 ## Dashboard
 
 `GET /api/v1/dashboard` requires cookie authentication and returns `Cache-Control:

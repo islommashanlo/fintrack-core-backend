@@ -2,13 +2,73 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.17.0
+  version: 1.18.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
 - url: "/api/v1"
 paths:
+  "/search":
+    get:
+      operationId: searchEntities
+      summary: Search local companies, funds and insiders in ranked groups
+      description: Public local-data search; no account/watchlist data, provider
+        requests, writes or jobs. Exact ticker, exact CIK and exact name matches
+        precede prefixes, substrings and fuzzy names. Fixed trigram threshold 0.3;
+        fuzzy names require at least three characters. Canonical profiles are
+        resolved before final matching. Missing filing evidence remains null.
+        Groups share initial ingestion ID ceilings. Cursors bind query/group and
+        expire after 24 hours; existing-row updates can still affect continuations.
+      security: []
+      parameters:
+      - name: q
+        in: query
+        required: true
+        description: Whitespace-normalized UTF-8 input; at most 400 original bytes, no control characters. LIKE metacharacters are literal.
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 100
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum: [all, companies, funds, insiders]
+          default: all
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum: [relevance]
+          default: relevance
+      - name: limit
+        in: query
+        description: Maximum results per requested group.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+      - name: cursor
+        in: query
+        description: A group's next_cursor; type must select that one group and q must be repeated.
+        schema:
+          type: string
+          maxLength: 8192
+      responses:
+        '200':
+          description: Requested result groups with per-group counts and cursors.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SearchResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/dashboard":
     get:
       operationId: getDashboard
@@ -2844,6 +2904,119 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    SearchResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          minProperties: 1
+          maxProperties: 3
+          additionalProperties: false
+          properties:
+            companies:
+              "$ref": "#/components/schemas/SearchResults"
+            funds:
+              "$ref": "#/components/schemas/SearchResults"
+            insiders:
+              "$ref": "#/components/schemas/SearchResults"
+        meta:
+          type: object
+          required: [q, groups, disclaimer]
+          properties:
+            q:
+              type: string
+              minLength: 1
+              maxLength: 100
+            groups:
+              type: object
+              minProperties: 1
+              maxProperties: 3
+              additionalProperties: false
+              properties:
+                companies:
+                  "$ref": "#/components/schemas/SearchGroupMeta"
+                funds:
+                  "$ref": "#/components/schemas/SearchGroupMeta"
+                insiders:
+                  "$ref": "#/components/schemas/SearchGroupMeta"
+            disclaimer:
+              type: string
+    SearchResults:
+      type: array
+      maxItems: 20
+      items:
+        "$ref": "#/components/schemas/SearchResult"
+    SearchResult:
+      type: object
+      required: [entity_type, entity_key, name, ticker, cik, match_type, profile_path, accession, sec_url, form_type, filed_at, accepted_at, ingested_at, data_age_days]
+      properties:
+        entity_type:
+          type: string
+          enum: [issuer, fund, person]
+        entity_key:
+          type: string
+          description: Uppercase ticker for issuers; zero-padded 10-digit CIK for funds and people.
+        name:
+          type: string
+          nullable: true
+        ticker:
+          type: string
+          nullable: true
+        cik:
+          type: string
+          pattern: '^[0-9]{10}$'
+          nullable: true
+        match_type:
+          type: string
+          enum: [exact_ticker, exact_cik, exact_name, prefix, substring, fuzzy]
+        profile_path:
+          type: string
+          description: Relative path to the existing JSON company, fund or insider profile.
+        accession:
+          type: string
+          nullable: true
+        sec_url:
+          type: string
+          format: uri
+          nullable: true
+        form_type:
+          type: string
+          nullable: true
+          enum: ['4', 4/A, 13F-HR, 13F-HR/A, 13F-NT]
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+    SearchGroupMeta:
+      type: object
+      required: [total_count, has_more, next_cursor, limit, sort, as_of]
+      properties:
+        total_count:
+          type: integer
+          minimum: 0
+          description: All matching canonical profiles before the cursor boundary.
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 20
+        sort:
+          type: string
+          enum: [relevance]
+        as_of:
+          type: string
+          format: date-time
+          description: Original first-page time for this group's source visibility and provenance.
     DashboardResponse:
       type: object
       required: [data, meta]
