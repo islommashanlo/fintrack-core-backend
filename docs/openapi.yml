@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.27.0
+  version: 1.28.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -798,6 +798,144 @@ paths:
         not historical identity data.
     parameters:
     - "$ref": "#/components/parameters/CompanyTicker"
+  "/companies/{ticker}/news":
+    parameters:
+    - "$ref": "#/components/parameters/CompanyTicker"
+    get:
+      operationId: listCompanyNews
+      summary: Read local company news
+      description: >-
+        No-store. Reads approved-provider, publishable local headline metadata only.
+        No fetching, enrichment or jobs. Signed cursors pin item/mention ceilings,
+        observation cutoff and date window; publication/policy changes require a
+        restart. Only matching canonical mentions are shown, at most 20 per item.
+        Coverage and freshness are unknown. Headlines are not SEC-derived records.
+      security: []
+      parameters:
+      - "$ref": "#/components/parameters/NewsFrom"
+      - "$ref": "#/components/parameters/NewsTo"
+      - "$ref": "#/components/parameters/NewsKind"
+      - "$ref": "#/components/parameters/NewsSource"
+      - "$ref": "#/components/parameters/NewsProvider"
+      - "$ref": "#/components/parameters/NewsSort"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          "$ref": "#/components/responses/NewsFeed"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/funds/{cik}/news":
+    parameters:
+    - "$ref": "#/components/parameters/FundCik"
+    get:
+      operationId: listFundNews
+      summary: Read local fund news
+      description: >-
+        No-store. Reads approved-provider, publishable local headline metadata only.
+        No fetching, enrichment or jobs. Signed cursors pin item/mention ceilings,
+        observation cutoff and date window; publication/policy changes require a
+        restart. Only matching canonical mentions are shown, at most 20 per item.
+        Coverage and freshness are unknown. Headlines are not SEC-derived records.
+      security: []
+      parameters:
+      - "$ref": "#/components/parameters/NewsFrom"
+      - "$ref": "#/components/parameters/NewsTo"
+      - "$ref": "#/components/parameters/NewsKind"
+      - "$ref": "#/components/parameters/NewsSource"
+      - "$ref": "#/components/parameters/NewsProvider"
+      - "$ref": "#/components/parameters/NewsSort"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          "$ref": "#/components/responses/NewsFeed"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/insiders/{cik}/news":
+    parameters:
+    - "$ref": "#/components/parameters/InsiderCik"
+    get:
+      operationId: listInsiderNews
+      summary: Read local insider news
+      description: >-
+        No-store. Reads approved-provider, publishable local headline metadata only.
+        No fetching, enrichment or jobs. Signed cursors pin item/mention ceilings,
+        observation cutoff and date window; publication/policy changes require a
+        restart. Only matching canonical mentions are shown, at most 20 per item.
+        Coverage and freshness are unknown. Headlines are not SEC-derived records.
+      security: []
+      parameters:
+      - "$ref": "#/components/parameters/NewsFrom"
+      - "$ref": "#/components/parameters/NewsTo"
+      - "$ref": "#/components/parameters/NewsKind"
+      - "$ref": "#/components/parameters/NewsSource"
+      - "$ref": "#/components/parameters/NewsProvider"
+      - "$ref": "#/components/parameters/NewsSort"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          "$ref": "#/components/responses/NewsFeed"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/news":
+    get:
+      operationId: listWatchlistNews
+      summary: Read private local watchlist news
+      description: >-
+        No-store. Reads approved-provider, publishable local headline metadata only.
+        No fetching, enrichment or jobs. Signed cursors pin item/mention ceilings,
+        observation cutoff and date window; publication/policy changes require a
+        restart. Only matching canonical mentions are shown, at most 20 per item.
+        Coverage and freshness are unknown. Headlines are not SEC-derived records.
+      security:
+      - CookieSession: []
+      parameters:
+      - name: watchlist
+        in: query
+        description: Defaults to true. False is unsupported; there is no global feed at this route. Cursors are user- and membership-bound.
+        schema:
+          type: string
+          enum: ['true']
+          default: 'true'
+      - "$ref": "#/components/parameters/NewsFrom"
+      - "$ref": "#/components/parameters/NewsTo"
+      - "$ref": "#/components/parameters/NewsKind"
+      - "$ref": "#/components/parameters/NewsSource"
+      - "$ref": "#/components/parameters/NewsProvider"
+      - "$ref": "#/components/parameters/NewsSort"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          "$ref": "#/components/responses/NewsFeed"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/companies/{ticker}/prices":
     parameters:
     - "$ref": "#/components/parameters/CompanyTicker"
@@ -4979,6 +5117,114 @@ components:
                       enum: ['4', 4/A]
               disclaimer:
                 type: string
+    NewsFeedResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          maxItems: 100
+          items:
+            "$ref": "#/components/schemas/NewsHeadline"
+        meta:
+          allOf:
+          - "$ref": "#/components/schemas/ReadPageMeta"
+          - type: object
+            required: [status, from, to, entity_resolved, scope, complete, fetched, mention_scope, disclaimer]
+            properties:
+              status:
+                type: string
+                enum: [publication_disabled, identity_unresolved, local_cache]
+              from:
+                type: string
+                format: date
+              to:
+                type: string
+                format: date
+              entity_resolved:
+                type: boolean
+                nullable: true
+                description: Canonical entity availability; null for a watchlist feed.
+              scope:
+                type: string
+                enum: [issuer, fund, person, watchlist]
+              complete:
+                type: boolean
+                nullable: true
+                description: Always null; no complete vendor coverage or freshness is inferred.
+              fetched:
+                type: boolean
+                enum: [false]
+              mention_scope:
+                type: string
+                enum: [matching_feed_entities]
+              disclaimer:
+                type: string
+    NewsHeadline:
+      type: object
+      required: [id, provider, provider_item_id, source, title, url, kind, published_at, observed_at, mentions, mentions_meta]
+      properties:
+        id:
+          type: integer
+        provider:
+          type: string
+        provider_item_id:
+          type: string
+          maxLength: 200
+        source:
+          type: string
+          maxLength: 200
+        title:
+          type: string
+          maxLength: 500
+          description: Original approved plain-text headline, not an article body or generated summary.
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+          pattern: '^https://'
+        kind:
+          type: string
+          enum: [news, press_release, other]
+        published_at:
+          type: string
+          format: date-time
+          description: Publisher time, distinct from the application's first observation.
+        observed_at:
+          type: string
+          format: date-time
+        mentions:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [entity_type, cik, observed_at]
+            properties:
+              entity_type:
+                type: string
+                enum: [issuer, fund, person]
+              cik:
+                "$ref": "#/components/schemas/Cik"
+              observed_at:
+                type: string
+                format: date-time
+                description: First observation of this link; may be later than the story's observation.
+        mentions_meta:
+          type: object
+          required: [total_count, shown, limit, truncated]
+          properties:
+            total_count:
+              type: integer
+              minimum: 0
+            shown:
+              type: integer
+              minimum: 0
+              maximum: 20
+            limit:
+              type: integer
+              enum: [20]
+            truncated:
+              type: boolean
     ReadPageMeta:
       type: object
       required:
@@ -7729,6 +7975,47 @@ components:
       schema:
         type: string
         maxLength: 8192
+    NewsFrom:
+      name: from
+      in: query
+      description: Inclusive UTC publication date. Defaults to 29 days before to. Maximum 366 inclusive days.
+      schema:
+        type: string
+        format: date
+    NewsTo:
+      name: to
+      in: query
+      description: Inclusive UTC publication date, no later than the snapshot date. Defaults to the snapshot date.
+      schema:
+        type: string
+        format: date
+    NewsKind:
+      name: kind
+      in: query
+      schema:
+        type: string
+        enum: [news, press_release, other]
+    NewsSource:
+      name: source
+      in: query
+      description: Exact publisher label; control characters are rejected.
+      schema:
+        type: string
+        maxLength: 200
+    NewsProvider:
+      name: provider
+      in: query
+      description: Exact provider key. This never overrides the publication allowlist.
+      schema:
+        type: string
+        pattern: '^[a-z][a-z0-9_]{0,39}$'
+    NewsSort:
+      name: sort
+      in: query
+      schema:
+        type: string
+        enum: [published_at, '-published_at', observed_at, '-observed_at']
+        default: '-published_at'
     FundCik:
       name: cik
       in: path
@@ -7779,6 +8066,17 @@ components:
       schema:
         "$ref": "#/components/schemas/Cik"
   responses:
+    NewsFeed:
+      description: Stored headline/link metadata and matching canonical mention previews; no external request or complete-coverage claim.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            enum: [no-store]
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/NewsFeedResponse"
     CsvExport:
       description: UTF-8 quoted CSV attachment, CRLF records, at most 1000 rows and
         10 MiB. Empty results retain the header. Decimals are exact strings and

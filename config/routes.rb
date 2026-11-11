@@ -20,6 +20,7 @@ Rails.application.routes.draw do
       get "plans" => "plans#index", as: :plans
       get "dashboard" => "dashboard#show", as: :dashboard
       get "search" => "search#index", as: :search
+      get "news" => "news#index", as: :news
       get "exports/:dataset" => "exports#show", as: :export
       post "webhooks/stripe", to: Billing::StripeWebhookEndpoint.new, as: :stripe_webhook
       get "billing/subscription" => "billing#show", as: :billing_subscription
@@ -54,11 +55,13 @@ Rails.application.routes.draw do
       patch "me/notification-preferences" => "notification_preferences#update"
       get "funds/compare" => "fund_comparisons#show", as: :fund_comparison
       resources :funds, param: :cik, only: %i[index show] do
+        get :news, on: :member
         get :holdings, on: :member
         get :history, on: :member
         get :changes, on: :member
       end
       resources :companies, param: :ticker, only: :show, constraints: { ticker: /[A-Za-z0-9.-]+/ } do
+        get :news, on: :member
         get :prices, on: :member
         get :insiders, on: :member
         get :filings, on: :member
@@ -68,6 +71,7 @@ Rails.application.routes.draw do
       get "insiders/transactions" => "insider_transactions#index", as: :insider_transactions
       get "insiders/clusters" => "insider_clusters#index", as: :insider_clusters
       resources :insiders, param: :cik, only: :show do
+        get :news, on: :member
         get :transactions, on: :member
         get :companies, on: :member
       end

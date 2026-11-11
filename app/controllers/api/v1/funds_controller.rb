@@ -3,7 +3,7 @@
 module Api
   module V1
     class FundsController < BaseController
-      prepend_before_action :private_response!, only: %i[holdings history changes]
+      prepend_before_action :private_response!, only: %i[holdings history changes news]
 
       def index
         values = read_parameters(allowed: %w[q sort limit cursor])
@@ -66,6 +66,11 @@ module Api
           data: result.records.map { |change| PositionChangeSerializer.render(change, reports: sources, as_of: page.as_of) },
           meta: result.meta
         }
+      end
+
+      def news
+        values = read_parameters(allowed: NewsQuery::PARAMETERS, path_keys: [ :cik ])
+        render json: NewsQuery.new(parameters: values, target: { role: "fund", cik: find_fund.cik }, as_of:).call
       end
 
       private

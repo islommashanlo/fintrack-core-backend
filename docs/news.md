@@ -1,9 +1,10 @@
 # News foundation
 
-Local headline storage and an internal provider contract exist. No news provider,
-HTTP transport, scheduled refresh, watchlist query, API route or news alert is
-enabled by this increment. Synthetic fixtures are not real reporting or assumed
-vendor response formats. No additional gem is required.
+Local headline storage, an internal provider contract and bounded local
+[entity/watchlist news feeds](api-v1.md#news-feeds) exist. Headline publication
+defaults to disabled through `NEWS_PUBLIC_PROVIDERS`. No provider, HTTP transport,
+scheduled refresh or news alert is active. Synthetic fixtures are not real
+reporting or assumed vendor response formats. No additional gem is required.
 
 ## Storage and identity
 
@@ -76,27 +77,38 @@ No adapter call runs inside the database transaction, and no alerts/jobs run her
 Headline/source wording is retained exactly. Restricted product language sets
 `suppression_reason: restricted_language`; angle-bracket markup sets `markup`.
 `NewsItem.publishable` excludes both. Suppressed source text is not rewritten or
-turned into generated copy. Future serializers/alerts must use this scope and
-the then-current language policy, and treat text as plain text and links as
-external destinations. The presence of a canonical mention is an explicit link
+turned into generated copy. The read API uses this scope plus current SQL language, markup/control-character
+and HTTPS link checks before pagination. Future alerts must apply equivalent
+current-policy checks and treat text as plain text and links as external destinations. The presence of a canonical mention is an explicit link
 provided to ingestion, not independently verified NLP or endorsement of a story.
 
-## Next increment
+## Read API and next increment
 
-Add bounded local news reads for company, fund, insider and private watchlist
-feeds using existing entity keys, signed cursors and explicit observation cutoffs.
-Keep provider publication approval distinct from storage/fetching configuration;
-do not expose a vendor's headlines before its terms permit it. Refresh scheduling,
-news alert triggers, provider selection/activation and data licensing remain open.
-No real feed freshness, vendor matching quality or API latency has been validated.
+Company, fund and insider feeds reuse the existing profile resolvers and canonical
+CIKs. The private watchlist feed matches current follows in SQL and returns a
+shared item once. It exposes only matching, snapshot-visible mention previews,
+limited to 20 per item in a batched SQL query. Signed cursors bind identities,
+publication policy and observation/row ceilings; watchlist continuations also
+bind user and membership fingerprint. Added or removed follows require a restart.
+Publication defaults to empty and does not enable fetching. See the full
+[news-feed contract](api-v1.md#news-feeds) for parameters and coverage limitations.
+
+Next, add typed news alert rules and matching against approved, locally stored
+headlines, retaining immutable evidence and delivery-time policy checks. Keep
+provider activation, refresh scheduling and real email/push delivery separately
+authorized. Data licensing, provider matching quality, real freshness and API
+latency remain unvalidated. There is no complete-coverage claim.
 
 ## Verification
 
-Local verification: 17 focused examples and the full 1,002-example suite passed
-(full-suite seed 28097). RuboCop passed for 512 Ruby files; language-policy and
-whitespace checks passed. Tests cover metadata/URL boundaries, canonical roles,
-disabled-provider behavior, immutable source wording, suppression, timestamp
-precision, idempotent/additive mentions, duplicate keys, atomic rollback and
-database uniqueness/type constraints. WebMock blocks real HTTP. The migration
-was applied locally in development and test. No deployment, provider/SEC request,
-seeding, enrichment, reprocessing, real email or worker activation occurred.
+Local verification after the news-read APIs: 16 focused feed examples and the full
+1,018-example suite passed (full-suite seed 22783). RuboCop passed for 520 Ruby
+files; language-policy and whitespace checks passed. OpenAPI 1.28.0 contains 68
+unique operations and 837 resolved local references; existing path/component
+contracts were compared with the previous commit and preserved. Request tests
+cover publication defaults, current-policy suppression, canonical role matching,
+observation/row ceilings, date filters, mention caps, duplicate follows, account
+isolation, membership invalidation and ticker reuse. Existing storage tests remain
+green. WebMock blocks real HTTP. This read increment required no migration. No
+deployment, provider/SEC requests, seeding, enrichment, reprocessing, real email
+or worker activation occurred.

@@ -145,5 +145,7 @@ No price fetching, scheduled price jobs or price-based scoring is enabled.
 
 The [news foundation](docs/news.md) stores headline/link metadata and typed mentions
 of existing issuers, funds and insiders. Ingestion is atomic and idempotent; unsafe
-headlines remain stored but suppressed. The provider is disabled, and no news feed,
-refresh job or external request is enabled.
+headlines remain stored but suppressed. Local company/fund/insider news feeds and
+private watchlist news use signed cursors and scoped mention previews. Headline
+publication defaults to disabled; no provider, refresh job or external request is
+enabled.

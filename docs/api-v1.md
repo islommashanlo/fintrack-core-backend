@@ -608,6 +608,74 @@ other-manager count and suspect flags. It is report history, not portfolio
 performance. The quarterly history policy above applies to holdings, changes and
 report-history browsing, with explicit truncation metadata and Pro access.
 
+## News feeds
+
+| Route | Access and identity |
+| --- | --- |
+| `GET /companies/:ticker/news` | Public; the profile's issuer CIK must resolve to an existing issuer `Filer` |
+| `GET /funds/:cik/news` | Public; existing `InstitutionalFiler` |
+| `GET /insiders/:cik/news` | Public; existing insider profile and canonical insider `Filer` |
+| `GET /news?watchlist=true` | Signed-in user only; current issuer/fund/person follows |
+
+All paths are under `/api/v1`. Responses, including errors, use `Cache-Control:
+no-store`. Watchlist is the default for `/news`; `watchlist=false` is rejected.
+There is no unauthenticated global news feed or provider request at this route.
+
+Common filters are `from`/`to` (strict inclusive UTC publication dates), `kind`
+(`news`, `press_release`, `other`), exact publisher `source`, exact `provider`,
+`sort` (`published_at`, `-published_at` default, `observed_at`, `-observed_at`),
+and standard `limit`/`cursor` (1–100, default 50). `to` defaults to the snapshot's
+UTC date and `from` to 29 days before `to`. The maximum inclusive range is 366
+days; reversed, malformed or future ranges and unknown/nested filters return 400.
+
+`data` contains original `provider`, `provider_item_id`, publisher `source`,
+`title`, HTTPS `url`, `kind`, `published_at`, and the application's first
+`observed_at`, plus the internal item `id`. It never contains article bodies,
+generated summaries, or invented SEC provenance. News is external headline data,
+not a normalized SEC filing. Item and mention observation times are distinct
+from publication time.
+
+Each item has at most 20 **matching feed** mentions: `entity_type` (`issuer`,
+`fund`, `person`), canonical `cik`, and the link's `observed_at`. Issuer references
+are CIKs here, not ticker keys. A company feed shows only that issuer; a watchlist
+feed shows only matching follows, even if a story mentions unrelated entities.
+`mentions_meta` reports `total_count`, `shown`, `limit` and `truncated`. Matching
+and preview caps run in SQL and previews load in one batch, without association
+queries per headline. A story matching multiple follows appears once.
+
+`NEWS_PUBLIC_PROVIDERS` is a separate, default-empty headline publication
+allowlist. Listing a provider requires approval of its publication terms and does
+not configure fetching. Caller filters cannot override it. Only approved,
+unsuppressed stories are eligible. Reads also apply the current product-language
+pattern, markup/control-character checks and a credential-free HTTPS link shape
+check before counting/pagination, so unsupported legacy rows cannot publish unsafe
+labels or link schemes. Stored metadata is not rewritten. Consumers render title
+and source as plain text and treat links as external destinations.
+
+Signed cursors pin the date window, item/mention/filing/follow ID ceilings and
+observation cutoff. Backdated inserts and newly added or future-observed mentions
+do not enter older pages. Cursors are bound to entity identity, filters, sort,
+publication allowlist and current language pattern. Watchlist cursors also bind
+the user and a SQL fingerprint of current active memberships; add/remove/re-follow
+changes require restarting pagination with 400. Another user cannot reuse them.
+Changing page size is allowed. Normal cursor expiry remains 24 hours.
+
+Watchlist issuer keys resolve through the latest visible parsed Form 4 / 4-A for
+that exact ticker, within the snapshot. Previous issuer CIKs are not merged into
+a reused ticker. A ticker known only through security mappings does not invent a
+news issuer identity. Current canonical roles are checked for every mention;
+there is no name matching, ticker enrichment or creation of missing records.
+
+Standard page metadata describes eligible local stories. Additional metadata is
+`status` (`publication_disabled`, `identity_unresolved`, `local_cache`), the
+resolved `from`/`to`, `scope` (`issuer`, `fund`, `person`, `watchlist`),
+`entity_resolved` (null for watchlists), `mention_scope: matching_feed_entities`,
+`complete: null`, `fetched: false`, and the product disclaimer. Existing profiles
+without a compatible canonical news entity return an empty unresolved feed;
+unknown profiles return 404. Empty feeds never assert complete vendor coverage
+or freshness. No read queues refreshes or news alerts, and no provider, news
+schedule or delivery was activated.
+
 ## Company prices
 
 `GET /api/v1/companies/:ticker/prices` reads stored daily OHLCV only. It never

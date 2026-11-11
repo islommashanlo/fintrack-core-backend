@@ -3,7 +3,7 @@
 module Api
   module V1
     class CompaniesController < BaseController
-      prepend_before_action :private_response!, only: %i[institutional history prices]
+      prepend_before_action :private_response!, only: %i[institutional history prices news]
 
       def show
         read_parameters(allowed: [], path_keys: [ :ticker ])
@@ -63,6 +63,11 @@ module Api
       def prices
         values = read_parameters(allowed: CompanyPricesQuery::PARAMETERS, path_keys: [ :ticker ])
         render json: CompanyPricesQuery.new(company:, parameters: values, as_of:).call
+      end
+
+      def news
+        values = read_parameters(allowed: NewsQuery::PARAMETERS, path_keys: [ :ticker ])
+        render json: NewsQuery.new(parameters: values, target: { role: "issuer", cik: company.issuer_cik }, as_of:).call
       end
 
       private
