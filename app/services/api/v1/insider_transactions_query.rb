@@ -21,15 +21,16 @@ module Api
       PARAMETERS = (FILTERS + %w[sort limit cursor]).freeze
       Result = Data.define(:records, :meta)
 
-      def initialize(parameters:, as_of: Time.current)
+      def initialize(parameters:, as_of: Time.current, maximum_limit: 100, cursor_context: nil)
         @parameters = parameters.stringify_keys
+        @cursor_context = cursor_context
         validate_parameters!
         @filters = normalized_filters
         @sort = @parameters.fetch("sort", "-filed_at")
         @sort_field = @sort.delete_prefix("-")
         invalid!("sort") unless SORT_COLUMNS.key?(@sort_field)
         @limit = Integer(@parameters.fetch("limit", "50"), 10)
-        invalid!("limit") unless @limit.between?(1, 100)
+        invalid!("limit") unless @limit.between?(1, maximum_limit)
         @snapshot = snapshot(as_of)
       rescue ArgumentError
         invalid!("limit")
@@ -118,7 +119,8 @@ module Api
 
         invalid!("cursor") if @parameters["cursor"].bytesize > 8192
         payload = verifier.verified(@parameters["cursor"], purpose: "pagination")
-        unless payload.is_a?(Hash) && payload["version"] == 1 && payload["filters"] == @filters && payload["sort"] == @sort
+        unless payload.is_a?(Hash) && payload["version"] == 1 && payload["filters"] == @filters && payload["sort"] == @sort &&
+            payload["context"] == @cursor_context
           invalid!("cursor")
         end
         payload
@@ -179,6 +181,7 @@ module Api
         end
         payload = @snapshot.merge("version" => 1, "filters" => @filters, "sort" => @sort,
                                   "last_id" => record.id, "last_value" => value)
+        payload["context"] = @cursor_context if @cursor_context
         verifier.generate(payload, purpose: "pagination", expires_in: 24.hours)
       end
 

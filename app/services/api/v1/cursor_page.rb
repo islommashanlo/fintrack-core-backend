@@ -8,13 +8,13 @@ module Api
       Result = Data.define(:records, :meta)
       attr_reader :as_of
 
-      def initialize(parameters:, context:, sorts:, default_sort:, bounds: {}, as_of: Time.current, captured_bounds: nil)
+      def initialize(parameters:, context:, sorts:, default_sort:, bounds: {}, as_of: Time.current, captured_bounds: nil, maximum_limit: 100)
         @sorts = sorts
         @sort = parameters.fetch("sort", default_sort)
         @field = @sort.delete_prefix("-")
         invalid!("sort") unless @sorts.key?(@field)
         @limit = Integer(parameters.fetch("limit", "50"), 10)
-        invalid!("limit") unless @limit.between?(1, 100)
+        invalid!("limit") unless @limit.between?(1, maximum_limit)
         @context = context.merge("filters" => parameters.except("cursor", "limit", "sort"), "sort" => @sort)
         @snapshot = restore(parameters["cursor"]) || {
           "as_of" => as_of.iso8601(6), "bounds" => captured_bounds || bounds.transform_values { |model| model.maximum(:id) || 0 }

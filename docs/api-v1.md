@@ -7,6 +7,78 @@ built. The machine-readable contract is in
 
 Data from public SEC filings. Not investment advice.
 
+## CSV exports (Pro)
+
+These GET routes download locally stored data using the existing read queries and
+serializers. A signed-in account with currently verified Pro access is required.
+No request fetches filings, enriches identities, writes records or queues work.
+
+| Route | Filters and sort |
+| --- | --- |
+| `/api/v1/exports/insider-transactions` | Same filters/sorts as `/insiders/transactions`, including ticker, insider CIK, role, codes, direction, security table, transaction dates and value bounds |
+| `/api/v1/exports/fund-holdings?cik=0008000001` | Required 10-digit fund CIK; optional period, CUSIP, put/call, share type and existing holdings sorts |
+| `/api/v1/exports/fund-changes?cik=0008000001` | Required 10-digit fund CIK; optional period, change_type and existing changes sorts |
+
+Every export supports `limit` (1–1,000, default 1,000) and a signed `cursor`.
+Ordinary JSON lists retain their 100-row maximum. Holdings remain one row per
+reported information-table line, including repeated CUSIPs and options. Both
+reporting owners remain visible for joint insider filings. Effective amendment
+resolution, missing/suspect values and prior-period change calculations match the
+corresponding JSON endpoints. Pro exports permit older report periods. Omitted
+fund periods are resolved once and pinned inside the cursor.
+
+Success is a UTF-8 `text/csv` attachment with a fixed server-generated filename,
+one header record, CRLF record separators and a maximum size of 10 MiB. An empty
+result returns the header alone. All cells are quoted; embedded quotes are doubled
+and embedded line breaks remain inside their cells. Unknown values are blank;
+booleans are `true`/`false`, decimals use exact plain strings, dates are ISO dates,
+and timestamps are ISO 8601. Identifiers retain leading zeroes in the file; import
+CIKs/CUSIPs as text in spreadsheet software to preserve them on display.
+
+Headers use the corresponding serializer field names. Nested scalar fields use
+dot notation, such as `issuer.cik`, `role.officer_title`, `fund.cik` and
+`voting_authority.sole`. Transaction and holdings exports include their row IDs,
+reported values, classification/quality flags and source fields. Changes add the
+fund identity, both periods, quantities/deltas/flags, and full `current_sources` /
+`prior_sources` arrays encoded as JSON cells. Each row includes `accession`,
+`sec_url`, `form_type`, `filed_at`, `accepted_at`, `ingested_at`,
+`period_of_report`, `data_age_days` and the disclaimer. Raw filing XML is not
+included. Column order is fixed per dataset in `Api::V1::CsvDocument::COLUMNS`.
+
+Text cells that begin with formula-like `=`, `+`, `-` or `@` (including after
+whitespace/control/format characters), or with tab/CR/LF, receive a literal leading
+apostrophe. This is an export representation; stored reported text remains intact.
+Typed negative decimal amounts remain negative numbers. Consumers needing the
+unmodified text can use the JSON/source APIs.
+
+Pagination and limits are disclosed in response headers:
+
+| Header | Meaning |
+| --- | --- |
+| `X-Export-Row-Count` | Data rows in this file, excluding its header |
+| `X-Export-Total-Count` | All matching snapshot rows before the cursor boundary |
+| `X-Export-Has-More` | `true` when another page is available |
+| `X-Export-Next-Cursor` | Signed continuation; omitted on the last page |
+| `X-Export-As-Of` | Pinned snapshot time |
+| `X-Export-Sort` | Resolved sort; repeat it while paging |
+| `X-Export-Row-Limit` | Technical maximum, currently `1000` |
+
+Repeat the dataset, filters and sort when continuing. Page size may change. Cursors
+expire in 24 hours and bind the dataset, account and export context; they cannot
+be exchanged with JSON cursors or another account/dataset. Every request rechecks
+Pro eligibility, including after a cancellation. Snapshot ingestion ID ceilings
+exclude late inserts; updates to existing rows can still affect later pages.
+
+All responses, including errors, are `Cache-Control: no-store`. Errors are JSON:
+401 without a session, 402 `{ code: "PRO_REQUIRED", feature: "csv_export", limit: 0 }`
+without Pro, 400 for invalid filters/limits/cursors, and 404 for an unknown dataset
+or fund. Exceeding 10 MiB returns 422 `EXPORT_TOO_LARGE` without a partial CSV;
+narrow filters or reduce `limit`. Exports additionally allow 10 requests per
+minute per account and 30 per minute per IP, sharing Redis; 429 includes
+`Retry-After`, and limiter failure returns 503. Normal API throttles also apply.
+The configured exact frontend origin can read the export headers and
+`Content-Disposition` through CORS; fetch with credentials enabled.
+
 ## Fund comparison
 
 `GET /api/v1/funds/compare?ciks=0008000001,0008000002` compares locally stored

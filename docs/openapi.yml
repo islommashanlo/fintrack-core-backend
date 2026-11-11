@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.21.0
+  version: 1.22.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -131,6 +131,135 @@ paths:
                 "$ref": "#/components/schemas/SearchResponse"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/exports/insider-transactions":
+    get:
+      operationId: exportInsiderTransactions
+      summary: Download Pro CSV of filtered reported insider transactions
+      description: Private, no-store CSV attachment. Reuses effective Form 4 reads,
+        including multiple owners, derivative rows and suspect reported values.
+        Exact decimals and source provenance; text formula prefixes are escaped.
+        Up to 1000 rows and 10 MiB per file. Signed cursors bind account and export
+        context; JSON cursors are incompatible. No provider requests or writes.
+        Ten export requests per account and thirty per IP per minute.
+      security:
+      - CookieSession: []
+      parameters:
+      - "$ref": "#/components/parameters/TransactionType"
+      - "$ref": "#/components/parameters/TransactionCode"
+      - "$ref": "#/components/parameters/TransactionDirection"
+      - "$ref": "#/components/parameters/TransactionRole"
+      - "$ref": "#/components/parameters/TransactionInsiderCik"
+      - "$ref": "#/components/parameters/TransactionIssuerCik"
+      - "$ref": "#/components/parameters/TransactionTicker"
+      - "$ref": "#/components/parameters/TransactionSecurityTable"
+      - "$ref": "#/components/parameters/TransactionMinValue"
+      - "$ref": "#/components/parameters/TransactionMaxValue"
+      - "$ref": "#/components/parameters/TransactionDateFrom"
+      - "$ref": "#/components/parameters/TransactionDateTo"
+      - "$ref": "#/components/parameters/TransactionSort"
+      - "$ref": "#/components/parameters/ExportLimit"
+      - "$ref": "#/components/parameters/ExportCursor"
+      responses:
+        '200':
+          "$ref": "#/components/responses/CsvExport"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '422':
+          "$ref": "#/components/responses/ExportTooLarge"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/exports/fund-holdings":
+    get:
+      operationId: exportFundHoldings
+      summary: Download Pro CSV of effective reported 13F holding rows
+      description: Private, no-store. Uses original units, normalized values,
+        suspect flags and separate repeated/option rows. Latest default period is
+        pinned; older periods allowed for verified Pro. Source provenance and
+        spreadsheet-safe text. Up to 1000 rows and 10 MiB per file, with signed
+        account-bound cursors. No external requests, enrichment, writes or jobs.
+      security:
+      - CookieSession: []
+      parameters:
+      - "$ref": "#/components/parameters/ExportFundCik"
+      - "$ref": "#/components/parameters/Period"
+      - "$ref": "#/components/parameters/Cusip"
+      - "$ref": "#/components/parameters/PutCall"
+      - "$ref": "#/components/parameters/ShareType"
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum: [value_usd, "-value_usd", shares, "-shares", cusip, "-cusip", row_sequence, "-row_sequence"]
+          default: "-value_usd"
+      - "$ref": "#/components/parameters/ExportLimit"
+      - "$ref": "#/components/parameters/ExportCursor"
+      responses:
+        '200':
+          "$ref": "#/components/responses/CsvExport"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/ExportTooLarge"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/exports/fund-changes":
+    get:
+      operationId: exportFundChanges
+      summary: Download Pro CSV of derived fund position changes
+      description: Private, no-store. Reuses the preceding available period and
+        existing amendment/quality logic. Includes fund identity, exact deltas and
+        full current/prior source arrays as JSON cells, including older baselines.
+        Default period pinned. Up to 1000 rows and 10 MiB per file, with signed
+        account-bound cursors. No provider requests, writes or jobs.
+      security:
+      - CookieSession: []
+      parameters:
+      - "$ref": "#/components/parameters/ExportFundCik"
+      - "$ref": "#/components/parameters/Period"
+      - name: change_type
+        in: query
+        schema:
+          type: string
+          enum: [new, added, reduced, exited]
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum: [value_change, "-value_change", shares_change, "-shares_change", cusip, "-cusip"]
+          default: "-value_change"
+      - "$ref": "#/components/parameters/ExportLimit"
+      - "$ref": "#/components/parameters/ExportCursor"
+      responses:
+        '200':
+          "$ref": "#/components/responses/CsvExport"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/ExportTooLarge"
         '429':
           "$ref": "#/components/responses/RateLimited"
         '503':
@@ -7030,6 +7159,29 @@ components:
         configured:
           type: boolean
   parameters:
+    ExportLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 1000
+    ExportCursor:
+      name: cursor
+      in: query
+      description: X-Export-Next-Cursor from the prior file. Repeat dataset, filters
+        and sort; limit may change. Bound to account/export context, expires in
+        24 hours. Verified Pro is rechecked. Incompatible with JSON list cursors.
+      schema:
+        type: string
+        maxLength: 8192
+    ExportFundCik:
+      name: cik
+      in: query
+      required: true
+      schema:
+        "$ref": "#/components/schemas/Cik"
     TransactionType:
       name: type
       in: query
@@ -7190,6 +7342,64 @@ components:
       schema:
         "$ref": "#/components/schemas/Cik"
   responses:
+    CsvExport:
+      description: UTF-8 quoted CSV attachment, CRLF records, at most 1000 rows and
+        10 MiB. Empty results retain the header. Decimals are exact strings and
+        unknown values blank; nested scalar headers use dot notation and source
+        arrays are JSON cells. Every row includes filing provenance and disclaimer.
+        Text formula prefixes receive a literal apostrophe; typed negative numbers
+        remain unchanged. See docs/api-v1.md for dataset columns and continuation.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            enum: [no-store]
+        Content-Disposition:
+          description: Attachment with a server-generated dataset/snapshot filename.
+          schema:
+            type: string
+        X-Export-Row-Count:
+          description: Data rows in this file, excluding header.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 1000
+        X-Export-Total-Count:
+          description: Matching snapshot rows before the cursor boundary.
+          schema:
+            type: integer
+            minimum: 0
+        X-Export-Has-More:
+          schema:
+            type: boolean
+        X-Export-Next-Cursor:
+          description: Signed continuation; omitted on the last page. Repeat filters and sort.
+          schema:
+            type: string
+            maxLength: 8192
+        X-Export-As-Of:
+          schema:
+            type: string
+            format: date-time
+        X-Export-Sort:
+          schema:
+            type: string
+        X-Export-Row-Limit:
+          schema:
+            type: integer
+            enum: [1000]
+      content:
+        text/csv:
+          schema:
+            type: string
+            format: binary
+    ExportTooLarge:
+      description: JSON EXPORT_TOO_LARGE error; no partial CSV. Narrow filters or
+        reduce limit to keep the file under 10 MiB.
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/AccountError"
     InvalidParameter:
       description: Unknown or malformed parameter, invalid range, invalid or expired
         cursor.

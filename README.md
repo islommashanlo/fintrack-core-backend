@@ -73,6 +73,11 @@ local holdings, using the same history policy. It separates security keys, repor
 coverage and source evidence, and leaves missing coverage unknown. It does not
 estimate marketwide ownership or fill missing quarters. See `docs/api-v1.md`.
 
+Pro CSV downloads are available under `/api/v1/exports/insider-transactions`,
+`fund-holdings` and `fund-changes`. They reuse the existing filters/source evidence,
+with 1,000-row pages, signed account-bound cursors, formula-safe text and a 10 MiB
+file limit. Export metadata is returned in headers. See `docs/api-v1.md`.
+
 Public `/api/v1/search?q=...` groups ranked local company, fund and insider results.
 It supports exact identifiers, name prefixes/substrings, fuzzy names and signed
 per-group cursors. Local migrations enable PostgreSQL `pg_trgm`; no provider or

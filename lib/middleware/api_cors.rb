@@ -7,6 +7,8 @@ module Middleware
   class ApiCors
     METHODS = %w[GET HEAD POST PATCH DELETE OPTIONS].freeze
     HEADERS = %w[content-type x-csrf-token accept].freeze
+    EXPOSED_HEADERS = %w[Retry-After Content-Disposition X-Export-Row-Count X-Export-Total-Count
+      X-Export-Has-More X-Export-Next-Cursor X-Export-As-Of X-Export-Sort X-Export-Row-Limit].freeze
 
     def self.origin
       value = ENV["FRONTEND_ORIGIN"]
@@ -53,7 +55,7 @@ module Middleware
 
     def cors_headers(origin)
       { "access-control-allow-origin" => origin, "access-control-allow-credentials" => "true",
-        "access-control-expose-headers" => "Retry-After", "vary" => "Origin" }
+        "access-control-expose-headers" => EXPOSED_HEADERS.join(", "), "vary" => "Origin" }
     end
   end
 end

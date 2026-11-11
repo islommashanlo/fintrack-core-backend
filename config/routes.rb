@@ -20,6 +20,7 @@ Rails.application.routes.draw do
       get "plans" => "plans#index", as: :plans
       get "dashboard" => "dashboard#show", as: :dashboard
       get "search" => "search#index", as: :search
+      get "exports/:dataset" => "exports#show", as: :export
       post "webhooks/stripe", to: Billing::StripeWebhookEndpoint.new, as: :stripe_webhook
       get "billing/subscription" => "billing#show", as: :billing_subscription
       post "billing/checkout" => "billing#checkout", as: :billing_checkout
