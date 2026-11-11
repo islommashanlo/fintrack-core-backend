@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Email preferences</title></head>
+<body><h1>Stop filing alert emails</h1>
+<form method="post" action="<%= email_unsubscribe_path(token: params[:token]) %>">
+  <input type="hidden" name="List-Unsubscribe" value="One-Click">
+  <button type="submit">Unsubscribe from filing alert emails</button>
+</form></body></html>

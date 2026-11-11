@@ -6,12 +6,13 @@ module Api
       def self.for_user(user)
         {
           capabilities: {
-            rule_creation: false, rule_deletion: false, pause_rules: true,
-            resume_rules: !!PlanCatalog.limit_for(user, :instant_alerts),
-            daily_digest: false, condition_filters: false, read_tracking: false
+            rule_creation: true, rule_deletion: true, pause_rules: true,
+            resume_rules: true, instant_alerts: !!PlanCatalog.limit_for(user, :instant_alerts),
+            daily_digest: true, condition_filters: false, read_tracking: true
           },
           limits: { alert_rules: PlanCatalog.limit_for(user, :alert_rules) },
-          supported_triggers: %w[new_filing], supported_channels: %w[email], supported_frequencies: %w[instant]
+          supported_triggers: %w[new_filing], supported_channels: %w[email],
+          supported_frequencies: PlanCatalog.limit_for(user, :instant_alerts) ? %w[daily_digest instant] : %w[daily_digest]
         }
       end
     end

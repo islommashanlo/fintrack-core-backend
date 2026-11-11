@@ -84,7 +84,7 @@ class FollowedActivity
         INNER JOIN form4_activity
           ON (follows.target_type = 'Insider' AND form4_activity.insider_cik = follows.target_key)
           OR (follows.target_type = 'Ticker' AND form4_activity.issuer_ticker = follows.target_key)
-        WHERE follows.user_id = :user_id
+        WHERE follows.user_id = :user_id AND follows.removed_at IS NULL
           AND follows.target_type IN ('Insider', 'Ticker')
 
         UNION ALL
@@ -115,7 +115,7 @@ class FollowedActivity
           ON reports.institutional_filer_id = institutions.id
          AND reports.status = 'parsed'
         INNER JOIN filings ON filings.id = reports.filing_id
-        WHERE follows.user_id = :user_id
+        WHERE follows.user_id = :user_id AND follows.removed_at IS NULL
           AND follows.target_type = 'InstitutionalFiler'
           AND COALESCE(reports.filed_at, filings.filed_at) > :since
           AND COALESCE(reports.filed_at, filings.filed_at) <= :as_of

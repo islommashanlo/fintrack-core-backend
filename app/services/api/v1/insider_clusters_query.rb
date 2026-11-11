@@ -78,8 +78,8 @@ module Api
       end
 
       def watchlist_sql
-        ApplicationRecord.sanitize_sql([ <<~SQL, user_id: @user.id, max_follow: @page.bound("follows"), max_tx: @page.bound("transactions") ])
-          EXISTS (SELECT 1 FROM follows WHERE follows.user_id = :user_id AND follows.id <= :max_follow AND (
+        ApplicationRecord.sanitize_sql([ <<~SQL, user_id: @user.id, max_follow: @page.bound("follows"), max_tx: @page.bound("transactions"), snapshot: @page.as_of ])
+          EXISTS (SELECT 1 FROM follows WHERE follows.user_id = :user_id AND follows.removed_at IS NULL AND follows.followed_at <= :snapshot AND follows.id <= :max_follow AND (
             (follows.target_type = 'Ticker' AND follows.target_key = UPPER(clusters.issuer_ticker))
             OR (follows.target_type = 'Insider' AND EXISTS (
               SELECT 1 FROM insider_transactions canonical INNER JOIN insider_transactions owners

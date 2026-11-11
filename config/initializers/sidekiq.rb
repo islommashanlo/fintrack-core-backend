@@ -2,20 +2,17 @@
 
 require "sidekiq"
 require "sidekiq-cron"
+require_relative "../../lib/notification_workers"
 
 redis_config = { url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0") }
 
 Sidekiq.configure_server do |config|
   config.redis = redis_config
+  NotificationWorkers.configure(config)
 
-  # Polling the SEC is opt-in. The schedule is loaded only when EDGAR_POLLING=on, and a
-  # schedule left in Redis by an earlier run is removed when it is off.
+  # Application scheduling remains enabled when SEC polling is off.
   config.on(:startup) do
-    if ENV["EDGAR_POLLING"] == "on"
-      Sidekiq::Cron::Job.load_from_hash!(CronSchedule.jobs)
-    else
-      Sidekiq::Cron::Job.destroy_all!
-    end
+    CronSchedule.load!
   end
 end
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_10_05_000001) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_10_233500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -22,16 +22,69 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_000001) do
     t.text "error"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "frequency", default: "instant", null: false
     t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true
     t.index ["alert_rule_id"], name: "index_alert_deliveries_on_alert_rule_id"
     t.index ["filing_id"], name: "index_alert_deliveries_on_filing_id"
+    t.check_constraint "frequency::text = ANY (ARRAY['instant'::character varying::text, 'daily_digest'::character varying::text])", name: "alert_delivery_frequency"
+  end
+
+  create_table "alert_digest_batches", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.date "local_date", null: false
+    t.string "time_zone", null: false
+    t.string "status", default: "pending", null: false
+    t.datetime "started_at"
+    t.datetime "delivered_at"
+    t.text "error"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["status", "created_at"], name: "index_alert_digest_batches_on_status_and_created_at"
+    t.index ["user_id", "local_date"], name: "index_alert_digest_batches_on_user_id_and_local_date", unique: true
+    t.index ["user_id"], name: "index_alert_digest_batches_on_user_id"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'sending'::character varying::text, 'sent'::character varying::text, 'failed'::character varying::text, 'canceled'::character varying::text])", name: "alert_digest_status"
+  end
+
+  create_table "alert_digest_items", force: :cascade do |t|
+    t.bigint "alert_digest_batch_id", null: false
+    t.bigint "alert_delivery_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["alert_delivery_id"], name: "index_alert_digest_items_on_alert_delivery_id", unique: true
+    t.index ["alert_digest_batch_id"], name: "index_alert_digest_items_on_alert_digest_batch_id"
+  end
+
+  create_table "alert_event_states", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "alert_delivery_id", null: false
+    t.datetime "read_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["alert_delivery_id"], name: "index_alert_event_states_on_alert_delivery_id"
+    t.index ["user_id", "alert_delivery_id"], name: "index_alert_event_states_on_user_id_and_alert_delivery_id", unique: true
+    t.index ["user_id", "read_at"], name: "index_alert_event_states_on_user_id_and_read_at"
+    t.index ["user_id"], name: "index_alert_event_states_on_user_id"
+  end
+
+  create_table "alert_rule_settings", force: :cascade do |t|
+    t.bigint "alert_rule_id", null: false
+    t.string "frequency", default: "daily_digest", null: false
+    t.jsonb "conditions", default: {}, null: false
+    t.datetime "enabled_at"
+    t.datetime "archived_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["alert_rule_id"], name: "index_alert_rule_settings_on_alert_rule_id", unique: true
+    t.index ["frequency", "archived_at"], name: "index_alert_rule_settings_on_frequency_and_archived_at"
+    t.check_constraint "frequency::text = ANY (ARRAY['instant'::character varying::text, 'daily_digest'::character varying::text])", name: "alert_setting_frequency"
+    t.check_constraint "jsonb_typeof(conditions) = 'object'::text", name: "alert_setting_conditions_object"
   end
 
   create_table "alert_rules", force: :cascade do |t|
     t.bigint "follow_id", null: false
     t.string "event_type", default: "new_filing", null: false
     t.string "channel", default: "email", null: false
-    t.boolean "active", default: true, null: false
+    t.boolean "active", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["follow_id", "event_type", "channel"], name: "index_alert_rules_on_follow_id_and_event_type_and_channel", unique: true
@@ -121,6 +174,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_000001) do
     t.string "target_key", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "removed_at"
+    t.datetime "followed_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.index ["user_id", "removed_at"], name: "index_follows_on_user_id_and_removed_at"
     t.index ["user_id", "target_type", "target_key"], name: "index_follows_on_user_id_and_target_type_and_target_key", unique: true
     t.index ["user_id"], name: "index_follows_on_user_id"
   end
@@ -246,6 +302,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_000001) do
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'parsed'::character varying::text, 'failed'::character varying::text, 'skipped'::character varying::text])", name: "institutional_reports_status_check"
   end
 
+  create_table "notification_preferences", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "time_zone"
+    t.boolean "email_enabled", default: false, null: false
+    t.datetime "email_enabled_at"
+    t.integer "unsubscribe_version", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_notification_preferences_on_user_id", unique: true
+    t.check_constraint "unsubscribe_version >= 0", name: "notification_unsubscribe_version"
+  end
+
   create_table "parse_failures", force: :cascade do |t|
     t.string "accession_no", null: false
     t.text "error", null: false
@@ -320,6 +388,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_000001) do
 
   add_foreign_key "alert_deliveries", "alert_rules"
   add_foreign_key "alert_deliveries", "filings"
+  add_foreign_key "alert_digest_batches", "users"
+  add_foreign_key "alert_digest_items", "alert_deliveries"
+  add_foreign_key "alert_digest_items", "alert_digest_batches"
+  add_foreign_key "alert_event_states", "alert_deliveries"
+  add_foreign_key "alert_event_states", "users"
+  add_foreign_key "alert_rule_settings", "alert_rules"
   add_foreign_key "alert_rules", "follows"
   add_foreign_key "cusip_security_mappings", "securities"
   add_foreign_key "follows", "users"
@@ -328,6 +402,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_10_05_000001) do
   add_foreign_key "institutional_report_managers", "institutional_reports"
   add_foreign_key "institutional_reports", "filings"
   add_foreign_key "institutional_reports", "institutional_filers"
+  add_foreign_key "notification_preferences", "users"
   add_foreign_key "position_diffs", "institutional_filers"
   add_foreign_key "position_diffs", "institutional_reports"
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"

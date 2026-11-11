@@ -3,13 +3,13 @@
 module Api
   module V1
     class WatchlistQuery
-      SORTS = { "created_at" => "follows.created_at", "entity_key" => "follows.target_key" }.freeze
+      SORTS = { "created_at" => "follows.followed_at", "entity_key" => "follows.target_key" }.freeze
 
       def self.call(user:, page:, entity_type: nil)
         if entity_type && !WatchlistTarget::TYPES.key?(entity_type)
           raise InvalidParameter, "Invalid entity_type parameter"
         end
-        follows = user.follows.where("id <= ?", page.bound("follows"))
+        follows = user.follows.current.where("id <= ? AND followed_at <= ?", page.bound("follows"), page.as_of)
         follows = follows.where(target_type: WatchlistTarget::TYPES.fetch(entity_type)) if entity_type
         sql = ApplicationRecord.sanitize_sql([ <<~SQL, as_of: page.as_of ])
           SELECT follows.*, COALESCE(CASE follows.target_type

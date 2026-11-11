@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.9.0
+  version: 1.10.0
   description: Implemented account, watchlist, plan-catalog and filing-data read APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -985,9 +985,9 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
         '401':
           "$ref": "#/components/responses/AccountUnauthorized"
-      description: Normal cursor envelope; signed cursors also bind the authenticated
-        user. Membership inserts after the first-page snapshot are excluded; labels
-        can refresh from local profile data.
+      description: Private current memberships with signed cursor pagination. Current
+        membership start (followed_at) is exposed/sorted as created_at; later restorations
+        do not enter older cursors.
     post:
       operationId: addWatchlistItem
       summary: Add a local profile to the watchlist
@@ -1091,8 +1091,9 @@ paths:
                   type: integer
                   minimum: 1
               additionalProperties: false
-      description: Equivalent to DELETE /watchlist/{id}. Removes only the user-owned
-        item and its linked private alert records.
+      description: Soft-remove the owned membership, pause/archive its rule and retain
+        delivery history. Re-follow restores the same follow ID without enabling email.
+        Shared SEC data remains intact.
   "/watchlist/{id}":
     delete:
       operationId: removeWatchlistItem
@@ -1116,8 +1117,9 @@ paths:
           "$ref": "#/components/responses/InvalidCsrfToken"
         '404':
           "$ref": "#/components/responses/NotFound"
-      description: An item owned by another user returns 404. Linked private alert
-        records are removed; public filings remain stored.
+      description: Soft-remove the owned membership, pause/archive its rule and retain
+        delivery history. Re-follow restores the same follow ID without enabling email.
+        Shared SEC data remains intact.
     parameters:
     - name: id
       in: path
@@ -1519,10 +1521,10 @@ paths:
       summary: List owned legacy filing-email rules
       security:
       - CookieSession: []
-      description: Owned follow-scoped new_filing/email rules. frequency=instant describes
-        the current delivery engine. Creation/deletion, conditions, digests and read
-        tracking are explicitly unavailable. Lists preserve legacy rules even above
-        current plan limits; active state is mutable between pages.
+      description: Owned unarchived filing/email rules with stored frequency. Free
+        supported frequencies contain daily_digest; paused rules count toward the
+        three-rule limit. Legacy over-limit rules remain readable. Ownership and cursor
+        snapshots are enforced; current active state remains mutable.
       parameters:
       - name: entity_type
         in: query
@@ -1586,6 +1588,68 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+    post:
+      operationId: createAlertRule
+      summary: Create or restore an owned follow-scoped filing email rule
+      description: New rules default to paused daily digests. The same follow/trigger/channel
+        reuses the same ID. Free limits count unarchived drafts and active rules.
+        Activation requires explicit email consent/time zone; instant configuration
+        is server-gated. Only new_filing/email and empty conditions are supported;
+        no old filings are reprocessed.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/FilingAlertRuleCreate"
+      responses:
+        '201':
+          description: New or restored rule.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/FilingAlertRule"
+                  meta:
+                    "$ref": "#/components/schemas/FilingAlertCapabilities"
+        '200':
+          description: Existing rule, optionally updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/FilingAlertRule"
+                  meta:
+                    "$ref": "#/components/schemas/FilingAlertCapabilities"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/AccountValidationFailed"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/alert-rules/{id}":
     parameters:
     - name: id
@@ -1597,27 +1661,21 @@ paths:
         minimum: 1
     patch:
       operationId: updateAlertRuleActiveState
-      summary: Pause an owned rule or resume with a trusted instant-alert entitlement
+      summary: Update owned filing-email rule activity or frequency
       security:
       - CookieSession: []
         CsrfToken: []
-      description: Only a JSON boolean active is accepted. Pause preserves rules and
-        deliveries and is idempotent. Free activation returns PRO_REQUIRED/instant_alerts/0;
-        entitled inactive-to-active transitions also check the rule limit under a
-        user-row lock. An unowned rule returns 404 before plan checks. No mail is
-        queued or old filings reprocessed. In-flight mail cannot be recalled.
+      description: Only implemented trigger/channel/empty conditions are accepted.
+        Activation requires consent/time zone and quota; Free instant configuration
+        returns PRO_REQUIRED/instant_alerts/0. Frequency changes require pause, which
+        can be included in the same PATCH. Queued deliveries retain their original
+        frequency. Unowned rules return 404 before plan checks.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required:
-              - active
-              properties:
-                active:
-                  type: boolean
-              additionalProperties: false
+              "$ref": "#/components/schemas/FilingAlertRuleUpdate"
       responses:
         '200':
           description: Updated rule and supported capabilities.
@@ -1647,17 +1705,41 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+        '422':
+          "$ref": "#/components/responses/AccountValidationFailed"
+    delete:
+      operationId: archiveAlertRule
+      summary: Archive and pause an owned rule while retaining history
+      description: Idempotent archival frees a rule slot without deleting delivery
+        or read records. Re-creation can restore the same ID.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      responses:
+        '204':
+          description: Rule archived.
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/alert-events":
     get:
       operationId: listAlertEvents
       summary: Read owned filing-alert delivery history
       security:
       - CookieSession: []
-      description: Lists owned delivery attempts, not read/unread notifications. Each
-        row includes SEC provenance; provider error text stays private. Dates filter
-        delivery creation in UTC. Cursors bind owner, route, filters and source-ID
-        bounds. Current delivery status may change between requests. Unknown capabilities
-        remain explicitly false.
+      description: Owned delivery history with independent read_at timestamps and
+        frequency captured at matching time. Dates filter UTC delivery creation. Provider
+        error text remains private. Owner/route/filter-bound cursors exclude later
+        source IDs; read/delivery state can change between pages.
       parameters:
       - name: entity_type
         in: query
@@ -1718,6 +1800,10 @@ paths:
           - status
           - "-status"
           default: "-created_at"
+      - name: unread
+        in: query
+        schema:
+          type: boolean
       responses:
         '200':
           description: Owned rows and signed cursor/capability metadata; no-store.
@@ -1740,6 +1826,261 @@ paths:
           "$ref": "#/components/responses/InvalidParameter"
         '401':
           "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/alert-events/{id}/read":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    post:
+      operationId: readAlertEvent
+      summary: Mark one owned alert event read
+      description: Repeated acknowledgement preserves the first read timestamp. Sending
+        status is independent of read state. No email is sent.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      responses:
+        '200':
+          description: First read timestamp.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - id
+                    - read_at
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      read_at:
+                        type: string
+                        format: date-time
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/alert-events/read-all":
+    post:
+      operationId: readAllAlertEvents
+      summary: Acknowledge the owned event set through a captured ID bound
+      description: Uses ownership-scoped INSERT SELECT and preserves existing timestamps.
+        Event IDs above the captured bound stay unread; no email delivery state is
+        altered.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      responses:
+        '200':
+          description: Acknowledgement count and bound.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - updated_count
+                    - through_id
+                    - as_of
+                    properties:
+                      updated_count:
+                        type: integer
+                        minimum: 0
+                      through_id:
+                        type: integer
+                        format: int64
+                        minimum: 0
+                      as_of:
+                        type: string
+                        format: date-time
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/me/notification-preferences":
+    get:
+      operationId: getNotificationPreferences
+      summary: Read notification preferences without inferring consent
+      security:
+      - CookieSession: []
+      parameters: []
+      responses:
+        '200':
+          description: Explicit email preferences; reads do not create consent.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/NotificationPreferences"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+    patch:
+      operationId: updateNotificationPreferences
+      summary: Set explicit notification time zone and email consent
+      description: Only time_zone and email_enabled are writable. A valid IANA zone
+        is required before enabling email. Consent changes revoke prior unsubscribe
+        versions; re-opt-in starts a new email window without replaying the old backlog.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              minProperties: 1
+              properties:
+                time_zone:
+                  type: string
+                  nullable: true
+                  maxLength: 100
+                email_enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Explicit email preferences; reads do not create consent.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/NotificationPreferences"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '422':
+          "$ref": "#/components/responses/AccountValidationFailed"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/email/unsubscribe/{token}":
+    servers:
+    - url: "/"
+    parameters:
+    - name: token
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 8192
+    get:
+      operationId: showEmailUnsubscribe
+      summary: Show unsubscribe confirmation without changing consent
+      security: []
+      responses:
+        '200':
+          description: HTML confirmation form.
+        '404':
+          description: Invalid or expired signed token.
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+    post:
+      operationId: unsubscribeEmail
+      summary: Disable email through a signed one-click URL
+      security: []
+      description: No login/cookies/CSRF token required; the purpose-specific signed
+        URL is the authority. Requires List-Unsubscribe=One-Click, returns directly
+        without redirect, and is idempotent while disabled. Tokens expire after one
+        year and are invalidated by re-opt-in/address changes. Production provider
+        DKIM must cover both unsubscribe headers.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+              - List-Unsubscribe
+              properties:
+                List-Unsubscribe:
+                  type: string
+                  enum:
+                  - One-Click
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - List-Unsubscribe
+              properties:
+                List-Unsubscribe:
+                  type: string
+                  enum:
+                  - One-Click
+      responses:
+        '200':
+          description: Email disabled.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - email_enabled
+                    properties:
+                      email_enabled:
+                        type: boolean
+                        enum:
+                        - false
+        '404':
+          description: Invalid, expired or superseded token.
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
         '429':
           "$ref": "#/components/responses/RateLimited"
         '503':
@@ -4468,6 +4809,7 @@ components:
         frequency:
           type: string
           enum:
+          - daily_digest
           - instant
         active:
           type: boolean
@@ -4494,6 +4836,7 @@ components:
         - created_at
         - updated_at
         - period_of_report
+        - read_at
         properties:
           id:
             type: integer
@@ -4528,6 +4871,7 @@ components:
           frequency:
             type: string
             enum:
+            - daily_digest
             - instant
           status:
             type: string
@@ -4553,6 +4897,8 @@ components:
             type: string
             format: date
             nullable: true
+          read_at:
+            "$ref": "#/components/schemas/NullableTimestamp"
     FilingAlertCapabilities:
       type: object
       required:
@@ -4572,6 +4918,7 @@ components:
           - daily_digest
           - condition_filters
           - read_tracking
+          - instant_alerts
           properties:
             rule_creation:
               type: boolean
@@ -4586,6 +4933,8 @@ components:
             condition_filters:
               type: boolean
             read_tracking:
+              type: boolean
+            instant_alerts:
               type: boolean
         limits:
           type: object
@@ -4613,11 +4962,90 @@ components:
           items:
             type: string
             enum:
+            - daily_digest
             - instant
     FilingAlertPageMeta:
       allOf:
       - "$ref": "#/components/schemas/ReadPageMeta"
       - "$ref": "#/components/schemas/FilingAlertCapabilities"
+    FilingAlertRuleUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        active:
+          type: boolean
+        frequency:
+          type: string
+          enum:
+          - daily_digest
+          - instant
+        trigger:
+          type: string
+          enum:
+          - new_filing
+        channels:
+          type: array
+          items:
+            type: string
+            enum:
+            - email
+          minItems: 1
+          maxItems: 1
+        conditions:
+          type: object
+          additionalProperties: false
+    FilingAlertRuleCreate:
+      type: object
+      required:
+      - follow_id
+      properties:
+        active:
+          type: boolean
+        frequency:
+          type: string
+          enum:
+          - daily_digest
+          - instant
+        trigger:
+          type: string
+          enum:
+          - new_filing
+        channels:
+          type: array
+          items:
+            type: string
+            enum:
+            - email
+          minItems: 1
+          maxItems: 1
+        conditions:
+          type: object
+          additionalProperties: false
+        follow_id:
+          type: integer
+          format: int64
+          minimum: 1
+      additionalProperties: false
+    NotificationPreferences:
+      type: object
+      required:
+      - time_zone
+      - email_enabled
+      - digest_local_time
+      - configured
+      properties:
+        time_zone:
+          type: string
+          nullable: true
+        email_enabled:
+          type: boolean
+        digest_local_time:
+          type: string
+          enum:
+          - '07:00'
+        configured:
+          type: boolean
   parameters:
     TransactionType:
       name: type
@@ -4806,7 +5234,8 @@ components:
           schema:
             "$ref": "#/components/schemas/AccountError"
     AccountValidationFailed:
-      description: Invalid account attributes or duplicate normalized email.
+      description: Invalid account, notification preference or alert configuration.
+        Activation without required preferences returns ALERT_CONFIGURATION_REQUIRED.
       content:
         application/json:
           schema:

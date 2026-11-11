@@ -15,8 +15,8 @@ class AlertEvaluator
   def call
     return [] unless @filing&.parse_status == "parsed"
 
-    rows = matching_rule_ids.map do |rule_id|
-      { alert_rule_id: rule_id, filing_id: @filing.id, status: "pending",
+    rows = matching_rules.map do |rule|
+      { alert_rule_id: rule.fetch("id"), filing_id: @filing.id, status: "pending", frequency: rule.fetch("frequency"),
         created_at: Time.current, updated_at: Time.current }
     end
     return [] if rows.empty?
@@ -24,14 +24,14 @@ class AlertEvaluator
     inserted = AlertDelivery.insert_all(
       rows,
       unique_by: :index_alert_deliveries_on_alert_rule_id_and_filing_id,
-      returning: %w[id]
+      returning: %w[id frequency]
     )
-    inserted.rows.flatten.map { |delivery_id| SendAlertJob.perform_later(delivery_id) }
+    inserted.rows.filter_map { |id, frequency| SendAlertJob.perform_later(id) if frequency == "instant" }
   end
 
   private
 
-  def matching_rule_ids
+  def matching_rules
     sql = case @filing.form_type
     when *Filing::FORM4_TYPES
       form4_sql
@@ -41,18 +41,20 @@ class AlertEvaluator
       return []
     end
 
-    ApplicationRecord.connection.select_values(
+    ApplicationRecord.connection.select_all(
       ApplicationRecord.sanitize_sql([ sql, { filing_id: @filing.id, cik: @filing.cik,
                                                issuer_ticker: @filing.issuer_ticker } ])
-    )
+    ).to_a
   end
 
   def base_sql
     <<~SQL
-      SELECT alert_rules.id
+      SELECT alert_rules.id, settings.frequency
       FROM alert_rules
       INNER JOIN follows ON follows.id = alert_rules.follow_id
+      INNER JOIN alert_rule_settings settings ON settings.alert_rule_id = alert_rules.id
       WHERE alert_rules.active
+        AND follows.removed_at IS NULL AND settings.archived_at IS NULL
         AND alert_rules.event_type = 'new_filing'
         AND alert_rules.channel = 'email'
     SQL

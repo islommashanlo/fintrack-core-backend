@@ -8,8 +8,7 @@ class FollowsController < ApplicationController
       return
     end
 
-    follow = WatchlistMembership.add(user: Current.user, target:, create_alert_rule: true).follow
-    follow.create_alert_rule!(event_type: "new_filing", channel: "email") unless follow.alert_rule
+    WatchlistMembership.add(user: Current.user, target:, create_alert_rule: true)
     redirect_back fallback_location: root_path, notice: "Following #{target.label}."
   rescue ActiveRecord::RecordNotUnique
     redirect_back fallback_location: root_path, notice: "You are already following that profile."

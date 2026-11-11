@@ -7,7 +7,7 @@ module Api
         {
           id: follow.id, entity_type: WatchlistTarget::API_TYPES.fetch(follow.target_type),
           entity_key: follow.target_key, name: name || follow["entity_name"] || follow.target_key,
-          created_at: follow.created_at
+          created_at: follow.followed_at
         }
       end
     end

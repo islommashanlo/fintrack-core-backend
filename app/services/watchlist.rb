@@ -56,7 +56,7 @@ class Watchlist
                COALESCE(insider_activity.activity_count, 0) AS activity_count
         FROM follows
         LEFT JOIN insider_activity ON insider_activity.target_key = follows.target_key
-        WHERE follows.user_id = :user_id
+        WHERE follows.user_id = :user_id AND follows.removed_at IS NULL
           AND follows.target_type = 'Insider'
 
         UNION ALL
@@ -69,7 +69,7 @@ class Watchlist
                COALESCE(institution_activity.activity_count, 0) AS activity_count
         FROM follows
         LEFT JOIN institution_activity ON institution_activity.target_key = follows.target_key
-        WHERE follows.user_id = :user_id
+        WHERE follows.user_id = :user_id AND follows.removed_at IS NULL
           AND follows.target_type = 'InstitutionalFiler'
 
         UNION ALL
@@ -82,7 +82,7 @@ class Watchlist
                COALESCE(ticker_activity.activity_count, 0) AS activity_count
         FROM follows
         LEFT JOIN ticker_activity ON ticker_activity.target_key = follows.target_key
-        WHERE follows.user_id = :user_id
+        WHERE follows.user_id = :user_id AND follows.removed_at IS NULL
           AND follows.target_type = 'Ticker'
       )
       SELECT *

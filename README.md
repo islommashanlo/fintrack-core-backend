@@ -9,7 +9,7 @@ Data from public SEC filings. Not investment advice.
 - `CLAUDE.md` has the invariants, conventions and commands.
 - `docs/api-v1.md` and `docs/openapi.yml` document the implemented JSON read APIs.
 - `docs/activity-methodology.md` explains the cluster definition and draft Activity Score proposal.
-- `docs/plan-alert-digests.md` proposes the new storage needed for digest delivery and read tracking; approval is required before migrations.
+- `docs/plan-alert-digests.md` documents digest delivery, read tracking, and history-preserving unfollows.
 
 ## Getting started
 
@@ -32,3 +32,17 @@ The JSON API uses cookie sessions and CSRF tokens. React clients should fetch
 token as `X-CSRF-Token` on mutations. Configure `FRONTEND_ORIGIN` for a separate
 frontend origin on the same site; blank means same-origin access. See
 [`docs/api-v1.md`](docs/api-v1.md) for account/watchlist contracts and plan limits.
+
+Filing email requires explicit notification preferences and an enabled rule.
+Free rules use a daily digest scheduled at 07:00 in the user's configured IANA
+zone. Rule archival/unfollow retains delivery history, and read state is separate
+from email status. Notification jobs run in a separate two-thread Sidekiq capsule;
+SEC polling stays opt-in and uses its existing pool/request limiter. Allow a
+database pool of at least seven connections for the default five SEC threads plus
+two notification threads (`RAILS_MAX_THREADS=7` for the worker environment).
+
+Local schema setup uses the normal migrations. `bundle exec rake alerts:migrate_settings`
+prints legacy-rule counts without changing data; `CONFIRM=convert` performs the
+approved local-only conversion and pauses old Free instant rules. Configure
+`APP_HOST`, `MAIL_FROM`, the mail transport and provider DKIM before real delivery.
+No production delivery or deployment has been validated.

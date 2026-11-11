@@ -2,9 +2,10 @@
 
 class AlertRulesController < ApplicationController
   def update
-    rule = Current.user.alert_rules.find(params[:id])
-    rule.update!(active: ActiveModel::Type::Boolean.new.cast(alert_rule_params[:active]))
+    rule = AlertRuleControl.update(user: Current.user, id: params[:id], active: ActiveModel::Type::Boolean.new.cast(alert_rule_params[:active]))
     redirect_to alerts_path, notice: rule.active? ? "Alert resumed." : "Alert paused."
+  rescue PlanCatalog::Required, AlertRuleControl::InvalidConfiguration => e
+    redirect_to alerts_path, alert: e.message
   end
 
   private

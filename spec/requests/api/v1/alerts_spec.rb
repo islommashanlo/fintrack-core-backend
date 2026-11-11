@@ -9,7 +9,7 @@ RSpec.describe "API v1 alerts" do
 
   def rule_for(owner: user, type: "Ticker", key: "ACME", active: true)
     follow = create(:follow, user: owner, target_type: type, target_key: key)
-    follow.alert_rule.tap { |rule| rule.update!(active:) }
+    (follow.alert_rule || follow.create_alert_rule!(active: false)).tap { |rule| rule.update!(active:) }
   end
 
   def data
@@ -32,7 +32,7 @@ RSpec.describe "API v1 alerts" do
     expect(rule.reload).to be_active
   end
 
-  it "lists only owned rules and describes existing legacy capabilities without claiming digest support" do
+  it "lists only owned rules and publishes supported digest and read capabilities" do
     rule = rule_for
     other = create(:user, email_address: "other@example.com")
     rule_for(owner: other)
@@ -40,10 +40,10 @@ RSpec.describe "API v1 alerts" do
     get api_v1_alert_rules_path
     expect(response).to have_http_status(:ok)
     expect(data.pluck("id")).to eq([ rule.id ])
-    expect(data.sole).to include("trigger" => "new_filing", "channels" => [ "email" ], "frequency" => "instant",
+    expect(data.sole).to include("trigger" => "new_filing", "channels" => [ "email" ], "frequency" => "daily_digest",
       "active" => true, "conditions" => {}, "entity" => { "type" => "issuer", "key" => "ACME" })
-    expect(meta.fetch("capabilities")).to include("pause_rules" => true, "resume_rules" => false,
-      "daily_digest" => false, "read_tracking" => false, "rule_creation" => false)
+    expect(meta.fetch("capabilities")).to include("pause_rules" => true, "resume_rules" => true, "instant_alerts" => false,
+      "daily_digest" => true, "read_tracking" => true, "rule_creation" => true)
     expect(meta.fetch("limits")).to include("alert_rules" => 3)
     expect(response.headers["Cache-Control"]).to eq("no-store")
   end
@@ -70,6 +70,7 @@ RSpec.describe "API v1 alerts" do
 
   it "gates all API activation of immediate email alerts on server entitlements" do
     rule = rule_for(active: false)
+    rule.setting.update!(frequency: "instant")
     api_login(user)
     patch api_v1_alert_rule_path(rule), params: { active: true }, headers: api_headers, as: :json
     expect(response).to have_http_status(:payment_required)
@@ -83,11 +84,13 @@ RSpec.describe "API v1 alerts" do
     allow(PlanCatalog).to receive(:limit_for).and_call_original
     allow(PlanCatalog).to receive(:limit_for).with(anything, :instant_alerts).and_return(true)
     allow(PlanCatalog).to receive(:limit_for).with(anything, :alert_rules).and_return(1)
+    consent_email(user)
     api_login(user)
     patch api_v1_alert_rule_path(paused), params: { active: true }, headers: api_headers, as: :json
     expect(response).to have_http_status(:payment_required)
     expect(response.parsed_body).to include("feature" => "alert_rules", "limit" => 1)
     patch api_v1_alert_rule_path(existing), params: { active: false }, headers: api_headers, as: :json
+    delete api_v1_alert_rule_path(existing), headers: api_headers, as: :json
     patch api_v1_alert_rule_path(paused), params: { active: true }, headers: api_headers, as: :json
     expect(response).to have_http_status(:ok)
     expect(paused.reload).to be_active
@@ -110,7 +113,7 @@ RSpec.describe "API v1 alerts" do
     rule = rule_for
     api_login(user)
     [ {}, { active: "false" }, { active: 0 }, { active: nil }, { active: [ false ] },
-      { active: false, frequency: "daily_digest" }, { active: false, conditions: { min_value: 1 } },
+      { active: false, frequency: "weekly" }, { active: false, conditions: { min_value: 1 } },
       { active: false, channels: [ "push" ] }, { active: false, user_id: user.id } ].each do |values|
       patch api_v1_alert_rule_path(rule), params: values, headers: api_headers, as: :json
       expect(response).to have_http_status(:bad_request)
@@ -148,8 +151,9 @@ RSpec.describe "API v1 alerts" do
       "sec_url" => sent.filing.sec_url, "filed_at" => sent.filing.filed_at.as_json, "ingested_at" => sent.filing.ingested_at.as_json,
       "data_age_days" => sent.filing.data_age_days, "status" => "sent", "error_code" => nil)
     expect(data.find { |row| row["id"] == failed.id }).to include("error_code" => "DELIVERY_FAILED")
-    expect(response.body).not_to include("provider secret", "abc123", '"read_at"', '"unread"')
-    expect(meta.dig("capabilities", "read_tracking")).to be(false)
+    expect(response.body).not_to include("provider secret", "abc123")
+    expect(data).to all(include("read_at" => nil))
+    expect(meta.dig("capabilities", "read_tracking")).to be(true)
   end
 
   it "filters delivery history by status, rule, entity and inclusive UTC creation dates" do
@@ -249,7 +253,7 @@ RSpec.describe "API v1 alerts" do
     end
     [ { status: "read" }, { rule_id: "9223372036854775808" }, { rule_id: "1 OR 1=1" }, { date_from: "2026-02-30" },
       { date_from: "0000-01-01" }, { date_from: "0100-02-29" }, { date_from: "2026-11-10", date_to: "2026-11-09" },
-      { unread: true }, { sort: "status; SELECT 1" } ].each do |values|
+      { unread: "yes" }, { sort: "status; SELECT 1" } ].each do |values|
       get api_v1_alert_events_path, params: values
       expect(response).to have_http_status(:bad_request)
       expect(response.parsed_body.dig("error", "code")).to eq("INVALID_PARAMETER")

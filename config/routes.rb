@@ -7,6 +7,8 @@ require "sidekiq/cron/web"
 Sidekiq::Web.use(Rack::Auth::Basic, "FilingsIntel ops") { |user, password| OpsAuth.valid?(user, password) }
 
 Rails.application.routes.draw do
+  get "email/unsubscribe/:token" => "api/v1/email_subscriptions#show", as: :email_unsubscribe
+  post "email/unsubscribe/:token" => "api/v1/email_subscriptions#destroy"
   namespace :api do
     namespace :v1 do
       get "auth/csrf" => "auth#csrf"
@@ -26,8 +28,14 @@ Rails.application.routes.draw do
       get "methodology" => "methodology#show", as: :methodology
       post "screener/run" => "screener#run", as: :screener_run
       get "alert-rules" => "alert_rules#index", as: :alert_rules
+      post "alert-rules" => "alert_rules#create"
       patch "alert-rules/:id" => "alert_rules#update", as: :alert_rule
+      delete "alert-rules/:id" => "alert_rules#destroy"
       get "alert-events" => "alert_events#index", as: :alert_events
+      post "alert-events/read-all" => "alert_events#read_all", as: :alert_events_read_all
+      post "alert-events/:id/read" => "alert_events#read", as: :alert_event_read
+      get "me/notification-preferences" => "notification_preferences#show", as: :notification_preferences
+      patch "me/notification-preferences" => "notification_preferences#update"
       resources :funds, param: :cik, only: %i[index show] do
         get :holdings, on: :member
         get :history, on: :member

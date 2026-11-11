@@ -18,6 +18,9 @@ module Api
       rescue_from ApiRateLimiter::Limited, with: :render_rate_limited
       rescue_from ApiRateLimiter::Unavailable, with: :render_limiter_unavailable
       rescue_from PlanCatalog::Required, with: :render_pro_required
+      rescue_from AlertRuleControl::InvalidConfiguration do |error|
+        render json: { error: { code: "ALERT_CONFIGURATION_REQUIRED", message: error.message } }, status: :unprocessable_entity
+      end
 
       private
 
@@ -50,7 +53,7 @@ module Api
 
       def render_invalid_record(error)
         details = error.record.errors.to_hash.transform_keys { |key| key == :email_address ? :email : key }
-        render json: { error: { code: "VALIDATION_FAILED", message: "Invalid account details", details: } }, status: :unprocessable_entity
+        render json: { error: { code: "VALIDATION_FAILED", message: "Invalid details", details: } }, status: :unprocessable_entity
       end
 
       def render_rate_limited(error)

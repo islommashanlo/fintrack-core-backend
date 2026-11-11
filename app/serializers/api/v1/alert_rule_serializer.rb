@@ -7,7 +7,7 @@ module Api
         {
           id: rule.id, follow_id: rule.follow_id, trigger: rule.event_type,
           entity: { type: WatchlistTarget::API_TYPES.fetch(rule.follow.target_type), key: rule.follow.target_key },
-          conditions: {}, channels: [ rule.channel ], frequency: "instant", active: rule.active,
+          conditions: rule.setting&.conditions || {}, channels: [ rule.channel ], frequency: rule.setting&.frequency || "instant", active: rule.active,
           created_at: rule.created_at, updated_at: rule.updated_at
         }
       end

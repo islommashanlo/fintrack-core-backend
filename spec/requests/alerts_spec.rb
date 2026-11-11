@@ -14,6 +14,7 @@ RSpec.describe "Alerts" do
   it "shows and pauses the user's alert rule" do
     post session_path, params: { email_address: user.email_address, password: "password123" }
     rule = create(:follow, user:, target_type: "Ticker", target_key: "ACME").alert_rule
+    rule.update!(active: true)
     delivery = create(:alert_delivery, alert_rule: rule)
 
     get alerts_path

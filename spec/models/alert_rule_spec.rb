@@ -3,10 +3,11 @@
 require "rails_helper"
 
 RSpec.describe AlertRule do
-  it "creates a default active email rule when a follow is created" do
+  it "creates a paused digest draft when a legacy HTML follow is created" do
     follow = create(:follow)
 
-    expect(follow.alert_rule).to have_attributes(event_type: "new_filing", channel: "email", active: true)
+    expect(follow.alert_rule).to have_attributes(event_type: "new_filing", channel: "email", active: false)
+    expect(follow.alert_rule.setting.frequency).to eq("daily_digest")
   end
 
   it "allows a user to pause a rule" do

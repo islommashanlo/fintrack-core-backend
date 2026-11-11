@@ -117,15 +117,16 @@ RSpec.describe "API v1 watchlist" do
     expect(response).to redirect_to(root_path)
   end
 
-  it "removes an item and its private linked alert records while keeping public filings and discarding obsolete delivery jobs" do
+  it "soft-removes an item and preserves private alert history and public filings" do
     filing = create(:filing)
     follow = create(:follow, user:)
     delivery = create(:alert_delivery, alert_rule: follow.alert_rule, filing:)
     api_login(user)
     delete api_v1_watchlist_item_path(follow.id), headers: api_headers, as: :json
     expect(response).to have_http_status(:no_content)
-    expect(Follow.exists?(follow.id)).to be(false)
-    expect(AlertDelivery.exists?(delivery.id)).to be(false)
+    expect(follow.reload.removed_at).to be_present
+    expect(follow.alert_rule.setting.archived_at).to be_present
+    expect(AlertDelivery.exists?(delivery.id)).to be(true)
     expect(Filing.exists?(filing.id)).to be(true)
     expect { SendAlertJob.perform_now(delivery.id) }.not_to raise_error
   end
@@ -135,7 +136,7 @@ RSpec.describe "API v1 watchlist" do
     api_login(user)
     delete api_v1_watchlist_path, params: { id: follow.id }, headers: api_headers, as: :json
     expect(response).to have_http_status(:no_content)
-    expect(Follow.exists?(follow.id)).to be(false)
+    expect(follow.reload.removed_at).to be_present
   end
 
   it "requires CSRF on add/remove and rejects invalid or unsupported target data" do

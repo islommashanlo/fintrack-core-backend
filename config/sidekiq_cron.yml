@@ -1,5 +1,9 @@
-# Loaded by config/initializers/sidekiq.rb only when EDGAR_POLLING=on.
+# SEC jobs are opt-in; application digests remain scheduled independently.
 shared:
+  alert_digests:
+    cron: "* * * * *"
+    class: ScheduleAlertDigestsJob
+    description: Schedule due filing email digests at 07:00 user-local time
   poll_edgar:
     cron: "* * * * *"
     class: PollEdgarJob

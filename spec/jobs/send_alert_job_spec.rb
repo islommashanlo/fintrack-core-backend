@@ -3,8 +3,20 @@
 require "rails_helper"
 
 RSpec.describe SendAlertJob do
-  it "sends a filing alert and is idempotent when run again" do
+  before do
+    allow(PlanCatalog).to receive(:limit_for).and_call_original
+    allow(PlanCatalog).to receive(:limit_for).with(anything, :instant_alerts).and_return(true)
+  end
+
+  def sendable_delivery
     delivery = create(:alert_delivery)
+    consent_email(delivery.alert_rule.follow.user)
+    enable_rule(delivery.alert_rule, frequency: "instant")
+    delivery
+  end
+
+  it "sends a filing alert and is idempotent when run again" do
+    delivery = sendable_delivery
 
     expect do
       described_class.perform_now(delivery.id)
@@ -15,7 +27,7 @@ RSpec.describe SendAlertJob do
   end
 
   it "records a failed delivery before retrying the job" do
-    delivery = create(:alert_delivery)
+    delivery = sendable_delivery
     allow(FilingAlertMailer).to receive(:new_filing).and_raise(StandardError, "mail transport unavailable")
 
     expect { described_class.perform_now(delivery.id) }.to raise_error(StandardError, "mail transport unavailable")
@@ -24,7 +36,7 @@ RSpec.describe SendAlertJob do
   end
 
   it "does not send queued mail after its rule is paused and retains pending history" do
-    delivery = create(:alert_delivery)
+    delivery = sendable_delivery
     delivery.alert_rule.update!(active: false)
 
     expect { described_class.perform_now(delivery.id) }.not_to change { ActionMailer::Base.deliveries.size }

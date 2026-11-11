@@ -364,9 +364,10 @@ new item returns 201. The sixteenth item returns HTTP 402 with
 The existing HTML follow endpoint uses the same quota check.
 
 Adding an API watchlist item does not create or enable an email alert. Removal
-returns 204 and removes private alert records linked to that membership; obsolete
-queued delivery jobs are discarded. Neither operation changes reported filing
-data. Alert-builder/digest work remains separate.
+returns 204, timestamps the membership and archives/pauses its rule while retaining
+alert history. Queued send jobs recheck eligibility. Re-follow restores the same
+membership ID with a new membership-start time and does not re-enable email.
+Neither operation changes reported filing data. See the alert/digest section below.
 
 ## Unified activity
 
@@ -699,79 +700,131 @@ preview cap; clients cannot enable it, and all current accounts remain Free.
 Scores, sectors, market caps, AUM, turnover and other unimplemented metrics are
 rejected as filter/sort fields. Saved-screen CRUD and exports remain pending.
 
-## Existing filing alert rules and delivery history
+## Filing alert rules, notification preferences and read state
 
-These routes require a cookie-authenticated user and return `Cache-Control:
-no-store`. They expose the current follow-scoped filing-email infrastructure;
-they are not the full condition-based Alert Builder yet.
+All private routes use cookie authentication, `Cache-Control: no-store`, and the
+usual shared request limiter. Mutations require `X-CSRF-Token`. No request
+reprocesses past filings or sends mail synchronously.
 
-| Route | Implemented behavior |
+| Route | Behavior |
 | --- | --- |
-| `GET /api/v1/alert-rules` | Cursor-paginated rules owned by the signed-in user |
-| `PATCH /api/v1/alert-rules/:id` | Strict JSON `{ "active": false }` pauses a rule; resuming requires the server's instant-alert entitlement |
-| `GET /api/v1/alert-events` | Cursor-paginated owned delivery history with SEC filing provenance |
+| `GET /api/v1/alert-rules` | List owned, unarchived rules with signed cursor pagination |
+| `POST /api/v1/alert-rules` | Create/restore a follow-scoped filing-email rule, idempotent by follow/trigger/channel |
+| `PATCH /api/v1/alert-rules/:id` | Change active state/frequency; activation checks consent and server plan |
+| `DELETE /api/v1/alert-rules/:id` | Idempotently archive and pause; retain delivery history |
+| `GET /api/v1/alert-events` | List owned delivery history with filing provenance and independent read timestamps |
+| `POST /api/v1/alert-events/:id/read` | Mark one owned event read; preserve its first read timestamp |
+| `POST /api/v1/alert-events/read-all` | Mark the owned event set through a captured ID bound read |
+| `GET /api/v1/me/notification-preferences` | Read preferences without creating a record or inferring consent |
+| `PATCH /api/v1/me/notification-preferences` | Set IANA time zone and explicit email consent |
 
-Rule rows include `id`, `follow_id`, `trigger: new_filing`, an `entity` containing
-`type` (`issuer`, `fund`, `person`) and `key`, empty `conditions`,
-`channels: ["email"]`, `frequency: instant`, `active`, and creation/update times.
-Instant frequency describes the existing worker behavior; no frequency setting
-is fabricated or stored. The API does not currently create/archive/delete rules
-or accept trigger/channel/condition/frequency edits.
-
-Rule-list filters are `active=true|false` and `entity_type=issuer|fund|person`.
-Sorts are `created_at` (descending by default), `active`, and `entity_key`, with
-optional `-`. History filters are `status=pending|sent|failed`, a positive 64-bit
-`rule_id`, `entity_type`, and inclusive UTC `date_from` / `date_to` applied to
-delivery creation time, not filing time. Dates are strict Gregorian dates with
-years 0001–9999. History sorts are `created_at` (descending by default),
-`delivered_at`, and `status`, with optional `-`; undelivered timestamps sort last.
-Both lists accept standard `limit` (1–100) and signed 24-hour `cursor` values.
-
-Every query is scoped through the user's follows. A rule belonging to someone
-else returns JSON 404 on update, before any entitlement check. Filtering history
-by an unowned rule yields no rows. Cursors bind owner, route, filters and sort;
-source-ID bounds exclude subsequent inserts. Current active/delivery statuses
-can change between requests; these are not immutable historical state snapshots.
-
-Event rows include `id`, `rule_id`, trigger/entity/channel/frequency, delivery
-`status`, `delivered_at`, creation/update times, period of report, and the normal
-`accession`, `sec_url`, `filed_at`, `accepted_at`, `ingested_at`, `data_age_days`
-fields. Source filings and rule/follow associations are loaded once per page.
-Provider error text stays private; failures expose only
-`error_code: DELIVERY_FAILED`. This is delivery history: there is no invented
-`read_at` or unread state.
-
-Metadata includes `supported_triggers: ["new_filing"]`,
-`supported_channels: ["email"]`, `supported_frequencies: ["instant"]`, the
-catalog's alert-rule limit, and explicit capability flags. Current capabilities:
-pause is available; creation, deletion, condition filters, digest and read
-tracking are unavailable. `resume_rules` follows the trusted instant-alert
-entitlement, which is false for every current Free account.
-
-Pausing is idempotent and preserves deliveries. Send jobs recheck active state
-before starting mail; an already-started email cannot be recalled. A pending job
-skipped while paused retains its pending history and is not automatically
-requeued by resume. Neither list requests nor rule updates enqueue mail or
-reprocess old filings. Send attempts serialize on the delivery row; this does not
-guarantee exactly-once delivery across provider/database failures.
-
-Mutations require the CSRF header. Only a JSON boolean `active` is accepted;
-other settings or string booleans return HTTP 400. Free attempts to set
-`active: true` return HTTP 402:
+Enable email only after setting a valid time zone:
 
 ```json
-{"code":"PRO_REQUIRED","feature":"instant_alerts","limit":0}
+{"time_zone":"America/New_York","email_enabled":true}
 ```
 
-An entitled transition from inactive to active also checks the catalog's active
-rule limit under a user-row lock. All existing legacy rules remain readable,
-including legacy accounts already above the Free limit. Existing HTML follow
-and resume behavior predates the new plan policy and remains a documented gap;
-the API does not enable another Free immediate-delivery path.
+Preference responses contain `time_zone`, `email_enabled`, `configured` and
+`digest_local_time: "07:00"`. Email is disabled and the zone is null by default.
+Only these two writable keys are accepted; internal consent/revocation fields
+cannot be supplied. Invalid zones or enabling without a zone returns 422
+`VALIDATION_FAILED`. Disabling email does not delete rules/events/read state.
 
-Daily digests, rule creation/archival and read/read-all writes require new stored
-settings. The concrete proposal is in
-[`plan-alert-digests.md`](plan-alert-digests.md); no migrations or legacy data
-conversion have been run. The full trigger/channel Alert Builder remains pending.
-That proposal also requests a follow-removal marker, since current unfollowing
-deletes linked delivery history; pausing alone preserves history today.
+A rule request uses an existing owned, current watchlist follow:
+
+```json
+{"follow_id":12,"trigger":"new_filing","channels":["email"],"conditions":{},"frequency":"daily_digest","active":true}
+```
+
+The implemented trigger is `new_filing`, the channel is email, and conditions
+must be `{}`. New rules default to paused daily digests. Duplicate creates keep
+the existing ID and settings unless changes are explicitly requested. Restoring
+an archived rule retains its ID/history and defaults to daily digest frequency.
+Free users can retain three unarchived rules, including paused drafts. Archive
+frees a slot; pause does not. Creation/restoration and activation share a user-row
+lock, including the HTML paths. Legacy users above the limit must archive rules
+before adding or activating. History and pause/archive remain accessible.
+
+Activation requires explicit email consent and a valid zone, otherwise 422
+`ALERT_CONFIGURATION_REQUIRED`. Free attempts to configure/activate instant
+email return 402 `{ "code":"PRO_REQUIRED", "feature":"instant_alerts",
+"limit":0 }`. Rule-count gates use `feature: alert_rules` and the catalog limit.
+All current accounts remain Free until verified billing entitlements exist.
+Active frequency changes require pausing, which may be included atomically as
+`active:false` in the same PATCH. Rule settings are never reinterpreted as new
+conditions or triggers that the matcher does not implement.
+
+Rule rows contain ID/follow ID, trigger, `entity: {type,key}` (issuer/fund/person),
+conditions, channels, stored frequency, active state and creation/update times.
+Rule filters: `active=true|false`, `entity_type=issuer|fund|person`; sorts:
+`created_at` (descending default), `active`, `entity_key`, with optional `-`.
+
+Event rows contain ID/rule ID, trigger/entity/channel, the frequency recorded at
+matching time, pending/sent/failed status, delivery/creation/update timestamps,
+`read_at` (null until acknowledged), period, and standard accession/SEC-link/
+freshness fields. A rule's later frequency change does not rewrite old events.
+Provider errors stay private; failures expose only `error_code: DELIVERY_FAILED`.
+Read state is independent of sending: a read event may still await its digest.
+
+History filters: status, positive 64-bit `rule_id`, entity type,
+`unread=true|false`, and inclusive UTC creation dates `date_from`/`date_to`
+(strict Gregorian years 0001–9999). Sorts: `created_at` (descending default),
+`delivered_at`, `status`; null delivery times sort last both ways. Both lists
+support `limit` 1–100 and signed 24-hour cursors bound to owner, route, filters,
+sort, acceptance-time snapshot and source ID bounds. Current rule/delivery/read
+states remain mutable between pages. Unowned rule updates and individual read
+writes return 404; filtering history by an unowned rule returns an empty list.
+
+Single-read replies return `{data:{id,read_at}}`. Read-all replies return
+`{data:{updated_count,through_id,as_of}}`; repeat calls do not overwrite existing
+read timestamps, and event IDs above the captured bound remain unread. Unknown
+parameters and malformed boolean/ID/filter values return JSON 400.
+
+Metadata publishes the shared rule limit, supported trigger/channel/frequencies
+and capability flags. Creation, archival, pause, digest and read tracking are
+available; advanced condition filters remain false. Free supported frequencies
+contain only `daily_digest`; `instant_alerts` indicates trusted paid entitlement.
+
+### Digest and watchlist behavior
+
+Digest planning runs every minute independently of `EDGAR_POLLING`, claiming at
+most one batch per user/local date after 07:00. Membership includes eligible
+pending events created strictly before that day's 07:00 cutoff. Later arrivals
+wait for the next day. Batch items are unique per event and stable on retry.
+Every attempt rechecks consent, retained rule quota, archive/pause/removal,
+frequency, activation time and time-zone changes. Consent and activation windows
+prevent old backlogs from being emailed after re-opt-in/resume.
+
+Skipped batches are canceled without erasing pending history. A transport failure
+can retry the same batch. After provider acceptance, database failures leave a
+`sending` batch for manual reconciliation instead of blindly resending; this is
+not an exactly-once email guarantee. The notification queues use a separate
+Sidekiq capsule with two threads; the existing SEC queues retain their own pool.
+No real mail worker was started for implementation verification.
+
+Unfollow now timestamps the membership and archives its rule. Re-follow restores
+the same follow ID without re-enabling alerts. `followed_at` tracks the current
+membership's beginning, so restored follows do not enter older cursor snapshots;
+the watchlist API's `created_at` and its sort refer to that current membership.
+Retained rules/history can still resolve the removed follow; removed memberships
+cannot match current feeds or new alerts. Account deletion remains an explicit
+password-authenticated private-data purge, including the new notification rows;
+shared SEC filings remain intact.
+
+### Unsubscribe
+
+`GET /email/unsubscribe/:token` displays confirmation without changing consent.
+`POST` to the same URL accepts the form argument `List-Unsubscribe=One-Click`
+without login, cookies or a CSRF token; the signed, purpose-specific URL is its
+authority. It responds directly with JSON 200 and no redirect. Tokens expire after
+one year and bind user, email-address digest and preference revision. Retries are
+idempotent while disabled; a token from before a later re-opt-in or email-address
+change cannot disable the new consent. Invalid/stale tokens return JSON 404.
+
+Alert/digest mail includes HTTPS `List-Unsubscribe` and `List-Unsubscribe-Post`
+headers. Production one-click support also requires the mail provider to DKIM-sign
+both headers as specified by [RFC 8058](https://www.rfc-editor.org/rfc/rfc8058.html).
+`APP_HOST` and `MAIL_FROM` must be configured before real delivery; the current
+production host/sender defaults are placeholders. Provider integration and
+production delivery have not been exercised. See
+[`plan-alert-digests.md`](plan-alert-digests.md) for storage and verification.

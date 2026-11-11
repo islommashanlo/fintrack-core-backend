@@ -5,7 +5,7 @@
     <div>
       <p class="eyebrow">Your alerts</p>
       <h1>Know when a followed profile files.</h1>
-      <p class="hero__copy">Email alerts are created with each follow and evaluated after a filing is parsed.</p>
+      <p class="hero__copy">Filing alerts require email consent and a configured time zone. Draft rules stay paused until enabled.</p>
     </div>
     <%= link_to "Manage watchlist", watchlist_path, class: "follow-button follow-button--link" %>
   </section>
@@ -26,7 +26,7 @@
             <div>
               <p class="watchlist-card__type"><%= rule.follow.target_type.humanize %></p>
               <h3><%= rule.follow.target_key %></h3>
-              <p class="watchlist-card__key"><%= rule.channel.humanize %> · <%= rule.event_type.humanize %></p>
+              <p class="watchlist-card__key"><%= rule.channel.humanize %> · <%= rule.setting&.frequency&.humanize || "Instant" %> · <%= rule.event_type.humanize %></p>
             </div>
             <div class="alert-rule-card__actions">
               <span class="alert-status alert-status--<%= rule.active? ? "active" : "paused" %>"><%= rule.active? ? "Active" : "Paused" %></span>

@@ -22,7 +22,8 @@ RSpec.describe "Follows" do
 
     expect do
       delete follow_path(follow)
-    end.to change(Follow, :count).by(-1)
+    end.to change { user.follows.current.count }.by(-1)
+    expect(follow.reload.removed_at).to be_present
   end
 
   it "rejects an unknown target" do

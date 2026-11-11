@@ -7,6 +7,7 @@ RSpec.describe AlertEvaluator do
     user = create(:user)
     create(:follow, user:, target_type: "Insider", target_key: "0000000456")
     create(:follow, user:, target_type: "Ticker", target_key: "ACME")
+    user.alert_rules.each { |rule| enable_rule(rule) }
     filing = create(:filing, issuer_ticker: "ACME", issuer_name: "Acme Corp")
     create(:insider_transaction, filing:, insider_cik: "0000000456")
 
@@ -14,7 +15,8 @@ RSpec.describe AlertEvaluator do
       described_class.call(filing)
     end.to change(AlertDelivery, :count).by(2)
 
-    expect(SendAlertJob).to have_been_enqueued.exactly(2).times
+    expect(SendAlertJob).not_to have_been_enqueued
+    expect(AlertDelivery.pluck(:frequency)).to eq(%w[daily_digest daily_digest])
     expect { described_class.call(filing) }.not_to change(AlertDelivery, :count)
   end
 
@@ -22,6 +24,7 @@ RSpec.describe AlertEvaluator do
     user = create(:user)
     institution = create(:institutional_filer, cik: "0000000789")
     create(:follow, user:, target_type: "InstitutionalFiler", target_key: institution.cik)
+    user.alert_rules.each { |rule| enable_rule(rule) }
     filing = create(:filing, form_type: "13F-HR", cik: institution.cik)
     create(:institutional_report, filing:, institutional_filer: institution)
 

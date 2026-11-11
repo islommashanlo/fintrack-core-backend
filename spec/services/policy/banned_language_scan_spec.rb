@@ -41,4 +41,13 @@ RSpec.describe Policy::BannedLanguageScan do
         path: "app/services/activity_scoring/reasons.rb", line: 1)
     end
   end
+
+  it "scans outgoing digest email templates" do
+    Dir.mktmpdir("filingsintel-policy") do |root|
+      path = Pathname(root).join("app/views/filing_digest_mailer/daily.text.erb")
+      path.dirname.mkpath
+      path.write("Strong Buy\n")
+      expect(described_class.new(root:).violations.sole).to have_attributes(path: "app/views/filing_digest_mailer/daily.text.erb", line: 1)
+    end
+  end
 end

@@ -1,0 +1,10 @@
+SEC filing digest for <%= @batch.local_date %>
+
+<% @deliveries.each do |delivery| %>
+<%= delivery.filing.form_type %> reported for <%= delivery.alert_rule.follow.target_key %>
+Accession: <%= delivery.filing.accession_no %>
+SEC source: <%= delivery.filing.sec_url %>
+
+<% end %>
+Manage email: <%= @unsubscribe_url %>
+<%= FilingsIntel::DISCLAIMER %>

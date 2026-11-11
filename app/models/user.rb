@@ -6,6 +6,9 @@ class User < ApplicationRecord
   has_many :follows, dependent: :destroy
   has_many :alert_rules, through: :follows
   has_many :alert_deliveries, through: :alert_rules
+  has_one :notification_preference, dependent: :destroy
+  has_many :alert_event_states, dependent: :delete_all
+  has_many :alert_digest_batches, dependent: :restrict_with_exception
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 

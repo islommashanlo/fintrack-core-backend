@@ -15,7 +15,13 @@ module Api
         scope = scope.where(follows: { target_type: WatchlistTarget::TYPES.fetch(filters["entity_type"]) }) if filters["entity_type"]
         scope = scope.where("alert_deliveries.created_at >= ?", Date.iso8601(filters["date_from"], Date::GREGORIAN).beginning_of_day) if filters["date_from"]
         scope = scope.where("alert_deliveries.created_at < ?", Date.iso8601(filters["date_to"], Date::GREGORIAN).next_day.beginning_of_day) if filters["date_to"]
-        page.call(scope, preload: [ :filing, { alert_rule: :follow } ])
+        sql = ApplicationRecord.sanitize_sql([ <<~SQL, user: user.id ])
+          SELECT alert_deliveries.*, state.read_at AS api_read_at FROM (#{scope.to_sql}) alert_deliveries
+          LEFT JOIN alert_event_states state ON state.alert_delivery_id = alert_deliveries.id AND state.user_id = :user
+        SQL
+        projected = AlertDelivery.from("(#{sql}) alert_deliveries")
+        projected = projected.where("api_read_at IS #{filters['unread'] == 'true' ? '' : 'NOT '}NULL") if filters["unread"]
+        page.call(projected, preload: [ :filing, { alert_rule: :follow } ])
       end
     end
   end

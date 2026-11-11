@@ -89,7 +89,7 @@ module ApplicationHelper
   def follow_for(target_type, target_key)
     return unless Current.user
 
-    Current.user.follows.find_by(target_type:, target_key:)
+    Current.user.follows.current.find_by(target_type:, target_key:)
   end
 
   def follow_button(target_type:, target_key:)

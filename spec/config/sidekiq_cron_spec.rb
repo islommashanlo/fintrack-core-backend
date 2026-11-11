@@ -3,10 +3,10 @@
 require "rails_helper"
 
 RSpec.describe "Cron schedule" do
-  let(:schedule) { CronSchedule.jobs }
+  let(:schedule) { CronSchedule.jobs(polling: true) }
 
   it "defines valid jobs that point at real job classes" do
-    expect(schedule.keys).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar")
+    expect(schedule.keys).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar", "alert_digests")
 
     schedule.each do |name, attributes|
       job = Sidekiq::Cron::Job.new(attributes.merge("name" => name))
@@ -26,7 +26,7 @@ RSpec.describe "Cron schedule" do
     errors = Sidekiq::Cron::Job.load_from_hash!(schedule)
 
     expect(errors).to be_empty
-    expect(Sidekiq::Cron::Job.all.map(&:name)).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar")
+    expect(Sidekiq::Cron::Job.all.map(&:name)).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar", "alert_digests")
     expect(Sidekiq::Cron::Job.all).to all(be_is_active_job)
   ensure
     Sidekiq::Cron::Job.destroy_all!
@@ -35,5 +35,13 @@ RSpec.describe "Cron schedule" do
   it "polls EDGAR every minute" do
     expect(schedule.dig("poll_edgar", "cron")).to eq("* * * * *")
     expect(schedule.dig("poll_edgar", "class")).to eq("PollEdgarJob")
+  end
+
+  it "retains only application scheduling when SEC polling is disabled" do
+    Sidekiq::Cron::Job.load_from_hash!(schedule)
+    CronSchedule.load!(polling: false)
+    expect(Sidekiq::Cron::Job.all.map(&:name)).to eq([ "alert_digests" ])
+  ensure
+    Sidekiq::Cron::Job.destroy_all!
   end
 end

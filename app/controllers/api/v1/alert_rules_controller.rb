@@ -13,12 +13,21 @@ module Api
       end
 
       def update
-        values = params.except(:controller, :action, :format, :id).to_unsafe_h
-        unless values.keys == [ "active" ] && [ true, false ].include?(values["active"])
-          raise InvalidParameter, "Only a boolean active setting is supported"
-        end
-        rule = AlertRuleControl.update(user: Current.user, id: AlertParameters.id!(params[:id]), active: values.fetch("active"))
+        values = AlertRuleParameters.normalize(params.except(:controller, :action, :format, :id).to_unsafe_h)
+        rule = AlertRuleControl.update(user: Current.user, id: AlertParameters.id!(params[:id]), attributes: values)
         render json: { data: AlertRuleSerializer.render(rule), meta: AlertCapabilities.for_user(Current.user) }
+      end
+
+      def create
+        values = AlertRuleParameters.normalize(params.except(:controller, :action, :format).to_unsafe_h, create: true)
+        result = AlertRuleControl.create(user: Current.user, follow_id: values.delete(:follow_id), attributes: values)
+        render json: { data: AlertRuleSerializer.render(result.rule), meta: AlertCapabilities.for_user(Current.user) }, status: result.created ? :created : :ok
+      end
+
+      def destroy
+        read_parameters(allowed: [], path_keys: [ :id ])
+        AlertRuleControl.archive(user: Current.user, id: AlertParameters.id!(params[:id]))
+        head :no_content
       end
     end
   end

@@ -35,7 +35,7 @@ module Api
         user.with_lock do
           return render_reauthentication unless user.authenticate(values["current_password"])
 
-          AlertDelivery.where(alert_rule_id: user.alert_rules.select(:id)).delete_all
+          AccountNotificationCleanup.call(user)
           user.destroy!
         end
         clear_api_session

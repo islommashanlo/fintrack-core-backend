@@ -11,6 +11,17 @@ module Api
         render json: { data: result.records.map { |delivery| AlertEventSerializer.render(delivery, as_of: page.as_of) },
           meta: result.meta.merge(AlertCapabilities.for_user(Current.user)) }
       end
+
+      def read
+        read_parameters(allowed: [], path_keys: [ :id ])
+        state = AlertEventReads.mark(user: Current.user, id: AlertParameters.id!(params[:id]))
+        render json: { data: { id: state.alert_delivery_id, read_at: state.read_at } }
+      end
+
+      def read_all
+        read_parameters(allowed: [])
+        render json: { data: AlertEventReads.mark_all(user: Current.user) }
+      end
     end
   end
 end

@@ -4,7 +4,7 @@ module Api
   module V1
     class AlertParameters
       RULES = %w[active entity_type sort limit cursor].freeze
-      EVENTS = %w[status rule_id entity_type date_from date_to sort limit cursor].freeze
+      EVENTS = %w[status rule_id entity_type date_from date_to unread sort limit cursor].freeze
 
       def self.normalize(values, kind:)
         allowed = kind == :rules ? RULES : EVENTS
@@ -13,6 +13,7 @@ module Api
           invalid! unless WatchlistTarget::TYPES.key?(values["entity_type"])
         end
         invalid! if values["active"] && !%w[true false].include?(values["active"])
+        invalid! if values["unread"] && !%w[true false].include?(values["unread"])
         invalid! if values["status"] && !AlertDelivery::STATUSES.include?(values["status"])
         values["rule_id"] = id!(values["rule_id"]).to_s if values["rule_id"]
         %w[date_from date_to].each do |key|
