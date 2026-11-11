@@ -7,6 +7,71 @@ built. The machine-readable contract is in
 
 Data from public SEC filings. Not investment advice.
 
+## Dashboard
+
+`GET /api/v1/dashboard` requires cookie authentication and returns `Cache-Control:
+no-store`, including on errors. It reads local data only and creates no records,
+jobs or provider requests. Optional `days` is 7, 30 (default), or 90; `limit` is
+1–10 (default 5) for each activity/cluster section. Unknown/structured parameters,
+unsupported windows and invalid limits return 400; missing authentication returns
+401. Shared IP/user throttles apply. No schema or environment configuration is needed.
+
+The response is `{ data: { summary, upcoming_deadlines, top_clusters,
+watchlist_activity, top_unusual }, meta }`:
+
+| Field | Meaning |
+| --- | --- |
+| `summary.form4_filings` | Parsed source filings accepted within the window, including superseded originals and amendments |
+| `summary.insider_transactions` | Effective Form 4 transactions from that window, counting joint-owner copies once |
+| `summary.institutional_reports` | Parsed 13F report records known within the window, including notices and amendments |
+| `summary.watchlist_items` | This account's active follows at the snapshot time |
+| `summary.watchlist_activity_events` | Total matching activity events before the section limit |
+| `summary.cluster_windows` | Total qualifying rolling cluster windows before the section limit |
+| `upcoming_deadlines` | The next regular quarterly 13F deadline, period, source link, Eastern calendar date and days remaining |
+| `top_clusters` | `{ data, meta }` using the existing cluster serializer; sorted by descending distinct-insider count, with deterministic ID ties |
+| `watchlist_activity` | `{ data, meta }` using the existing unified activity serializer, newest reported activity first |
+| `top_unusual` | Empty data plus explicit availability/plan metadata while score activation is pending |
+
+The window includes N UTC calendar dates ending today, capped at `meta.as_of`.
+Activity dates are filing-acceptance/availability times, not transaction dates.
+Cluster windows are anchored within that range and can include preceding 14-day
+membership context. Multiple windows from the same issuer can qualify; counts do
+not represent distinct companies or recommendations. Missing/suspect prices leave
+full cluster totals null and retain the known subtotal. Every filing-derived item
+uses the existing accession/source/freshness fields and source lists.
+
+Both sections expose `total_count`, `has_more`, `next_cursor`, `limit`, `sort`,
+`as_of` and normalized `filters`. For more rows, send the section's `filters`,
+`sort`, `limit` and `next_cursor` as `cursor` to `/insiders/clusters` or `/activity`
+respectively. Watchlist cursors bind the current user and cannot be used by another
+account. The dashboard itself does not accept cursors or arbitrary sort expressions.
+One request shares ingestion ID ceilings across its sections; follow removals and
+other updates to existing rows still take effect under the normal read rules.
+
+`meta` contains the snapshot time, UTC date window, latest source filing time
+within that window (null for no source data), available sources and the standard
+disclaimer. Market-price movers are unavailable: this dashboard presents reported
+watchlist activity, with `market_movers_available: false`. No prices are fetched.
+
+Unusual scoring is inactive, so `top_unusual.data` is empty and its meta reports
+`available: false`, `unavailable_reason: "scoring_not_active"`, `total_count: null`,
+`truncated: false`, and feature `unusual_activity_results`. Its `limit` is the
+smaller of the requested section size and the shared plan limit (Free: 1;
+verified Pro: requested size). No diagnostic draft score is promoted into a
+production ranking. The unusual-activity feed remains pending.
+
+Deadlines use the shared `Form13fDeadline` service and remain visible through the
+entire Eastern due date. Standard quarterly dates roll past weekends and
+Washington's Birthday, the federal holiday these four annual dates can encounter.
+The corrected February 2027 date is February 16. The rule and 2026–2028 dates were
+checked against the [SEC Form 13F FAQ, question 25](https://www.sec.gov/rules-regulations/staff-guidance/frequently-asked-questions-about-form-13f)
+on November 11, 2026. Exceptional closure extensions are not modeled. Form 4
+deadlines require transaction-specific business-day logic and are not supplied here.
+
+Queries aggregate in SQL and serializers batch-load their sources; regression
+tests check query growth as displayed membership grows. Production-scale p95
+latency has not been benchmarked. Private dashboard responses are not shared-cached.
+
 ## Insider transactions
 
 `GET /api/v1/insiders/transactions`

@@ -18,8 +18,8 @@ RSpec.describe Form13fDeadline do
 
     expect(deadline).to have_attributes(
       period_end: Date.new(2026, 12, 31),
-      due_date: Date.new(2027, 2, 15),
-      days_remaining: 90
+      due_date: Date.new(2027, 2, 16),
+      days_remaining: 91
     )
   end
 
@@ -30,5 +30,17 @@ RSpec.describe Form13fDeadline do
       period_end: Date.new(2026, 6, 30),
       due_date: Date.new(2026, 8, 14)
     )
+  end
+
+  it "keeps the current deadline visible through its due date" do
+    deadline = described_class.new(today: Date.new(2026, 11, 16)).next
+    expect(deadline).to have_attributes(due_date: Date.new(2026, 11, 16), days_remaining: 0)
+  end
+
+  it "rolls February weekends past Washington's Birthday without treating every February Monday as a holiday" do
+    { 2025 => 14, 2026 => 17, 2027 => 16, 2028 => 14 }.each do |year, day|
+      deadline = described_class.new(today: Date.new(year, 1, 1)).next
+      expect(deadline.due_date).to eq(Date.new(year, 2, day))
+    end
   end
 end

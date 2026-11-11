@@ -2,13 +2,60 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.16.0
+  version: 1.17.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
 - url: "/api/v1"
 paths:
+  "/dashboard":
+    get:
+      operationId: getDashboard
+      summary: Read the authenticated account's local-data dashboard
+      description: No-store. Counts parsed local source records, ranks cluster
+        windows by distinct-insider count, and lists only this account's watchlist
+        activity. Uses shared ingestion ID ceilings and a UTC calendar window ending
+        at as_of. Sections expose filters and cursors reusable with activity/cluster
+        endpoints. Scores and price movers are explicitly unavailable. No provider
+        requests, writes or jobs. Unknown parameters are rejected.
+      security:
+      - CookieSession: []
+      parameters:
+      - name: days
+        in: query
+        schema:
+          type: integer
+          enum: [7, 30, 90]
+          default: 30
+      - name: limit
+        in: query
+        description: Maximum rows per activity/cluster section; unusual preview also honors the plan cap.
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+      responses:
+        '200':
+          description: Private aggregate response from locally stored filings.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                enum: [no-store]
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/DashboardResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/insiders/transactions":
     get:
       operationId: listInsiderTransactions
@@ -2797,6 +2844,182 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    DashboardResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [summary, upcoming_deadlines, top_clusters, watchlist_activity, top_unusual]
+          properties:
+            summary:
+              "$ref": "#/components/schemas/DashboardSummary"
+            upcoming_deadlines:
+              type: array
+              minItems: 1
+              maxItems: 1
+              items:
+                "$ref": "#/components/schemas/DashboardDeadline"
+            top_clusters:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  maxItems: 10
+                  items:
+                    "$ref": "#/components/schemas/InsiderCluster"
+                meta:
+                  allOf:
+                  - "$ref": "#/components/schemas/InsiderClusterPageMeta"
+                  - "$ref": "#/components/schemas/DashboardSectionFilters"
+            watchlist_activity:
+              type: object
+              required: [data, meta]
+              properties:
+                data:
+                  type: array
+                  maxItems: 10
+                  items:
+                    "$ref": "#/components/schemas/ActivityEvent"
+                meta:
+                  allOf:
+                  - "$ref": "#/components/schemas/ActivityPageMeta"
+                  - "$ref": "#/components/schemas/DashboardSectionFilters"
+            top_unusual:
+              "$ref": "#/components/schemas/DashboardUnusual"
+        meta:
+          "$ref": "#/components/schemas/DashboardMeta"
+    DashboardSummary:
+      type: object
+      required: [form4_filings, insider_transactions, institutional_reports, watchlist_items, watchlist_activity_events, cluster_windows]
+      properties:
+        form4_filings:
+          type: integer
+          minimum: 0
+          description: Visible parsed source filings in the window, including originals and amendments.
+        insider_transactions:
+          type: integer
+          minimum: 0
+          description: Effective transactions from window filings; joint-owner copies count once.
+        institutional_reports:
+          type: integer
+          minimum: 0
+          description: Visible parsed report records in the window, including notices and amendments.
+        watchlist_items:
+          type: integer
+          minimum: 0
+        watchlist_activity_events:
+          type: integer
+          minimum: 0
+        cluster_windows:
+          type: integer
+          minimum: 0
+          description: Qualifying rolling windows, not distinct issuers.
+    DashboardSectionFilters:
+      type: object
+      required: [filters]
+      properties:
+        filters:
+          type: object
+          additionalProperties:
+            type: string
+          description: Normalized filters to send with sort, limit and cursor to the existing section endpoint.
+    DashboardDeadline:
+      type: object
+      required: [form_type, period_of_report, due_date, days_remaining, timezone, source_url]
+      properties:
+        form_type:
+          type: string
+          enum: [13F-HR]
+        period_of_report:
+          type: string
+          format: date
+        due_date:
+          type: string
+          format: date
+          description: Standard quarterly date adjusted past weekends and Washington's Birthday; stays visible on its due day.
+        days_remaining:
+          type: integer
+          minimum: 0
+        timezone:
+          type: string
+          enum: [America/New_York]
+        source_url:
+          type: string
+          format: uri
+    DashboardUnusual:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          maxItems: 0
+          items:
+            "$ref": "#/components/schemas/ActivityEvent"
+        meta:
+          type: object
+          required: [available, unavailable_reason, total_count, truncated, feature, limit]
+          properties:
+            available:
+              type: boolean
+              enum: [false]
+            unavailable_reason:
+              type: string
+              enum: [scoring_not_active]
+            total_count:
+              type: integer
+              nullable: true
+              description: Null while scoring is unavailable.
+            truncated:
+              type: boolean
+              enum: [false]
+            feature:
+              type: string
+              enum: [unusual_activity_results]
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 10
+              description: Smaller of the requested section size and the plan cap (Free 1).
+    DashboardMeta:
+      type: object
+      required: [as_of, window, latest_filed_at, available_sources, scoring_available, market_movers_available, disclaimer]
+      properties:
+        as_of:
+          type: string
+          format: date-time
+        window:
+          type: object
+          required: [days, date_from, date_to, timezone]
+          properties:
+            days:
+              type: integer
+              enum: [7, 30, 90]
+            date_from:
+              type: string
+              format: date
+            date_to:
+              type: string
+              format: date
+            timezone:
+              type: string
+              enum: [UTC]
+        latest_filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        available_sources:
+          type: array
+          items:
+            type: string
+            enum: [insider, institutional]
+        scoring_available:
+          type: boolean
+          enum: [false]
+        market_movers_available:
+          type: boolean
+          enum: [false]
+        disclaimer:
+          type: string
     Cik:
       type: string
       pattern: "^[0-9]{10}$"

@@ -5,7 +5,7 @@ class DashboardController < ApplicationController
 
   def index
     @as_of = Time.current
-    @next_13f_deadline = Form13fDeadline.new(today: @as_of.to_date).next
+    @next_13f_deadline = Form13fDeadline.new(today: @as_of.in_time_zone("America/New_York").to_date).next
     @institutional_flow = InstitutionalFlow.new(as_of: @as_of).top_moves(limit: 8)
     @smart_money_collisions = SmartMoneyCollisions.new(as_of: @as_of).matches(days: 90, window_days: 45, limit: 8)
     signals = InsiderSignals.new(as_of: @as_of)

@@ -8,7 +8,7 @@ module Api
       Result = Data.define(:records, :meta)
       attr_reader :as_of
 
-      def initialize(parameters:, context:, sorts:, default_sort:, bounds: {}, as_of: Time.current)
+      def initialize(parameters:, context:, sorts:, default_sort:, bounds: {}, as_of: Time.current, captured_bounds: nil)
         @sorts = sorts
         @sort = parameters.fetch("sort", default_sort)
         @field = @sort.delete_prefix("-")
@@ -17,7 +17,7 @@ module Api
         invalid!("limit") unless @limit.between?(1, 100)
         @context = context.merge("filters" => parameters.except("cursor", "limit", "sort"), "sort" => @sort)
         @snapshot = restore(parameters["cursor"]) || {
-          "as_of" => as_of.iso8601(6), "bounds" => bounds.transform_values { |model| model.maximum(:id) || 0 }
+          "as_of" => as_of.iso8601(6), "bounds" => captured_bounds || bounds.transform_values { |model| model.maximum(:id) || 0 }
         }
         @as_of = Time.iso8601(@snapshot.fetch("as_of"))
       rescue ArgumentError

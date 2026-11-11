@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # Calculates the next quarterly 13F filing deadline without consulting an
-# external calendar. The statutory 45-day date rolls forward when it lands on
-# a weekend, which keeps the product's countdown useful at quarter end.
+# external calendar. Quarterly dates roll forward past weekends and Washington's
+# Birthday, the federal holiday that these four annual 45-day dates can encounter.
 class Form13fDeadline
   Deadline = Data.define(:period_end, :due_date, :days_remaining)
   QUARTER_ENDS = [ [ 3, 31 ], [ 6, 30 ], [ 9, 30 ], [ 12, 31 ] ].freeze
@@ -13,7 +13,7 @@ class Form13fDeadline
 
   def next
     period_end = quarter_ends.find do |candidate|
-      business_day(candidate + 45.days) > @today
+      business_day(candidate + 45.days) >= @today
     end
     due_date = business_day(period_end + 45.days)
 
@@ -29,7 +29,11 @@ class Form13fDeadline
   end
 
   def business_day(date)
-    date += 1 while date.saturday? || date.sunday?
+    date += 1 while date.saturday? || date.sunday? || washington_birthday?(date)
     date
+  end
+
+  def washington_birthday?(date)
+    date.month == 2 && date.monday? && date.day.between?(15, 21)
   end
 end

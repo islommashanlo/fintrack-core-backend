@@ -56,6 +56,11 @@ changes create new cached versions, and large tables use bounded examples.
 Browser requests require a CSRF token. See the API documentation for coverage,
 limits and unsupported formats.
 
+The private `/api/v1/dashboard` combines local filing counts, ranked cluster windows,
+watchlist activity and the next 13F deadline. It shares snapshot ID ceilings and
+existing activity/cluster cursors, respects account scope and plan limits, and
+explicitly marks unavailable scoring and market-price movers. See `docs/api-v1.md`.
+
 JSON password recovery is available at `/api/v1/auth/password/forgot` and
 `/api/v1/auth/password/reset`. Both require browser CSRF tokens. Recovery uses
 encrypted, expiring notification jobs and the existing mail transport; successful
