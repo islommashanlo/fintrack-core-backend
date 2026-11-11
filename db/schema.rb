@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_220000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -482,6 +482,40 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_220000) do
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'parsed'::character varying::text, 'failed'::character varying::text, 'skipped'::character varying::text])", name: "institutional_reports_status_check"
   end
 
+  create_table "news_items", force: :cascade do |t|
+    t.string "provider", null: false
+    t.string "provider_item_id", null: false
+    t.string "source", null: false
+    t.string "title", null: false
+    t.string "url", null: false
+    t.datetime "published_at", null: false
+    t.datetime "observed_at", null: false
+    t.string "kind", null: false
+    t.string "suppression_reason"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider", "provider_item_id"], name: "index_news_items_on_provider_and_provider_item_id", unique: true
+    t.index ["published_at", "id"], name: "index_news_items_on_published_at_and_id"
+    t.check_constraint "char_length(btrim(title::text)) >= 1 AND char_length(btrim(title::text)) <= 500 AND char_length(btrim(source::text)) >= 1 AND char_length(btrim(source::text)) <= 200 AND char_length(url::text) >= 1 AND char_length(url::text) <= 2048 AND published_at <= observed_at", name: "news_items_metadata"
+    t.check_constraint "kind::text = ANY (ARRAY['news'::character varying, 'press_release'::character varying, 'other'::character varying]::text[])", name: "news_items_kind"
+    t.check_constraint "provider::text ~ '^[a-z][a-z0-9_]{0,39}$'::text AND char_length(provider_item_id::text) >= 1 AND char_length(provider_item_id::text) <= 200", name: "news_items_provider_identity"
+    t.check_constraint "suppression_reason IS NULL OR (suppression_reason::text = ANY (ARRAY['restricted_language'::character varying, 'markup'::character varying]::text[]))", name: "news_items_suppression"
+  end
+
+  create_table "news_mentions", force: :cascade do |t|
+    t.bigint "news_item_id", null: false
+    t.string "entity_type", null: false
+    t.bigint "entity_id", null: false
+    t.string "role", null: false
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["entity_type", "entity_id"], name: "index_news_mentions_on_entity"
+    t.index ["news_item_id", "entity_type", "entity_id", "role"], name: "index_news_mentions_on_identity", unique: true
+    t.index ["news_item_id"], name: "index_news_mentions_on_news_item_id"
+    t.check_constraint "entity_id > 0 AND (entity_type::text = 'Filer'::text AND (role::text = ANY (ARRAY['issuer'::character varying, 'person'::character varying]::text[])) OR entity_type::text = 'InstitutionalFiler'::text AND role::text = 'fund'::text)", name: "news_mentions_entity_role"
+  end
+
   create_table "notification_preferences", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "time_zone"
@@ -679,6 +713,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_220000) do
   add_foreign_key "institutional_report_other_managers", "institutional_reports"
   add_foreign_key "institutional_reports", "filings"
   add_foreign_key "institutional_reports", "institutional_filers"
+  add_foreign_key "news_mentions", "news_items"
   add_foreign_key "notification_preferences", "users"
   add_foreign_key "position_diffs", "institutional_filers"
   add_foreign_key "position_diffs", "institutional_reports"

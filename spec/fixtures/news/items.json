@@ -1,0 +1,4 @@
+[
+  {"provider_item_id":"story-001","source":"Example Newsroom","title":"Example Issuer schedules shareholder meeting","url":"https://news.example.invalid/stories/meeting?edition=morning","published_at":"2026-11-10T09:30:00Z","kind":"news"},
+  {"provider_item_id":"story-002","source":"Fictional Fund Press Office","title":"Example Fund appoints operations director","url":"https://press.example.invalid/appointments/director","published_at":"2026-11-10T10:15:00Z","kind":"press_release"}
+]

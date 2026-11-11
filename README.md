@@ -142,3 +142,8 @@ provider-specific series identities and bounded session gap filling. The default
 provider is disabled. The company-price API reads local bars and filing markers;
 raw-price output requires a provider publication allowlist, which defaults to empty.
 No price fetching, scheduled price jobs or price-based scoring is enabled.
+
+The [news foundation](docs/news.md) stores headline/link metadata and typed mentions
+of existing issuers, funds and insiders. Ingestion is atomic and idempotent; unsafe
+headlines remain stored but suppressed. The provider is disabled, and no news feed,
+refresh job or external request is enabled.
