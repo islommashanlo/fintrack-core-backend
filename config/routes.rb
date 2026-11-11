@@ -15,6 +15,8 @@ Rails.application.routes.draw do
       post "auth/signup" => "auth#signup"
       post "auth/login" => "auth#login"
       delete "auth/logout" => "auth#logout"
+      post "auth/password/forgot" => "passwords#forgot", as: :password_forgot
+      post "auth/password/reset" => "passwords#reset", as: :password_reset
       get "plans" => "plans#index", as: :plans
       get "me" => "accounts#show", as: :me
       patch "me" => "accounts#update"

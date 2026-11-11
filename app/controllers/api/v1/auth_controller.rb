@@ -30,7 +30,12 @@ module Api
           render json: { error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password" } }, status: :unauthorized
           return
         end
-        rotate_api_session(user)
+        user.with_lock do
+          unless user.email_address == values.fetch("email").strip.downcase && user.authenticate(values.fetch("password"))
+            return render json: { error: { code: "INVALID_CREDENTIALS", message: "Invalid email or password" } }, status: :unauthorized
+          end
+          rotate_api_session(user)
+        end
         render_session(user)
       end
 

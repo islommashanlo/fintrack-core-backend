@@ -324,6 +324,8 @@ other read lists; `total_count` counts distinct issuer CIKs.
 | `POST /api/v1/auth/signup` | Create an account from `email`, `password`, optional `password_confirmation`; sign in |
 | `POST /api/v1/auth/login` | Sign in with `email` and `password` |
 | `DELETE /api/v1/auth/logout` | Revoke this browser's database session and clear its cookie |
+| `POST /api/v1/auth/password/forgot` | Accept an email recovery request without confirming account existence |
+| `POST /api/v1/auth/password/reset` | Set a new password using an emailed reset token; revoke sessions |
 | `GET /api/v1/me` | Read the authenticated account |
 | `PATCH /api/v1/me` | Change email and/or password after verifying `current_password` |
 | `DELETE /api/v1/me` | Delete the authenticated account after verifying `current_password` |
@@ -366,8 +368,60 @@ Account deletion requires a JSON `current_password` and removes only that user's
 private sessions, follows, linked alert rules/deliveries and account. Public
 filings and normalized reported data remain stored.
 
-Google OAuth, API password-reset flows, and persisted user preferences are still
-pending. The existing HTML password-reset flow remains separate.
+Google OAuth and persisted general user preferences are still pending.
+
+### Password recovery
+
+`POST /auth/password/forgot` accepts `{ "email": "reader@example.com" }` and
+returns HTTP 202 with `{ data: { message } }`. Known and unknown addresses receive
+the same response and each enqueue the same job with an encrypted argument. The
+response never includes a token. Email syntax and flat input are validated; unknown
+fields such as a caller-controlled redirect URL return 400. Both endpoints require
+the normal browser CSRF token and use `Cache-Control: no-store`.
+
+Recovery requests permit 10 per hour per IP and three per 15 minutes per normalized
+email across IPs. HTML `/passwords` shares both counters and the same service.
+Reset submissions permit 10 attempts per 15 minutes per IP across HTML and JSON.
+These budgets are in addition to the general API limits. Limiting returns 429 with
+`Retry-After`; limiter or queue unavailability returns a generic 503. These limits
+apply to unknown addresses too and cannot be used to discover whether an account
+exists through a different response or queueing path.
+
+With `FRONTEND_ORIGIN` configured, API recovery mail links to
+`<FRONTEND_ORIGIN>/reset-password#token=<encoded token>`. The frontend must read the
+fragment, remove it from browser history after capture, obtain `/auth/csrf` with
+credentials, then submit the token in JSON. The fixed URL never uses the request's
+Host, Origin, or a submitted redirect parameter. The fragment is not sent to the
+frontend server. Without a separate frontend origin, links use the existing HTML
+reset page on the configured mailer host. HTML-initiated requests always use that
+HTML page. Production origin, host and mail transport still require deployment
+configuration; no real mail delivery is exercised by the test suite.
+
+`POST /auth/password/reset` requires `token`, `password` and
+`password_confirmation`. New passwords must match, contain at least eight
+characters and fit BCrypt's 72-byte limit. Success is HTTP 200 with
+`{ data: { message, csrf_token } }`; replace the browser CSRF token and sign in
+again. No authenticated session is created. All sessions for the reset account
+are revoked atomically with the password change, and the submitting browser is
+signed out. Other accounts' sessions remain intact, apart from the submitting
+browser's session if it belonged to another account. Failed validation returns
+422 `VALIDATION_FAILED` and retains existing credentials, sessions and token.
+Malformed/missing input returns 400 `INVALID_PARAMETER`; a tampered, expired,
+consumed or deleted-account token returns the same 400 `INVALID_RESET_TOKEN`.
+
+Tokens expire 15 minutes after the request, including time spent queued. They are
+bound to both the account email and password digest via a hash, so an email change,
+password change or successful reset invalidates prior links. The shared service
+rechecks under the user row lock; concurrent consumption succeeds once. Sign-in
+also rechecks credentials under that lock before creating a session. Encrypted
+queue payloads expire on the same schedule and job argument logging is disabled.
+Stale/deleted/unknown requests are skipped by the worker. Transport retries may
+deliver the same email again; they do not mint fresh tokens or extend expiry.
+
+The token definition changed from Rails' salt-only default: links generated before
+this code change are invalid and require a fresh recovery request. The HTML reset
+flow uses the same token definition and service; it also revokes sessions, validates
+matching passwords, and disables response caching and referrer forwarding.
 
 ### Frontend origin and request limits
 

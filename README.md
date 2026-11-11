@@ -54,3 +54,10 @@ uses a local factual template; no external AI service is configured. Source
 changes create new cached versions, and large tables use bounded examples.
 Browser requests require a CSRF token. See the API documentation for coverage,
 limits and unsupported formats.
+
+JSON password recovery is available at `/api/v1/auth/password/forgot` and
+`/api/v1/auth/password/reset`. Both require browser CSRF tokens. Recovery uses
+encrypted, expiring notification jobs and the existing mail transport; successful
+reset revokes sessions and requires sign-in again. With `FRONTEND_ORIGIN` set, the
+React app must handle `/reset-password#token=...`. Without it, mail links use the
+existing HTML reset page. See the API contract for limits and token expiry.

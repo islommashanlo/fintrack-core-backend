@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.11.0
+  version: 1.12.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -759,6 +759,130 @@ paths:
       description: Same INVALID_CREDENTIALS response for an unknown account and wrong
         password. Replaces this browser session and rotates CSRF state. Cookie expires
         after 30 days; server also checks that absolute lifetime.
+  "/auth/password/forgot":
+    post:
+      operationId: requestPasswordRecovery
+      summary: Request password reset instructions without disclosing account existence
+      description: Known and unknown accounts receive the same response and queue
+        an encrypted, expiring request. No token is returned. With FRONTEND_ORIGIN
+        configured, mail links to its fixed /reset-password page using a token
+        fragment; otherwise the configured mailer host serves the HTML reset page.
+        Limits shared with HTML are 10 requests/hour/IP and three requests/15
+        minutes/normalized email. Requires browser CSRF and returns no-store.
+      security:
+      - CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - email
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 254
+      responses:
+        '202':
+          description: Request accepted; does not confirm account existence or delivery.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - message
+                    properties:
+                      message:
+                        type: string
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/auth/password/reset":
+    post:
+      operationId: resetPassword
+      summary: Consume a reset token, change credentials and revoke sessions
+      description: Tokens expire 15 minutes after the request and are bound to
+        the current email and password. Concurrent consumption succeeds once.
+        Success signs out the submitting browser without creating a new login;
+        replace the CSRF token and sign in again. Invalid password validation
+        leaves credentials, sessions and token intact. Limit of 10 submissions
+        per 15 minutes per IP shared with HTML. Returns no-store.
+      security:
+      - CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - token
+              - password
+              - password_confirmation
+              properties:
+                token:
+                  type: string
+                  maxLength: 2048
+                  writeOnly: true
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  writeOnly: true
+                  description: Must not exceed BCrypt's 72-byte limit.
+                password_confirmation:
+                  type: string
+                  format: password
+                  writeOnly: true
+      responses:
+        '200':
+          description: Password changed and sessions revoked; a fresh CSRF token is returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - message
+                    - csrf_token
+                    properties:
+                      message:
+                        type: string
+                      csrf_token:
+                        type: string
+        '400':
+          description: INVALID_PARAMETER for malformed input; INVALID_RESET_TOKEN
+            for tampered, expired, consumed or deleted-account tokens.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '422':
+          "$ref": "#/components/responses/AccountValidationFailed"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/auth/logout":
     delete:
       operationId: logout

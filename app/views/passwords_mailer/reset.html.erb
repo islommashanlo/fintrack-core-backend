@@ -1,4 +1,6 @@
 <p>
-  You can reset your password within the next 15 minutes on
-  <%= link_to "this password reset page", edit_password_url(@user.password_reset_token) %>.
+  You can reset your password on
+  <%= link_to "this password reset page", @reset_url %>.
 </p>
+<p>This link expires 15 minutes after the request.</p>
+<p>If you did not request this, you can ignore this email.</p>
