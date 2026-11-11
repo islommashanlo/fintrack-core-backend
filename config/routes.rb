@@ -31,6 +31,11 @@ Rails.application.routes.draw do
       get "activity/:id" => "activity#show", as: :activity_event
       get "methodology" => "methodology#show", as: :methodology
       post "screener/run" => "screener#run", as: :screener_run
+      get "saved-screens" => "saved_screens#index", as: :saved_screens
+      post "saved-screens" => "saved_screens#create"
+      get "saved-screens/:id" => "saved_screens#show", as: :saved_screen
+      patch "saved-screens/:id" => "saved_screens#update"
+      delete "saved-screens/:id" => "saved_screens#destroy"
       get "alert-rules" => "alert_rules#index", as: :alert_rules
       post "alert-rules" => "alert_rules#create"
       patch "alert-rules/:id" => "alert_rules#update", as: :alert_rule

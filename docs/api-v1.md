@@ -841,7 +841,90 @@ screen. A future verified unlimited entitlement uses the same query without the
 preview cap; clients cannot enable it, and all current accounts remain Free.
 
 Scores, sectors, market caps, AUM, turnover and other unimplemented metrics are
-rejected as filter/sort fields. Saved-screen CRUD and exports remain pending.
+rejected as filter/sort fields. Exports remain pending.
+
+## Saved screens
+
+| Route | Behavior |
+| --- | --- |
+| `GET /api/v1/saved-screens` | List the authenticated user's saved definitions with cursor pagination |
+| `POST /api/v1/saved-screens` | Create a named, reusable definition |
+| `GET /api/v1/saved-screens/:id` | Read one owned definition |
+| `PATCH /api/v1/saved-screens/:id` | Rename and/or replace the definition |
+| `DELETE /api/v1/saved-screens/:id` | Delete one owned screen |
+
+All five routes require authentication and a server-side `saved_screens: true`
+entitlement. Free accounts receive HTTP 402 with
+`{ "code": "PRO_REQUIRED", "feature": "saved_screens", "limit": 0 }`, including
+list, read and delete. All real accounts remain Free until verified billing is
+implemented; request fields cannot enable access. Downgrading retains saved rows
+but gates all five routes. Account deletion still removes its own private screens.
+Responses are `Cache-Control: no-store`, use the normal API request limits, and
+mutations require `X-CSRF-Token`. Entitlement is rechecked inside write transactions.
+
+Create accepts this JSON shape:
+
+```json
+{
+  "name": "Reported director purchases",
+  "definition": {
+    "entity": "insiders",
+    "filters": [
+      {"field": "latest_is_director", "operator": "eq", "value": true},
+      {"field": "purchase_value", "operator": "gte", "value": "100000.00"}
+    ],
+    "sort": "-purchase_value",
+    "window_days": 90
+  }
+}
+```
+
+The response is HTTP 201 `{ data: { id, name, definition, created_at, updated_at } }`.
+Only the owner can access an ID; another user's ID and an unknown ID both return
+404. IDs must be positive signed 64-bit integer strings. Names are trimmed,
+nonblank, at most 100 characters, and case-insensitively unique per user. Names
+must use factual language and cannot contain control characters. Duplicate names
+or prohibited label language return 422 `VALIDATION_FAILED`; names are not
+silently rewritten. Other users may use the same name.
+
+`definition` uses the existing screener field/operator/type validation. It requires
+`entity` and defaults omitted `filters` to `[]`, `sort` to `name`, and company or
+insider `window_days` to 90. Funds omit and reject `window_days`. Decimals are
+stored as normalized exact strings, and ticker conditions become uppercase.
+Definitions cannot include `page`, `limit`, `cursor`, plan, ownership or arbitrary
+SQL fields. They store query intent rather than a saved result set, acceptance-time
+snapshot, or pagination token. Saving does not execute a screen or contact providers.
+
+Send the returned `data.definition` directly to `POST /api/v1/screener/run` to
+evaluate it with current data and current result entitlements. Add pagination only
+when running it. The existing compiler revalidates every query at execution time.
+Any field removed from the screener's whitelist in a future change will need to be
+updated before that definition can run.
+
+PATCH accepts `name`, `definition`, or both and returns HTTP 200 in the same shape.
+A supplied definition replaces the entire previous query; it requires `entity`
+again and resets omitted query fields to their defaults. A name-only PATCH retains
+the query. Replacing a company/insider definition with a fund query clears the old
+window. Invalid updates are atomic. Writes serialize on the owner row, so independent
+concurrent name/query changes persist, and concurrent creates cannot duplicate a
+name. A later replacement of the same field takes precedence. DELETE returns 204;
+deleting an already missing ID returns 404. Public filing records are unaffected.
+
+The list accepts `entity`, literal case-insensitive name substring `q` (maximum
+100 characters), `sort` (`name`, `created_at`, `updated_at`, each optionally `-`
+prefixed), `limit` (1–100, default 50) and `cursor`. Default sort is case-insensitive
+name ascending, with ID as the tie breaker. Entity and name filters combine with
+AND; wildcard characters in `q` are escaped. Response is `{ data: [...], meta }`
+using the existing 24-hour signed cursor and total-count format. Cursors bind the
+account, resource, filters and sort; new rows beyond the initial ID/time bounds
+cannot appear in later pages. Existing definitions and sort values remain mutable:
+this is not an open database snapshot. Restart pagination after editing the list.
+
+Malformed shape, missing create fields, pagination inside definitions, unknown
+parameters, invalid IDs and invalid typed screener conditions return 400
+`INVALID_PARAMETER`. Missing authentication is 401, invalid CSRF is 403, missing
+owned rows are 404, and semantic label validation is 422. Pro access checks occur
+before saved-screen input/record lookup; a Free account receives 402 first.
 
 ## Filing alert rules, notification preferences and read state
 

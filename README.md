@@ -66,3 +66,8 @@ Authenticated clients can read or update `/api/v1/me/preferences` for `theme`
 (`system`, `light`, `dark`) and `dashboard_layout` (`split`, `focus`, `columns`).
 Reads return defaults without writing a record. Partial updates preserve other
 fields and remain separate from notification consent.
+
+Saved-screen CRUD is available at `/api/v1/saved-screens` and
+`/api/v1/saved-screens/:id`. These private routes require the server's Pro
+entitlement; all current accounts remain Free until verified billing is connected.
+Returned query definitions can be sent directly to `/api/v1/screener/run`.

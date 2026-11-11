@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.13.0
+  version: 1.14.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1705,6 +1705,206 @@ paths:
           "$ref": "#/components/responses/InvalidParameter"
         '403':
           "$ref": "#/components/responses/InvalidCsrfToken"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/saved-screens":
+    get:
+      operationId: listSavedScreens
+      summary: List owned saved screens with server-side Pro gating
+      description: Returns no-store. All current accounts remain Free until verified
+        billing is implemented. Downgraded accounts retain their screens but receive
+        402. Cursors bind the account, filters and sort; rows created after initial
+        bounds are excluded. Existing names/definitions remain mutable between pages.
+      security:
+      - CookieSession: []
+      parameters:
+      - name: entity
+        in: query
+        schema:
+          type: string
+          enum:
+          - companies
+          - funds
+          - insiders
+      - name: q
+        in: query
+        description: Literal case-insensitive name substring; wildcard characters are escaped.
+        schema:
+          type: string
+          maxLength: 100
+      - name: sort
+        in: query
+        schema:
+          type: string
+          default: name
+          enum:
+          - name
+          - "-name"
+          - created_at
+          - "-created_at"
+          - updated_at
+          - "-updated_at"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Owned saved definitions and cursor metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/SavedScreen"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+    post:
+      operationId: createSavedScreen
+      summary: Save a named reusable screener definition
+      description: Pro required. Names are trimmed and case-insensitively unique per
+        account. Definition is normalized using the existing screener whitelist,
+        excludes pagination, and can run unchanged through /screener/run. Saving
+        does not run a screen or fetch data. Returns no-store.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/SavedScreenCreate"
+      responses:
+        '201':
+          description: Saved definition created.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SavedScreenResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '422':
+          "$ref": "#/components/responses/AccountValidationFailed"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/saved-screens/{id}":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[1-9][0-9]{0,18}$"
+      description: Positive signed 64-bit saved-screen ID.
+    get:
+      operationId: getSavedScreen
+      summary: Read one owned saved definition
+      security:
+      - CookieSession: []
+      responses:
+        '200':
+          description: Owned saved definition; response is no-store.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SavedScreenResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+    patch:
+      operationId: updateSavedScreen
+      summary: Rename or replace an owned screen definition
+      description: Pro and CSRF required. A supplied definition replaces the full
+        previous query, including defaults for omitted fields; a name-only update
+        keeps the query. Writes are atomic and serialized per user. Returns no-store.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/SavedScreenUpdate"
+      responses:
+        '200':
+          description: Complete updated saved definition.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/SavedScreenResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '422':
+          "$ref": "#/components/responses/AccountValidationFailed"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+    delete:
+      operationId: deleteSavedScreen
+      summary: Delete one owned saved screen
+      description: Pro and CSRF required. Only private screen configuration is
+        removed. Missing or another user's ID returns 404. Response is no-store.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      responses:
+        '204':
+          description: Owned screen deleted.
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
         '429':
           "$ref": "#/components/responses/RateLimited"
         '503':
@@ -3546,6 +3746,7 @@ components:
           - watchlist_items
           - instant_alerts
           - alert_rules
+          - saved_screens
         limit:
           type: integer
           minimum: 0
@@ -4834,6 +5035,97 @@ components:
       description: Checks the retained comparison reports against cover totals, normalized
         units and row integrity. Complete empty reports establish absence. This is
         internal report consistency, not complete EDGAR or portfolio coverage.
+    SavedScreen:
+      type: object
+      required:
+      - id
+      - name
+      - definition
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        definition:
+          allOf:
+          - "$ref": "#/components/schemas/SavedScreenDefinition"
+          - type: object
+            required:
+            - filters
+            - sort
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    SavedScreenDefinition:
+      type: object
+      additionalProperties: false
+      required:
+      - entity
+      properties:
+        entity:
+          type: string
+          enum:
+          - companies
+          - funds
+          - insiders
+        filters:
+          type: array
+          maxItems: 20
+          default: []
+          items:
+            "$ref": "#/components/schemas/ScreenerCondition"
+        sort:
+          type: string
+          default: name
+          description: Existing screener entity sort, optionally prefixed with -.
+        window_days:
+          type: integer
+          enum:
+          - 30
+          - 90
+          - 365
+          description: Company/insider activity window; defaults to 90. Omitted and
+            rejected for fund definitions. Pagination keys are never accepted.
+    SavedScreenCreate:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - definition
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Trimmed, factual label; case-insensitively unique per user.
+        definition:
+          "$ref": "#/components/schemas/SavedScreenDefinition"
+    SavedScreenUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        definition:
+          "$ref": "#/components/schemas/SavedScreenDefinition"
+    SavedScreenResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/SavedScreen"
     ScreenerCondition:
       type: object
       required:

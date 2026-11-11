@@ -11,6 +11,7 @@ class User < ApplicationRecord
   has_many :alert_deliveries, through: :alert_rules
   has_one :notification_preference, dependent: :destroy
   has_one :user_preference, dependent: :destroy
+  has_many :saved_screens, dependent: :delete_all
   has_many :alert_event_states, dependent: :delete_all
   has_many :alert_digest_batches, dependent: :restrict_with_exception
 

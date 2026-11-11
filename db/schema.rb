@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_010000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_020000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -373,6 +373,24 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_010000) do
     t.check_constraint "shares_delta <> 0::numeric", name: "position_diffs_nonzero_share_delta"
   end
 
+  create_table "saved_screens", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "name", limit: 100, null: false
+    t.string "entity", null: false
+    t.jsonb "filters", default: [], null: false
+    t.string "sort", default: "name", null: false
+    t.integer "window_days"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "user_id, lower((name)::text)", name: "index_saved_screens_on_user_and_name", unique: true
+    t.index ["user_id", "entity", "created_at", "id"], name: "idx_on_user_id_entity_created_at_id_47390d35ff"
+    t.index ["user_id"], name: "index_saved_screens_on_user_id"
+    t.check_constraint "char_length(btrim(name::text)) >= 1 AND char_length(btrim(name::text)) <= 100", name: "saved_screen_name"
+    t.check_constraint "entity::text = 'funds'::text AND window_days IS NULL OR (entity::text = ANY (ARRAY['companies'::character varying, 'insiders'::character varying]::text[])) AND window_days IS NOT NULL AND (window_days = ANY (ARRAY[30, 90, 365]))", name: "saved_screen_window"
+    t.check_constraint "entity::text = ANY (ARRAY['companies'::character varying, 'funds'::character varying, 'insiders'::character varying]::text[])", name: "saved_screen_entity"
+    t.check_constraint "jsonb_typeof(filters) = 'array'::text", name: "saved_screen_filters"
+  end
+
   create_table "securities", force: :cascade do |t|
     t.string "figi", null: false
     t.string "ticker"
@@ -437,6 +455,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_010000) do
   add_foreign_key "position_diffs", "institutional_filers"
   add_foreign_key "position_diffs", "institutional_reports"
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"
+  add_foreign_key "saved_screens", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "user_preferences", "users"
 end
