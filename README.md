@@ -78,6 +78,12 @@ Pro CSV downloads are available under `/api/v1/exports/insider-transactions`,
 with 1,000-row pages, signed account-bound cursors, formula-safe text and a 10 MiB
 file limit. Export metadata is returned in headers. See `docs/api-v1.md`.
 
+Follow-scoped `insider_transaction` alert rules filter existing Form 4 rows by
+direction, codes, role, activity type, security table and minimum known value.
+SQL deduplicates joint owners; source references and configuration versions keep
+delivery retries and edits safe. Free uses daily digests; verified Pro can use
+instant email. See `docs/api-v1.md` for consent, amendment and lifecycle rules.
+
 Public `/api/v1/search?q=...` groups ranked local company, fund and insider results.
 It supports exact identifiers, name prefixes/substrings, fuzzy names and signed
 per-group cursors. Local migrations enable PostgreSQL `pg_trgm`; no provider or

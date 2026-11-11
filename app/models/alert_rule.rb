@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class AlertRule < ApplicationRecord
-  EVENT_TYPES = %w[new_filing].freeze
+  EVENT_TYPES = %w[new_filing insider_transaction].freeze
   CHANNELS = %w[email].freeze
 
   belongs_to :follow
@@ -20,4 +20,9 @@ class AlertRule < ApplicationRecord
   validates :event_type, inclusion: { in: EVENT_TYPES }
   validates :channel, inclusion: { in: CHANNELS }
   validates :channel, uniqueness: { scope: %i[follow_id event_type] }
+  validate do
+    if event_type == "insider_transaction" && follow&.target_type == "InstitutionalFiler"
+      errors.add(:event_type, "requires an issuer or person follow")
+    end
+  end
 end

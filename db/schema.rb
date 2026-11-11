@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_170000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -24,10 +24,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_170000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "frequency", default: "instant", null: false
-    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true
+    t.bigint "insider_transaction_id"
+    t.string "event_type", default: "new_filing", null: false
+    t.bigint "rule_revision", default: 1, null: false
+    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true, where: "(insider_transaction_id IS NULL)"
+    t.index ["alert_rule_id", "insider_transaction_id"], name: "index_alert_deliveries_on_rule_and_transaction", unique: true, where: "(insider_transaction_id IS NOT NULL)"
     t.index ["alert_rule_id"], name: "index_alert_deliveries_on_alert_rule_id"
     t.index ["filing_id"], name: "index_alert_deliveries_on_filing_id"
+    t.index ["insider_transaction_id"], name: "index_alert_deliveries_on_insider_transaction_id"
+    t.check_constraint "event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL", name: "alert_delivery_source"
     t.check_constraint "frequency::text = ANY (ARRAY['instant'::character varying::text, 'daily_digest'::character varying::text])", name: "alert_delivery_frequency"
+    t.check_constraint "rule_revision > 0", name: "alert_delivery_revision"
   end
 
   create_table "alert_digest_batches", force: :cascade do |t|
@@ -75,10 +82,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_170000) do
     t.datetime "archived_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "revision", default: 1, null: false
     t.index ["alert_rule_id"], name: "index_alert_rule_settings_on_alert_rule_id", unique: true
     t.index ["frequency", "archived_at"], name: "index_alert_rule_settings_on_frequency_and_archived_at"
     t.check_constraint "frequency::text = ANY (ARRAY['instant'::character varying::text, 'daily_digest'::character varying::text])", name: "alert_setting_frequency"
     t.check_constraint "jsonb_typeof(conditions) = 'object'::text", name: "alert_setting_conditions_object"
+    t.check_constraint "revision > 0", name: "alert_setting_revision"
   end
 
   create_table "alert_rules", force: :cascade do |t|
@@ -88,6 +97,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_170000) do
     t.boolean "active", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["event_type", "follow_id"], name: "index_active_alert_rules_on_trigger_and_follow", where: "active"
     t.index ["follow_id", "event_type", "channel"], name: "index_alert_rules_on_follow_id_and_event_type_and_channel", unique: true
     t.index ["follow_id"], name: "index_alert_rules_on_follow_id"
   end
@@ -527,6 +537,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_170000) do
 
   add_foreign_key "alert_deliveries", "alert_rules"
   add_foreign_key "alert_deliveries", "filings"
+  add_foreign_key "alert_deliveries", "insider_transactions"
   add_foreign_key "alert_digest_batches", "users"
   add_foreign_key "alert_digest_items", "alert_deliveries"
   add_foreign_key "alert_digest_items", "alert_digest_batches"

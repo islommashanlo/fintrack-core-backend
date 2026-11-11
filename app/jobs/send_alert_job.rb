@@ -5,7 +5,7 @@ class SendAlertJob < ApplicationJob
   discard_on ActiveRecord::RecordNotFound
 
   def perform(delivery_id)
-    delivery = AlertDelivery.includes(:filing, alert_rule: { follow: :user }).find(delivery_id)
+    delivery = AlertDelivery.includes(:filing, :insider_transaction, alert_rule: { follow: :user }).find(delivery_id)
     user = delivery.alert_rule.follow.user
     user.with_lock do
       delivery.with_lock do

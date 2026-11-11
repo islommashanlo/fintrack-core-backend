@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.22.0
+  version: 1.23.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -2535,14 +2535,19 @@ paths:
   "/alert-rules":
     get:
       operationId: listAlertRules
-      summary: List owned legacy filing-email rules
+      summary: List owned filing and insider-transaction email rules
       security:
       - CookieSession: []
-      description: Owned unarchived filing/email rules with stored frequency. Free
+      description: Owned unarchived filing/transaction email rules with typed conditions and stored frequency. Free
         supported frequencies contain daily_digest; paused rules count toward the
         three-rule limit. Legacy over-limit rules remain readable. Ownership and cursor
         snapshots are enforced; current active state remains mutable.
       parameters:
+      - name: trigger
+        in: query
+        schema:
+          type: string
+          enum: [new_filing, insider_transaction]
       - name: entity_type
         in: query
         schema:
@@ -2607,12 +2612,13 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
     post:
       operationId: createAlertRule
-      summary: Create or restore an owned follow-scoped filing email rule
+      summary: Create or restore an owned follow-scoped email rule
       description: New rules default to paused daily digests. The same follow/trigger/channel
         reuses the same ID. Free limits count unarchived drafts and active rules.
         Activation requires explicit email consent/time zone; instant configuration
-        is server-gated. Only new_filing/email and empty conditions are supported;
-        no old filings are reprocessed.
+        is server-gated. Filing rules require empty conditions. Transaction rules
+        support direction, codes, role, type, security table and minimum known value
+        for issuer/person follows. Triggers are immutable; no old filings are reprocessed.
       security:
       - CookieSession: []
         CsrfToken: []
@@ -2678,15 +2684,16 @@ paths:
         minimum: 1
     patch:
       operationId: updateAlertRuleActiveState
-      summary: Update owned filing-email rule activity or frequency
+      summary: Update owned email rule activity, frequency or conditions
       security:
       - CookieSession: []
         CsrfToken: []
-      description: Only implemented trigger/channel/empty conditions are accepted.
+      description: Only implemented triggers, email channel and typed conditions are accepted.
         Activation requires consent/time zone and quota; Free instant configuration
-        returns PRO_REQUIRED/instant_alerts/0. Frequency changes require pause, which
-        can be included in the same PATCH. Queued deliveries retain their original
-        frequency. Unowned rules return 404 before plan checks.
+        returns PRO_REQUIRED/instant_alerts/0. Frequency/condition changes require
+        pause, which can be included in the same PATCH. Old configuration versions
+        cannot send pending matches. Triggers cannot change. Unowned rules return
+        404 before plan checks.
       requestBody:
         required: true
         content:
@@ -2750,14 +2757,20 @@ paths:
   "/alert-events":
     get:
       operationId: listAlertEvents
-      summary: Read owned filing-alert delivery history
+      summary: Read owned filing and transaction alert delivery history
       security:
       - CookieSession: []
-      description: Owned delivery history with independent read_at timestamps and
-        frequency captured at matching time. Dates filter UTC delivery creation. Provider
+      description: Owned delivery history with independent read_at timestamps,
+        source trigger and frequency captured at matching time. Transaction events
+        include the matched normalized row. Dates filter UTC delivery creation. Provider
         error text remains private. Owner/route/filter-bound cursors exclude later
         source IDs; read/delivery state can change between pages.
       parameters:
+      - name: trigger
+        in: query
+        schema:
+          type: string
+          enum: [new_filing, insider_transaction]
       - name: entity_type
         in: query
         schema:
@@ -6867,6 +6880,43 @@ components:
       description: 'total_count counts every match. Pagination operates within the
         server-entitled prefix: at most three Free results per screen across pages.
         truncated may remain true when has_more is false.'
+    TransactionAlertConditions:
+      type: object
+      additionalProperties: false
+      description: Optional AND conditions for insider_transaction rules; new_filing
+        requires an empty object. Amounts require a known, non-suspect reported
+        price. Output canonicalizes codes and decimal strings. Changing conditions
+        requires a paused rule and invalidates older queued configuration versions.
+      properties:
+        direction:
+          type: string
+          enum: [purchase, sale, other]
+        codes:
+          type: array
+          minItems: 1
+          maxItems: 26
+          items:
+            type: string
+            pattern: "^[A-Za-z]$"
+          description: Canonicalized uppercase, unique and sorted.
+        role:
+          type: string
+          enum: [director, officer, ten_percent_owner, other]
+        type:
+          type: string
+          enum: [open_market, administrative]
+        security_table:
+          type: string
+          enum: [non_derivative, derivative]
+        min_value:
+          description: Inclusive nonnegative dollars; up to 30 integer/12 fractional
+            digits. JSON floats and exponent notation rejected. Output is an exact decimal string.
+          oneOf:
+          - type: string
+            pattern: "^[0-9]{1,30}(\\.[0-9]{1,12})?$"
+          - type: integer
+            minimum: 0
+            maximum: 999999999999999999999999999999
     FilingAlertRule:
       type: object
       required:
@@ -6893,6 +6943,7 @@ components:
           type: string
           enum:
           - new_filing
+          - insider_transaction
         entity:
           type: object
           required:
@@ -6908,8 +6959,7 @@ components:
             key:
               type: string
         conditions:
-          type: object
-          additionalProperties: false
+          "$ref": "#/components/schemas/TransactionAlertConditions"
         channels:
           type: array
           items:
@@ -6949,6 +6999,7 @@ components:
         - updated_at
         - period_of_report
         - read_at
+        - transaction
         properties:
           id:
             type: integer
@@ -6962,6 +7013,13 @@ components:
             type: string
             enum:
             - new_filing
+            - insider_transaction
+          transaction:
+            type: object
+            nullable: true
+            allOf:
+            - "$ref": "#/components/schemas/InsiderTransaction"
+            description: Matched normalized transaction and owner evidence; null for filing alerts.
           entity:
             type: object
             required:
@@ -7019,6 +7077,7 @@ components:
       - supported_triggers
       - supported_channels
       - supported_frequencies
+      - transaction_condition_fields
       properties:
         capabilities:
           type: object
@@ -7063,6 +7122,13 @@ components:
             type: string
             enum:
             - new_filing
+            - insider_transaction
+        transaction_condition_fields:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: [direction, codes, role, type, security_table, min_value]
         supported_channels:
           type: array
           items:
@@ -7096,6 +7162,7 @@ components:
           type: string
           enum:
           - new_filing
+          - insider_transaction
         channels:
           type: array
           items:
@@ -7105,8 +7172,7 @@ components:
           minItems: 1
           maxItems: 1
         conditions:
-          type: object
-          additionalProperties: false
+          "$ref": "#/components/schemas/TransactionAlertConditions"
     FilingAlertRuleCreate:
       type: object
       required:
@@ -7123,6 +7189,7 @@ components:
           type: string
           enum:
           - new_filing
+          - insider_transaction
         channels:
           type: array
           items:
@@ -7132,8 +7199,7 @@ components:
           minItems: 1
           maxItems: 1
         conditions:
-          type: object
-          additionalProperties: false
+          "$ref": "#/components/schemas/TransactionAlertConditions"
         follow_id:
           type: integer
           format: int64

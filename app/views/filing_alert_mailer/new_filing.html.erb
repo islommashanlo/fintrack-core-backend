@@ -1,4 +1,4 @@
-<p>A new SEC filing matches your FilingsIntel alert.</p>
+<p><%= @transaction ? TransactionAlertText.render(@transaction) : "A new SEC filing matches your FilingsIntel alert." %></p>
 
 <p>
   Followed <strong><%= @follow.target_type.humanize %> <%= @follow.target_key %></strong><br>

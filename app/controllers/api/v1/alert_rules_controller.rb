@@ -13,8 +13,10 @@ module Api
       end
 
       def update
-        values = AlertRuleParameters.normalize(params.except(:controller, :action, :format, :id).to_unsafe_h)
-        rule = AlertRuleControl.update(user: Current.user, id: AlertParameters.id!(params[:id]), attributes: values)
+        id = AlertParameters.id!(params[:id])
+        existing = Current.user.alert_rules.retained.find(id)
+        values = AlertRuleParameters.normalize(params.except(:controller, :action, :format, :id).to_unsafe_h, trigger: existing.event_type)
+        rule = AlertRuleControl.update(user: Current.user, id:, attributes: values)
         render json: { data: AlertRuleSerializer.render(rule), meta: AlertCapabilities.for_user(Current.user) }
       end
 

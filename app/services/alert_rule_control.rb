@@ -7,10 +7,11 @@ class AlertRuleControl
   def self.create(user:, follow_id:, attributes:)
     user.with_lock do
       follow = user.follows.current.find(follow_id)
-      rule = follow.alert_rule
+      trigger = attributes.fetch(:event_type, "new_filing")
+      rule = follow.alert_rules.find_by(event_type: trigger, channel: "email")
       existing = rule && rule.setting&.archived_at.nil?
       assert_slot!(user) unless existing
-      rule ||= follow.create_alert_rule!(active: false)
+      rule ||= follow.alert_rules.create!(event_type: trigger, active: false)
       ensure_setting!(rule)
       rule.setting.update!(frequency: "daily_digest") if !existing && !attributes.key?(:frequency)
       rule.setting.update!(archived_at: nil)
@@ -38,14 +39,18 @@ class AlertRuleControl
   end
 
   def self.apply(user:, rule:, attributes:)
-    if attributes[:frequency]
-      if attributes[:frequency] == "instant" && !PlanCatalog.limit_for(user, :instant_alerts)
-        raise PlanCatalog::Required.new(feature: "instant_alerts", limit: 0)
-      end
-      if rule.active? && attributes[:active] != false && rule.setting.frequency != attributes[:frequency]
-        raise InvalidConfiguration, "Pause the rule before changing frequency"
-      end
-      rule.setting.update!(frequency: attributes[:frequency])
+    if attributes[:event_type] && attributes[:event_type] != rule.event_type
+      raise InvalidConfiguration, "Create a separate rule for another trigger"
+    end
+    configuration = attributes.slice(:frequency, :conditions).reject { |key, value| rule.setting.public_send(key) == value }
+    if configuration.any? && rule.active? && attributes[:active] != false
+      raise InvalidConfiguration, "Pause the rule before changing its configuration"
+    end
+    if attributes[:frequency] == "instant" && !PlanCatalog.limit_for(user, :instant_alerts)
+      raise PlanCatalog::Required.new(feature: "instant_alerts", limit: 0)
+    end
+    if configuration.any?
+      rule.setting.update!(**configuration, revision: rule.setting.revision + 1, enabled_at: Time.current)
     end
     if attributes[:active]
       raise InvalidConfiguration, "This watchlist item has been removed" if rule.follow.removed_at

@@ -11,6 +11,7 @@ module Api
           alert_deliveries.id <= ? AND alert_rules.id <= ? AND follows.id <= ? AND alert_deliveries.created_at <= ?
         SQL
         scope = scope.where(status: filters["status"]) if filters["status"]
+        scope = scope.where(event_type: filters["trigger"]) if filters["trigger"]
         scope = scope.where(alert_rule_id: filters["rule_id"]) if filters["rule_id"]
         scope = scope.where(follows: { target_type: WatchlistTarget::TYPES.fetch(filters["entity_type"]) }) if filters["entity_type"]
         scope = scope.where("alert_deliveries.created_at >= ?", Date.iso8601(filters["date_from"], Date::GREGORIAN).beginning_of_day) if filters["date_from"]
@@ -21,7 +22,7 @@ module Api
         SQL
         projected = AlertDelivery.from("(#{sql}) alert_deliveries")
         projected = projected.where("api_read_at IS #{filters['unread'] == 'true' ? '' : 'NOT '}NULL") if filters["unread"]
-        page.call(projected, preload: [ :filing, { alert_rule: :follow } ])
+        page.call(projected, preload: [ :filing, { alert_rule: :follow }, { insider_transaction: :filing } ])
       end
     end
   end

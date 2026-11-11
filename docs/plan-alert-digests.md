@@ -11,7 +11,7 @@ Five tables preserve existing rule/event IDs:
 
 | Table | Purpose and uniqueness |
 | --- | --- |
-| `alert_rule_settings` | One row per rule; stored frequency, checked empty conditions, activation time and archival time |
+| `alert_rule_settings` | One row per rule; stored frequency, typed conditions, configuration version, activation time and archival time |
 | `notification_preferences` | One row per user; explicit IANA zone, consent, consent-start time and unsubscribe revision |
 | `alert_event_states` | One first-read timestamp per user/event |
 | `alert_digest_batches` | One batch per user/local date; pending/sending/sent/failed/canceled state and private errors |
@@ -42,11 +42,16 @@ feed and match queries exclude removed follows; historical alert ownership still
 uses the retained relationship. Account deletion explicitly removes private
 notification dependencies in order, while retaining shared SEC data.
 
-The matcher continues to implement only follow-scoped `new_filing`/email rules.
-It inserts deliveries on the existing unique rule/filing key. Daily digest events
-are retained for scheduled delivery; instant events enqueue the existing job,
-which checks trusted plan entitlement again. Advanced conditions, activity-line
-triggers, push and watchlist-wide/any-entity rules remain unimplemented.
+The matcher implements follow-scoped `new_filing` and `insider_transaction` email
+rules. Filing events use the unique rule/filing key; transaction events use a
+partial unique rule/transaction key and retain their normalized source row.
+Transaction rules support typed direction/code/role/type/table/value conditions,
+collapse joint-owner copies per reported line in SQL, and skip pre-activation or
+superseded filings. Separate rules of each trigger may coexist on a follow.
+Configuration versions invalidate older queued matches without deleting history.
+Daily digest events remain scheduled; instant events use the existing job and
+recheck trusted paid entitlement. See `docs/api-v1.md` for the current contract.
+Other activity triggers, push and watchlist-wide/any-entity rules remain pending.
 
 ## Digest scheduling and failure behavior
 

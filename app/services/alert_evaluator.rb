@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-# Finds active rules that match one parsed filing and creates at most one
-# delivery per rule and filing. Matching stays in SQL so a filing with many
-# owners cannot trigger Ruby-side scans or duplicate deliveries.
+# Matches filing rules once per filing and transaction rules once per reported
+# line. SQL resolves joint owners before source-level deduplication.
 class AlertEvaluator
   def self.call(filing)
     new(filing:).call
@@ -15,21 +14,27 @@ class AlertEvaluator
   def call
     return [] unless @filing&.parse_status == "parsed"
 
-    rows = matching_rules.map do |rule|
+    enqueue(matching_rules, event_type: "new_filing", unique_by: :index_alert_deliveries_on_alert_rule_id_and_filing_id) +
+      enqueue(TransactionAlertMatcher.call(@filing), event_type: "insider_transaction", unique_by: :index_alert_deliveries_on_rule_and_transaction)
+  end
+
+  private
+
+  def enqueue(matches, event_type:, unique_by:)
+    rows = matches.map do |rule|
       { alert_rule_id: rule.fetch("id"), filing_id: @filing.id, status: "pending", frequency: rule.fetch("frequency"),
+        event_type:, rule_revision: rule.fetch("rule_revision"), insider_transaction_id: rule["insider_transaction_id"],
         created_at: Time.current, updated_at: Time.current }
     end
     return [] if rows.empty?
 
     inserted = AlertDelivery.insert_all(
       rows,
-      unique_by: :index_alert_deliveries_on_alert_rule_id_and_filing_id,
+      unique_by:,
       returning: %w[id frequency]
     )
     inserted.rows.filter_map { |id, frequency| SendAlertJob.perform_later(id) if frequency == "instant" }
   end
-
-  private
 
   def matching_rules
     sql = case @filing.form_type
@@ -49,7 +54,7 @@ class AlertEvaluator
 
   def base_sql
     <<~SQL
-      SELECT alert_rules.id, settings.frequency
+      SELECT alert_rules.id, settings.frequency, settings.revision AS rule_revision
       FROM alert_rules
       INNER JOIN follows ON follows.id = alert_rules.follow_id
       INNER JOIN alert_rule_settings settings ON settings.alert_rule_id = alert_rules.id

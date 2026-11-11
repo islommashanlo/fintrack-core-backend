@@ -7,7 +7,7 @@ class User < ApplicationRecord
   end
   has_many :sessions, dependent: :destroy
   has_many :follows, dependent: :destroy
-  has_many :alert_rules, through: :follows
+  has_many :alert_rules, through: :follows, source: :alert_rules
   has_many :alert_deliveries, through: :alert_rules
   has_one :notification_preference, dependent: :destroy
   has_one :user_preference, dependent: :destroy

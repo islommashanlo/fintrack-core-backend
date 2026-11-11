@@ -1,6 +1,6 @@
 <h1>SEC filing digest for <%= @batch.local_date %></h1>
 <ul><% @deliveries.each do |delivery| %>
-  <li><%= delivery.filing.form_type %> reported for <%= delivery.alert_rule.follow.target_key %>:
+  <li><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %>:
     <%= link_to delivery.filing.accession_no, delivery.filing.sec_url %></li>
 <% end %></ul>
 <p><%= link_to "Manage email", @unsubscribe_url %></p>

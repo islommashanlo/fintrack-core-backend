@@ -14,6 +14,9 @@ class AlertDigestPlanner
       eligible = user.alert_deliveries.joins(alert_rule: :setting)
         .where(frequency: "daily_digest", status: %w[pending failed])
         .where(alert_rules: { active: true }, alert_rule_settings: { archived_at: nil, frequency: "daily_digest" }, follows: { removed_at: nil })
+        .where("alert_deliveries.rule_revision = alert_rule_settings.revision")
+        .where("alert_deliveries.insider_transaction_id IS NULL OR alert_deliveries.filing_id IN (?)",
+          Form4ReadScope.new(as_of: as_of).effective_filings.select(:id))
         .where("alert_deliveries.created_at < ? AND alert_deliveries.created_at >= ? AND alert_deliveries.created_at >= alert_rule_settings.enabled_at",
           cutoff, preference.email_enabled_at)
         .where.not(id: AlertDigestItem.select(:alert_delivery_id))

@@ -4,7 +4,8 @@ class Follow < ApplicationRecord
   TARGET_TYPES = %w[Insider InstitutionalFiler Ticker].freeze
 
   belongs_to :user
-  has_one :alert_rule, dependent: :destroy
+  has_many :alert_rules, dependent: :destroy
+  has_one :alert_rule, -> { where(event_type: "new_filing", channel: "email") }
   attr_accessor :skip_default_alert_rule
 
   after_create :create_default_alert_rule, unless: :skip_default_alert_rule

@@ -6,7 +6,8 @@ module Api
       def self.render(delivery, as_of: Time.current)
         rule = delivery.alert_rule
         FilingProvenance.render(delivery.filing, as_of:).merge(
-          id: delivery.id, rule_id: rule.id, trigger: rule.event_type,
+          id: delivery.id, rule_id: rule.id, trigger: delivery.event_type,
+          transaction: delivery.insider_transaction && InsiderTransactionSerializer.render(delivery.insider_transaction, as_of:),
           entity: { type: WatchlistTarget::API_TYPES.fetch(rule.follow.target_type), key: rule.follow.target_key },
           channel: rule.channel, frequency: delivery.frequency, status: delivery.status, read_at: delivery["api_read_at"],
           error_code: delivery.status == "failed" ? "DELIVERY_FAILED" : nil,

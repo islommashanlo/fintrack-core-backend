@@ -446,7 +446,7 @@ reported price, or null when shares/price is missing or price is suspect. Origin
 null values. Codes P/S produce `open_market` and direction `purchase`/`sale`;
 remaining codes (including a missing code) produce `administrative` and `other`.
 
-Only parsed Form 4/4-A filings accepted by the snapshot time are included. A parsed
+Only parsed Form 4 / 4/A filings accepted by the snapshot time are included. A parsed
 amendment supersedes the original and earlier amendments in SQL; equal timestamps
 are ordered by accession. Failed and future amendments do not suppress originals.
 Historical filings remain available through the filing-detail endpoint.
@@ -1470,7 +1470,7 @@ parameters, invalid IDs and invalid typed screener conditions return 400
 owned rows are 404, and semantic label validation is 422. Pro access checks occur
 before saved-screen input/record lookup; a Free account receives 402 first.
 
-## Filing alert rules, notification preferences and read state
+## Alert rules, notification preferences and read state
 
 All private routes use cookie authentication, `Cache-Control: no-store`, and the
 usual shared request limiter. Mutations require `X-CSRF-Token`. No request
@@ -1479,8 +1479,8 @@ reprocesses past filings or sends mail synchronously.
 | Route | Behavior |
 | --- | --- |
 | `GET /api/v1/alert-rules` | List owned, unarchived rules with signed cursor pagination |
-| `POST /api/v1/alert-rules` | Create/restore a follow-scoped filing-email rule, idempotent by follow/trigger/channel |
-| `PATCH /api/v1/alert-rules/:id` | Change active state/frequency; activation checks consent and server plan |
+| `POST /api/v1/alert-rules` | Create/restore a follow-scoped filing or insider-transaction email rule, idempotent by follow/trigger/channel |
+| `PATCH /api/v1/alert-rules/:id` | Change active state/frequency/conditions; activation checks consent and server plan |
 | `DELETE /api/v1/alert-rules/:id` | Idempotently archive and pause; retain delivery history |
 | `GET /api/v1/alert-events` | List owned delivery history with filing provenance and independent read timestamps |
 | `POST /api/v1/alert-events/:id/read` | Mark one owned event read; preserve its first read timestamp |
@@ -1506,8 +1506,9 @@ A rule request uses an existing owned, current watchlist follow:
 {"follow_id":12,"trigger":"new_filing","channels":["email"],"conditions":{},"frequency":"daily_digest","active":true}
 ```
 
-The implemented trigger is `new_filing`, the channel is email, and conditions
-must be `{}`. New rules default to paused daily digests. Duplicate creates keep
+The triggers are `new_filing` and `insider_transaction`; the channel is email.
+Filing rules require empty conditions. Transaction conditions are described below.
+New rules default to paused daily digests. Duplicate creates keep
 the existing ID and settings unless changes are explicitly requested. Restoring
 an archived rule retains its ID/history and defaults to daily digest frequency.
 Free users can retain three unarchived rules, including paused drafts. Archive
@@ -1520,23 +1521,29 @@ Activation requires explicit email consent and a valid zone, otherwise 422
 email return 402 `{ "code":"PRO_REQUIRED", "feature":"instant_alerts",
 "limit":0 }`. Rule-count gates use `feature: alert_rules` and the catalog limit.
 Verified billing determines paid entitlement when configured; the default is Free.
-Active frequency changes require pausing, which may be included atomically as
-`active:false` in the same PATCH. Rule settings are never reinterpreted as new
-conditions or triggers that the matcher does not implement.
+Frequency or condition changes require pausing, which may be included atomically
+as `active:false` in the same PATCH. Each configuration change advances a stored
+version; pending events from an older version remain history and cannot be sent
+under the new settings. Triggers are immutable: create a separate rule for a
+different trigger. One follow may have one email rule of each supported trigger.
 
 Rule rows contain ID/follow ID, trigger, `entity: {type,key}` (issuer/fund/person),
 conditions, channels, stored frequency, active state and creation/update times.
-Rule filters: `active=true|false`, `entity_type=issuer|fund|person`; sorts:
+Rule filters: `active=true|false`, `trigger=new_filing|insider_transaction`, `entity_type=issuer|fund|person`; sorts:
 `created_at` (descending default), `active`, `entity_key`, with optional `-`.
 
 Event rows contain ID/rule ID, trigger/entity/channel, the frequency recorded at
 matching time, pending/sent/failed status, delivery/creation/update timestamps,
 `read_at` (null until acknowledged), period, and standard accession/SEC-link/
-freshness fields. A rule's later frequency change does not rewrite old events.
+freshness fields. Transaction events additionally contain `transaction`, using the
+existing insider-transaction serializer with the matched owner's identity, role,
+reported quantities/prices/flags, and provenance. Filing events have
+`transaction:null`. The trigger is stored with each event. A rule's later
+configuration change does not rewrite old events.
 Provider errors stay private; failures expose only `error_code: DELIVERY_FAILED`.
 Read state is independent of sending: a read event may still await its digest.
 
-History filters: status, positive 64-bit `rule_id`, entity type,
+History filters: status, positive 64-bit `rule_id`, trigger, entity type,
 `unread=true|false`, and inclusive UTC creation dates `date_from`/`date_to`
 (strict Gregorian years 0001–9999). Sorts: `created_at` (descending default),
 `delivered_at`, `status`; null delivery times sort last both ways. Both lists
@@ -1552,8 +1559,66 @@ parameters and malformed boolean/ID/filter values return JSON 400.
 
 Metadata publishes the shared rule limit, supported trigger/channel/frequencies
 and capability flags. Creation, archival, pause, digest and read tracking are
-available; advanced condition filters remain false. Free supported frequencies
+available; `condition_filters` is true for transaction rules, and
+`transaction_condition_fields` lists the supported keys. Free supported frequencies
 contain only `daily_digest`; `instant_alerts` indicates trusted paid entitlement.
+
+### Insider transaction conditions
+
+Transaction rules apply to an owned issuer or person follow. Fund follows return
+422 for this trigger. The existing Free three-rule quota counts both trigger
+types; instant transaction email requires verified Pro. Example:
+
+```json
+{"follow_id":12,"trigger":"insider_transaction","channels":["email"],"conditions":{"direction":"purchase","codes":["P"],"role":"director","min_value":"10000","security_table":"non_derivative"},"frequency":"daily_digest","active":false}
+```
+
+| Condition | Accepted values |
+| --- | --- |
+| `direction` | `purchase` (P), `sale` (S), `other` (other/missing codes) |
+| `codes` | Array of 1–26 single-letter SEC codes; canonicalized uppercase, unique and sorted |
+| `role` | `director`, `officer`, `ten_percent_owner`, `other` |
+| `type` | `open_market` (P/S), `administrative` (other/missing codes) |
+| `security_table` | `non_derivative`, `derivative` |
+| `min_value` | Inclusive nonnegative dollar amount as a string or JSON integer; up to 30 integer and 12 fractional digits, normalized to an exact decimal string |
+
+Conditions combine with AND; omitted fields impose no restriction, and `{}` matches
+all eligible transaction lines. Unknown keys, nulls, wrong types, floating-point
+amounts, exponent notation, malformed codes and unsupported enums return 400.
+For filing rules, nonempty conditions remain 400. A minimum-value match requires
+both a reported price and a non-suspect calculated value (`shares × price`). Missing
+or suspect values never count as zero; without the amount filter, those reported
+transactions can still match and retain their flags. No price or value is corrected.
+
+Matching runs in SQL from the existing post-ingest `EvaluateAlertsJob`. Only
+effective parsed Form 4 / 4/A filings known at matching time are considered.
+Acceptance must be at or after both the current follow start and the rule's
+activation/configuration time, preventing historical backfills or new rules from
+replaying old transactions. The transaction date can be older; matching remains
+based on acceptance time. No request evaluates historical filings.
+
+Each rule creates one event per matching reported security-table/transaction line.
+For issuer rules, copies for joint reporting owners collapse to the earliest
+qualifying owner sequence; a later owner can supply the evidence when only that
+owner satisfies a role filter. Person rules match that person's reported row.
+Separate lines and derivative/non-derivative tables remain distinct. A unique
+rule/transaction index makes retries idempotent, while filing alerts retain their
+separate rule/filing key. Different rules can independently match the same source.
+
+Amendments are separate sources and keep original event history. Superseded
+transaction filings cannot create new matches or send pending transaction emails.
+Both instant delivery and digest planning/sending recheck effective filing status,
+the stored rule version, consent, quota, frequency, current follow and rule state.
+Email text identifies the reported transaction and source, uses known values only,
+escapes HTML, and retains the existing disclaimer/unsubscribe headers. Transport
+delivery retains the existing uncertainty limits described below.
+
+Migration `20261111180000` adds nullable transaction references and stored trigger /
+configuration versions to deliveries, a version to rule settings, source checks,
+partial deduplication indexes and an active-trigger lookup index. Existing events
+default to filing alerts/version 1; no reported SEC fields are changed. It is
+applied locally in development/test. Rollback requires reviewing transaction alert
+history and is deliberately not automatic. No provider or worker is activated.
 
 ### Digest and watchlist behavior
 
