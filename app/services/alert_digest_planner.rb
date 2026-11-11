@@ -23,12 +23,16 @@ class AlertDigestPlanner
 
       batch = user.alert_digest_batches.create!(local_date: local.to_date, time_zone: preference.time_zone)
       now = Time.current
-      sql = ApplicationRecord.sanitize_sql([ <<~SQL, batch: batch.id, now: ])
+      connection = ApplicationRecord.connection
+      # The relation is already quoted SQL. Do not reinterpret regex/JSON syntax
+      # inside it as named bind parameters in a second sanitization pass.
+      sql = <<~SQL
         INSERT INTO alert_digest_items (alert_digest_batch_id, alert_delivery_id, created_at, updated_at)
-        SELECT :batch, chosen.id, :now, :now FROM (#{eligible.select('alert_deliveries.id').to_sql}) chosen
+        SELECT #{connection.quote(batch.id)}, chosen.id, #{connection.quote(now)}, #{connection.quote(now)}
+        FROM (#{eligible.select('alert_deliveries.id').to_sql}) chosen
         ON CONFLICT (alert_delivery_id) DO NOTHING
       SQL
-      ApplicationRecord.connection.execute(sql)
+      connection.execute(sql)
       batch
     end
   end

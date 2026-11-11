@@ -22,6 +22,7 @@ module Api
           normalizer = case selected_trigger
           when "cluster" then ClusterAlertConditions
           when "13f_change" then InstitutionalAlertConditions
+          when "news" then NewsAlertConditions
           else TransactionAlertConditions
           end
           result[:conditions] = normalizer.normalize(values["conditions"])

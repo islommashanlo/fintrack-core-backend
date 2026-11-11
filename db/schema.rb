@@ -10,14 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_230000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_233000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
 
   create_table "alert_deliveries", force: :cascade do |t|
     t.bigint "alert_rule_id", null: false
-    t.bigint "filing_id", null: false
+    t.bigint "filing_id"
     t.string "status", default: "pending", null: false
     t.datetime "delivered_at"
     t.text "error"
@@ -29,17 +29,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_230000) do
     t.bigint "rule_revision", default: 1, null: false
     t.bigint "insider_cluster_snapshot_id"
     t.bigint "institutional_change_snapshot_id"
-    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true, where: "((insider_transaction_id IS NULL) AND (insider_cluster_snapshot_id IS NULL) AND (institutional_change_snapshot_id IS NULL))"
+    t.bigint "news_item_id"
+    t.bigint "news_alert_snapshot_id"
+    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true, where: "((insider_transaction_id IS NULL) AND (insider_cluster_snapshot_id IS NULL) AND (institutional_change_snapshot_id IS NULL) AND (news_item_id IS NULL))"
     t.index ["alert_rule_id", "insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_rule_and_cluster", unique: true, where: "(insider_cluster_snapshot_id IS NOT NULL)"
     t.index ["alert_rule_id", "insider_transaction_id"], name: "index_alert_deliveries_on_rule_and_transaction", unique: true, where: "(insider_transaction_id IS NOT NULL)"
     t.index ["alert_rule_id", "institutional_change_snapshot_id"], name: "index_alert_deliveries_on_rule_and_institutional_change", unique: true, where: "(institutional_change_snapshot_id IS NOT NULL)"
+    t.index ["alert_rule_id", "news_item_id"], name: "index_alert_deliveries_on_rule_and_news_item", unique: true, where: "(news_item_id IS NOT NULL)"
     t.index ["alert_rule_id"], name: "index_alert_deliveries_on_alert_rule_id"
     t.index ["filing_id"], name: "index_alert_deliveries_on_filing_id"
     t.index ["insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_insider_cluster_snapshot_id"
     t.index ["insider_transaction_id"], name: "index_alert_deliveries_on_insider_transaction_id"
     t.index ["institutional_change_snapshot_id"], name: "index_alert_deliveries_on_institutional_change_snapshot_id"
-    t.check_constraint "event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'cluster'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NOT NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = '13f_change'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NOT NULL", name: "alert_delivery_source"
+    t.index ["news_alert_snapshot_id"], name: "index_alert_deliveries_on_news_alert_snapshot_id"
+    t.index ["news_item_id"], name: "index_alert_deliveries_on_news_item_id"
     t.check_constraint "frequency::text = ANY (ARRAY['instant'::character varying::text, 'daily_digest'::character varying::text])", name: "alert_delivery_frequency"
+    t.check_constraint "news_item_id IS NULL AND news_alert_snapshot_id IS NULL AND filing_id IS NOT NULL AND (event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'cluster'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NOT NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = '13f_change'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NOT NULL) OR event_type::text = 'news'::text AND filing_id IS NULL AND news_item_id IS NOT NULL AND news_alert_snapshot_id IS NOT NULL AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL", name: "alert_delivery_source"
     t.check_constraint "rule_revision > 0", name: "alert_delivery_revision"
   end
 
@@ -482,6 +487,30 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_230000) do
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'parsed'::character varying::text, 'failed'::character varying::text, 'skipped'::character varying::text])", name: "institutional_reports_status_check"
   end
 
+  create_table "news_alert_snapshots", force: :cascade do |t|
+    t.bigint "news_item_id", null: false
+    t.bigint "news_mention_id", null: false
+    t.string "provider", null: false
+    t.string "provider_item_id", null: false
+    t.string "source", null: false
+    t.string "title", null: false
+    t.string "url", null: false
+    t.string "kind", null: false
+    t.string "entity_type", null: false
+    t.string "role", null: false
+    t.string "cik", null: false
+    t.bigint "entity_id", null: false
+    t.datetime "published_at", null: false
+    t.datetime "item_observed_at", null: false
+    t.datetime "mention_observed_at", null: false
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["news_item_id"], name: "index_news_alert_snapshots_on_news_item_id"
+    t.index ["news_mention_id"], name: "index_news_alert_snapshots_on_news_mention_id", unique: true
+    t.check_constraint "(kind::text = ANY (ARRAY['news'::character varying, 'press_release'::character varying, 'other'::character varying]::text[])) AND cik::text ~ '^[0-9]{10}$'::text AND entity_id > 0 AND (entity_type::text = 'Filer'::text AND (role::text = ANY (ARRAY['issuer'::character varying, 'person'::character varying]::text[])) OR entity_type::text = 'InstitutionalFiler'::text AND role::text = 'fund'::text)", name: "news_snapshot_identity"
+  end
+
   create_table "news_items", force: :cascade do |t|
     t.string "provider", null: false
     t.string "provider_item_id", null: false
@@ -691,6 +720,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_230000) do
   add_foreign_key "alert_deliveries", "insider_cluster_snapshots"
   add_foreign_key "alert_deliveries", "insider_transactions"
   add_foreign_key "alert_deliveries", "institutional_change_snapshots"
+  add_foreign_key "alert_deliveries", "news_alert_snapshots"
+  add_foreign_key "alert_deliveries", "news_items"
   add_foreign_key "alert_digest_batches", "users"
   add_foreign_key "alert_digest_items", "alert_deliveries"
   add_foreign_key "alert_digest_items", "alert_digest_batches"
@@ -713,6 +744,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_230000) do
   add_foreign_key "institutional_report_other_managers", "institutional_reports"
   add_foreign_key "institutional_reports", "filings"
   add_foreign_key "institutional_reports", "institutional_filers"
+  add_foreign_key "news_alert_snapshots", "news_items"
+  add_foreign_key "news_alert_snapshots", "news_mentions"
   add_foreign_key "news_mentions", "news_items"
   add_foreign_key "notification_preferences", "users"
   add_foreign_key "position_diffs", "institutional_filers"

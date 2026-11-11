@@ -1,0 +1,6 @@
+<p><%= NewsAlertText.render(@news) %></p>
+<p>External news headline. Published: <%= @news.published_at.iso8601 %>.<br>
+First observed: <%= @news.item_observed_at.iso8601 %>.<br>
+Matched entity: <%= @news.role %> <%= @news.cik %>.</p>
+<p><%= link_to "View the headline source", @news.url %></p>
+<p><%= FilingsIntel::DISCLAIMER %></p>

@@ -1,8 +1,13 @@
-SEC filing digest for <%= @batch.local_date %>
+<%= @has_news ? "Alert digest" : "SEC filing digest" %> for <%= @batch.local_date %>
 
 <% @deliveries.each do |delivery| %>
 <% cluster = delivery.insider_cluster_snapshot %>
 <% position = delivery.institutional_change_snapshot %>
+<% if delivery.news_alert_snapshot %>
+<%= NewsAlertText.render(delivery.news_alert_snapshot) %>
+Published: <%= delivery.news_alert_snapshot.published_at.iso8601 %>
+Headline source: <%= delivery.news_alert_snapshot.url %>
+<% else %>
 <% if position %><%= InstitutionalAlertText.render(position) %><% elsif cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %><% end %>
 Accession: <%= delivery.filing.accession_no %>
 SEC source: <%= delivery.filing.sec_url %>
@@ -11,6 +16,7 @@ SEC source: <%= delivery.filing.sec_url %>
 <% if cluster %><% cluster.filing_ids.first(20).each do |id| %>
 Cluster source: <%= @cluster_sources.fetch(id).sec_url %>
 <% end %><% if cluster.filing_ids.length > 20 %>Additional cluster source filings are available in your alert history.<% end %><% end %>
+<% end %>
 
 <% end %>
 Manage email: <%= @unsubscribe_url %>

@@ -6,6 +6,8 @@ class NewsMention < ApplicationRecord
   belongs_to :news_item
   belongs_to :entity, polymorphic: true
 
+  has_many :news_alert_snapshots, dependent: :restrict_with_exception
+
   validates :entity_type, inclusion: { in: %w[Filer InstitutionalFiler] }
   validates :role, inclusion: { in: %w[issuer fund person] }
   validates :role, uniqueness: { scope: %i[news_item_id entity_type entity_id] }

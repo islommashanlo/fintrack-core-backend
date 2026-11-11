@@ -14,6 +14,7 @@ module Api
           supported_triggers: AlertRule::EVENT_TYPES, supported_channels: %w[email],
           transaction_condition_fields: TransactionAlertConditions::ENUMS.keys + %w[codes min_value],
           cluster_condition_fields: ClusterAlertConditions::FIELDS,
+          news_condition_fields: NewsAlertConditions::FIELDS,
           institutional_condition_fields: InstitutionalAlertConditions::FIELDS,
           supported_frequencies: PlanCatalog.limit_for(user, :instant_alerts) ? %w[daily_digest instant] : %w[daily_digest]
         }

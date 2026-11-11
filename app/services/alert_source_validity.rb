@@ -12,6 +12,6 @@ class AlertSourceValidity
             AND sources.id NOT IN (#{effective.to_sql})
         )
       SQL
-    InstitutionalAlertValidity.apply(scope, as_of:)
+    NewsAlertValidity.apply(InstitutionalAlertValidity.apply(scope, as_of:), as_of:)
   end
 end

@@ -30,11 +30,9 @@ module Api
       def call
         read_scope = NewsReadScope.new(page: @page, target: @target, user: @user)
         mentions = read_scope.mentions
-        scope = NewsItem.publishable.where(provider: @providers, id: mentions.select(:news_item_id))
+        scope = News::Visibility.items(as_of: @page.as_of).where(id: mentions.select(:news_item_id))
           .where("news_items.id <= ? AND news_items.observed_at <= ? AND published_at >= ? AND published_at < ? AND published_at <= ?",
                  @page.bound("items"), @page.as_of, utc_midnight(@from), utc_midnight(@to + 1), @page.as_of)
-          .where("(source || ' ' || title) !~* ? AND source !~ '[<>[:cntrl:]]' AND title !~ '[<>[:cntrl:]]'", @language_pattern)
-          .where("url ~ ?", '^https://[^/?#@[:space:][:cntrl:]]+([/?#][^[:space:][:cntrl:]]*)?$')
         %w[kind source provider].each { |field| scope = scope.where(field => @values[field]) if @values[field] }
         result = @page.call(scope)
         serializer = NewsItemSerializer.new(records: result.records, mentions:)

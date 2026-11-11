@@ -608,6 +608,82 @@ other-manager count and suspect flags. It is report history, not portfolio
 performance. The quarterly history policy above applies to holdings, changes and
 report-history browsing, with explicit truncation metadata and Pro access.
 
+## News alerts
+
+`trigger: "news"` uses an owned issuer, fund or person follow and the existing
+email/consent/rule-limit lifecycle. `conditions` accepts only these optional AND
+filters:
+
+| Field | Contract |
+| --- | --- |
+| `kinds` | 1–3 values from `news`, `press_release`, `other`; canonical sorted unique array |
+| `providers` | 1–10 provider keys; canonical sorted unique array, never publication approval |
+| `source` | Exact nonblank publisher label up to 200 characters; markup/controls rejected |
+
+For example, a paused digest rule is:
+
+```json
+{"follow_id":12,"trigger":"news","conditions":{"kinds":["news","press_release"],"providers":["example_provider"]},"frequency":"daily_digest","active":false}
+```
+
+`meta.news_condition_fields` advertises the fields. The trigger is immutable,
+active rules must be paused before configuration edits, and news drafts count
+toward the same Free three-rule limit. Email consent and time zone are required
+before activation. Free supports digest frequency; instant remains verified-Pro
+only. No global/any-entity or push channel is introduced.
+
+Matching reuses the news feeds' SQL publication/language/link and canonical-entity
+checks. Source publication time must be at or after rule activation and follow
+membership; future article or mention observations cannot match. A late canonical
+mention can be evaluated without replaying an already matched story. Issuer follows
+use the latest visible local issuer CIK for that exact ticker. Names and security
+mappings do not create missing identities.
+
+`news_alert_snapshots` captures immutable headline/link/provider metadata, original
+item and mention observation times, canonical role/CIK, and source record IDs.
+Snapshots are shared per canonical mention; snapshot `observed_at` is its first
+capture, while each delivery's `created_at` is the per-rule match time. A unique
+`(alert_rule_id, news_item_id)` index makes retries idempotent even if another
+mention later matches the same follow. Raw news metadata and SEC values are never
+rewritten, and no SEC filing is invented for a news event.
+
+`News::Ingest` queues `EvaluateNewsAlertsJob` only for eligible local items when
+an active news rule exists. Enqueue waits for the surrounding transaction commit;
+a failed ingest queues no evaluation. Re-ingestion can recover missed evaluation
+without duplicate history. Instant sends also wait for commit, and reevaluation
+requeues existing unsent instant deliveries after a queue failure. Source matching
+runs in the existing alerts queue, without provider fetching or cron changes.
+There is no bulk replay task or automatic evaluation of existing stored history.
+
+Before instant sends, digest planning and digest sending, current publication
+rights, product wording/link safety, exact stored-source equality, canonical role
+and follow matching, active conditions, rule revision, membership and consent are
+rechecked. Paused/archived/removed/reconfigured rules, revoked provider publication,
+changed source data and Pro downgrades cannot send. Ticker reassignment suppresses
+old-issuer delivery. Mixed digests use an alert digest label; news copy is factual,
+HTML-escaped and linked to its external publisher. Existing one-click unsubscribe,
+local 7am digest scheduling, read tracking and delivery locking remain shared.
+Only the test mail adapter was exercised; no real delivery or provider was enabled.
+
+Alert events add nullable `news` and `news_available`. For `trigger: news`, the
+ordinary SEC provenance (`accession`, `sec_url`, `form_type`, `filed_at`,
+`accepted_at`, `ingested_at`, `data_age_days`, `period_of_report`) is null. Other
+triggers retain their original source contract. Clients must branch on trigger;
+news evidence uses publisher URLs and publication/observation times instead.
+
+History batches current source-policy checks. Pausing a rule retains approved
+news evidence; revoking publication or invalidating the source makes `news: null`
+and `news_available: false` while keeping the user's delivery/read state. Other
+triggers return both news fields as null. The legacy HTML history uses the same
+redaction checks. Deleting an account removes private delivery state but retains
+shared immutable source snapshots.
+
+The migration adds news references to `alert_deliveries` and permits a null
+`filing_id` **only for news**, enforced by the combined source check. Filing-based
+source requirements and foreign keys stay enforced. The migration is applied only
+to local development/test; production locking/rollout and real delivery remain
+outside this increment.
+
 ## News feeds
 
 | Route | Access and identity |
@@ -1644,7 +1720,7 @@ A rule request uses an existing owned, current watchlist follow:
 {"follow_id":12,"trigger":"new_filing","channels":["email"],"conditions":{},"frequency":"daily_digest","active":true}
 ```
 
-The triggers are `new_filing`, `insider_transaction`, `cluster` and `13f_change`;
+The triggers are `new_filing`, `insider_transaction`, `cluster`, `13f_change` and `news`;
 the channel is email. Filing rules require empty conditions; other conditions are
 described below.
 New rules default to paused daily digests. Duplicate creates keep
@@ -1668,7 +1744,7 @@ different trigger. One follow may have one email rule of each supported trigger.
 
 Rule rows contain ID/follow ID, trigger, `entity: {type,key}` (issuer/fund/person),
 conditions, channels, stored frequency, active state and creation/update times.
-Rule filters: `active=true|false`, `trigger=new_filing|insider_transaction|cluster|13f_change`, `entity_type=issuer|fund|person`; sorts:
+Rule filters: `active=true|false`, `trigger=new_filing|insider_transaction|cluster|13f_change|news`, `entity_type=issuer|fund|person`; sorts:
 `created_at` (descending default), `active`, `entity_key`, with optional `-`.
 
 Event rows contain ID/rule ID, trigger/entity/channel, the frequency recorded at

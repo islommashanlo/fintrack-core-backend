@@ -7,6 +7,7 @@ module Policy
       app/services/transaction_alert_text.rb
       app/services/cluster_alert_text.rb
       app/services/institutional_alert_text.rb
+      app/services/news_alert_text.rb
       app/views/filing_alert_mailer app/views/filing_digest_mailer app/views/passwords_mailer
       app/views/layouts/mailer.html.erb app/views/layouts/mailer.text.erb].freeze
     FILE_EXTENSIONS = %w[.rb .erb .json .md .txt .yml .yaml].freeze

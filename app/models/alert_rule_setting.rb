@@ -10,6 +10,7 @@ class AlertRuleSetting < ApplicationRecord
     normalizer = case alert_rule.event_type
     when "cluster" then ClusterAlertConditions
     when "13f_change" then InstitutionalAlertConditions
+    when "news" then NewsAlertConditions
     else TransactionAlertConditions
     end
     normalized = normalizer.normalize(conditions)

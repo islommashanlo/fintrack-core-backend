@@ -1,14 +1,18 @@
-<h1>SEC filing digest for <%= @batch.local_date %></h1>
+<h1><%= @has_news ? "Alert digest" : "SEC filing digest" %> for <%= @batch.local_date %></h1>
 <ul><% @deliveries.each do |delivery| %>
   <% cluster = delivery.insider_cluster_snapshot %>
 <% position = delivery.institutional_change_snapshot %>
-  <li><% if position %><%= InstitutionalAlertText.render(position) %><% elsif cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %><% end %>:
+  <li><% if delivery.news_alert_snapshot %>
+    <%= NewsAlertText.render(delivery.news_alert_snapshot) %>:
+    <%= link_to "Headline source", delivery.news_alert_snapshot.url %>
+    <span>Published <%= delivery.news_alert_snapshot.published_at.iso8601 %></span>
+    <% else %><% if position %><%= InstitutionalAlertText.render(position) %><% elsif cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %><% end %>:
     <%= link_to delivery.filing.accession_no, delivery.filing.sec_url %>
     <% if position %><ul><% position.evidence_report_ids.first(20).each do |id| %><li><%= link_to @institutional_sources.fetch(id).filing.accession_no, @institutional_sources.fetch(id).filing.sec_url %></li><% end %></ul>
     <% if position.evidence_report_ids.length > 20 %><p>Additional comparison sources are available in your alert history.</p><% end %><% end %>
     <% if cluster %><ul><% cluster.filing_ids.first(20).each do |id| %><li><%= link_to @cluster_sources.fetch(id).accession_no, @cluster_sources.fetch(id).sec_url %></li><% end %></ul>
     <% if cluster.filing_ids.length > 20 %><p>Additional cluster source filings are available in your alert history.</p><% end %><% end %>
-  </li>
+  <% end %></li>
 <% end %></ul>
 <p><%= link_to "Manage email", @unsubscribe_url %></p>
 <p><%= FilingsIntel::DISCLAIMER %></p>

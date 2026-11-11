@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class AlertRule < ApplicationRecord
-  EVENT_TYPES = %w[new_filing insider_transaction cluster 13f_change].freeze
+  EVENT_TYPES = %w[new_filing insider_transaction cluster 13f_change news].freeze
   CHANNELS = %w[email].freeze
 
   belongs_to :follow

@@ -3,7 +3,8 @@
 Local headline storage, an internal provider contract and bounded local
 [entity/watchlist news feeds](api-v1.md#news-feeds) exist. Headline publication
 defaults to disabled through `NEWS_PUBLIC_PROVIDERS`. No provider, HTTP transport,
-scheduled refresh or news alert is active. Synthetic fixtures are not real
+scheduled refresh or real news alert delivery is active. Typed news rules and
+source matching are implemented against approved local metadata. Synthetic fixtures are not real
 reporting or assumed vendor response formats. No additional gem is required.
 
 ## Storage and identity
@@ -57,7 +58,7 @@ results must not silently establish full coverage.
 The default `News::Provider::Disabled` raises `NotConfigured`. No environment
 variable or initializer enables news fetching. `Unavailable` is reserved for
 transport failures and `InvalidResponse` for deterministic payload errors; there
-are currently no background retries or provider requests.
+is no provider-fetch job or provider retry loop.
 
 `News::Item` is a metadata-only internal payload. It validates bounded nonblank
 text, forbids control characters, requires an absolute HTTPS link without embedded
@@ -72,7 +73,9 @@ writing. A provider-scoped transaction advisory lock serializes concurrent write
 for that provider; all item/mention writes are atomic. Missing or mismatched entity
 records raise validation errors and roll back the full batch. The return value is
 the number of processed items, including identical existing items, not inserts.
-No adapter call runs inside the database transaction, and no alerts/jobs run here.
+No adapter call runs inside the database transaction. After a successful ingest,
+eligible items queue commit-deferred evaluation only when an active news rule exists;
+no send or provider request runs inside ingestion.
 
 Headline/source wording is retained exactly. Restricted product language sets
 `suppression_reason: restricted_language`; angle-bracket markup sets `markup`.
@@ -93,22 +96,31 @@ bind user and membership fingerprint. Added or removed follows require a restart
 Publication defaults to empty and does not enable fetching. See the full
 [news-feed contract](api-v1.md#news-feeds) for parameters and coverage limitations.
 
-Next, add typed news alert rules and matching against approved, locally stored
-headlines, retaining immutable evidence and delivery-time policy checks. Keep
-provider activation, refresh scheduling and real email/push delivery separately
-authorized. Data licensing, provider matching quality, real freshness and API
-latency remain unvalidated. There is no complete-coverage claim.
+Typed news alert rules now use the same SQL publication and canonical matching
+policy as reads. Immutable per-mention snapshots and per-rule/item uniqueness
+retain source evidence without inventing SEC filings. Instant/digest delivery
+rechecks current source policy, revisions, consent and plan eligibility. Alert
+history redacts disallowed source copy while retaining private read/delivery state.
+See [news alerts](api-v1.md#news-alerts) for conditions, queue behavior and nullable
+SEC-provenance fields. No provider, refresh schedule or real delivery was enabled.
+
+Next, add push-subscription registration and lifecycle APIs with local tests;
+keep outbound push delivery disabled. Data licensing, provider matching quality,
+real freshness and production delivery/latency remain unvalidated.
 
 ## Verification
 
-Local verification after the news-read APIs: 16 focused feed examples and the full
-1,018-example suite passed (full-suite seed 22783). RuboCop passed for 520 Ruby
-files; language-policy and whitespace checks passed. OpenAPI 1.28.0 contains 68
-unique operations and 837 resolved local references; existing path/component
-contracts were compared with the previous commit and preserved. Request tests
-cover publication defaults, current-policy suppression, canonical role matching,
-observation/row ceilings, date filters, mention caps, duplicate follows, account
-isolation, membership invalidation and ticker reuse. Existing storage tests remain
-green. WebMock blocks real HTTP. This read increment required no migration. No
-deployment, provider/SEC requests, seeding, enrichment, reprocessing, real email
-or worker activation occurred.
+Local verification after source-backed news alerts: 29 focused news/digest examples
+and the full 1,034-example suite passed (full-suite seed 60713). RuboCop passed for
+533 Ruby files; language-policy and whitespace checks passed. OpenAPI 1.29.0 has
+68 unique operations and 843 resolved local references; changes to existing paths
+are limited to alert trigger/capability contracts. Tests cover typed rule controls,
+source snapshot uniqueness/immutability, all canonical follow types, source-policy
+revocation, ticker reassignment, per-rule deduplication, delayed links, consent/Pro
+rechecks, test-adapter instant and mixed digest output, source-redacted/batched
+history, read state and account deletion. Synthetic profile identifiers matching
+restricted wording use a neutral email subject without changing stored identifiers.
+WebMock blocks real HTTP. The news-source migration was applied locally in
+development and test. No deployment, provider/SEC requests, seeding, enrichment,
+reprocessing, real email/push or worker activation occurred. Production migration
+locking, provider behavior and real delivery/latency remain unvalidated.

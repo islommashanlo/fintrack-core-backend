@@ -21,13 +21,18 @@ module News
     end
 
     def call
-      NewsItem.transaction do
+      count = NewsItem.transaction do
         # Serialize this provider's writes only. No adapter call holds this lock.
         sql = NewsItem.sanitize_sql_array([ "SELECT pg_advisory_xact_lock(hashtext(?))", "news:#{@provider}" ])
         NewsItem.connection.execute(sql)
         @items.each { |item| persist(item) }
         @items.size
       end
+      if AlertRule.active.where(event_type: "news").exists?
+        Visibility.items(as_of: Time.current).where(provider: @provider, provider_item_id: @items.map(&:provider_item_id))
+          .pluck(:id).each { |id| EvaluateNewsAlertsJob.perform_later(id) }
+      end
+      count
     end
 
     private

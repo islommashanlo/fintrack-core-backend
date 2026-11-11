@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.28.0
+  version: 1.29.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -2735,7 +2735,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [new_filing, insider_transaction, cluster, "13f_change"]
+          enum: [new_filing, insider_transaction, cluster, "13f_change", news]
       - name: entity_type
         in: query
         schema:
@@ -2808,7 +2808,7 @@ paths:
         support direction, codes, role, type, security table and minimum known value.
         Cluster rules support direction, minimum insider count and complete value;
         transaction/cluster rules require issuer/person follows. Institutional
-        13f_change rules require fund follows and adjacent complete report contexts. Triggers are immutable; no old filings are reprocessed.
+        13f_change rules require fund follows and adjacent complete report contexts. News rules use approved local headlines and kinds/source/providers filters on all follow types. Triggers are immutable; no stored sources are reprocessed.
       security:
       - CookieSession: []
         CsrfToken: []
@@ -2961,7 +2961,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [new_filing, insider_transaction, cluster, "13f_change"]
+          enum: [new_filing, insider_transaction, cluster, "13f_change", news]
       - name: entity_type
         in: query
         schema:
@@ -7480,13 +7480,109 @@ components:
         amendment; period_of_report identifies the comparison quarter. Source sets
         must remain exactly effective to send pending alerts. Shared state survives
         private account deletion; reported SEC values remain unchanged.
+    NewsAlertConditions:
+      type: object
+      additionalProperties: false
+      description: Optional AND filters on approved local news. Arrays normalize to sorted unique values. Provider filters never grant publication rights.
+      properties:
+        kinds:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: string
+            enum: [news, press_release, other]
+        providers:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            type: string
+            pattern: '^[a-z][a-z0-9_]{0,39}$'
+        source:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Exact publisher label; blank text, markup and control characters are rejected.
+    NewsAlertSnapshot:
+      type: object
+      nullable: true
+      required: [id, news_item_id, provider, provider_item_id, source, title, url, kind, published_at, item_observed_at, mention_observed_at, observed_at, entity]
+      properties:
+        id:
+          type: integer
+        news_item_id:
+          type: integer
+        provider:
+          type: string
+        provider_item_id:
+          type: string
+        source:
+          type: string
+        title:
+          type: string
+          maxLength: 500
+        url:
+          type: string
+          format: uri
+        kind:
+          type: string
+          enum: [news, press_release, other]
+        published_at:
+          type: string
+          format: date-time
+        item_observed_at:
+          type: string
+          format: date-time
+        mention_observed_at:
+          type: string
+          format: date-time
+        observed_at:
+          type: string
+          format: date-time
+          description: First capture of this shared immutable source snapshot; delivery created_at is per-rule matching time.
+        entity:
+          type: object
+          required: [entity_type, cik]
+          properties:
+            entity_type:
+              type: string
+              enum: [issuer, fund, person]
+            cik:
+              "$ref": "#/components/schemas/Cik"
+    AlertEventProvenance:
+      type: object
+      required: [accession, sec_url, form_type, filed_at, accepted_at, ingested_at, data_age_days]
+      description: SEC provenance is null for news. Filing-derived triggers retain their original nonnull accession, URL and form contract.
+      properties:
+        accession:
+          type: string
+          nullable: true
+          pattern: '^[0-9]{10}-[0-9]{2}-[0-9]{6}$'
+        sec_url:
+          type: string
+          format: uri
+          nullable: true
+        form_type:
+          type: string
+          nullable: true
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
     AlertRuleConditions:
       description: Schema is selected by trigger. Filing rules require an empty
-        object; insider_transaction, cluster and 13f_change accept only their own listed fields.
+        object; insider_transaction, cluster, 13f_change and news accept only their own listed fields.
       anyOf:
       - "$ref": "#/components/schemas/TransactionAlertConditions"
       - "$ref": "#/components/schemas/ClusterAlertConditions"
       - "$ref": "#/components/schemas/InstitutionalAlertConditions"
+      - "$ref": "#/components/schemas/NewsAlertConditions"
     FilingAlertRule:
       type: object
       required:
@@ -7516,6 +7612,7 @@ components:
           - insider_transaction
           - cluster
           - "13f_change"
+          - news
         entity:
           type: object
           required:
@@ -7555,7 +7652,7 @@ components:
           format: date-time
     FilingAlertEvent:
       allOf:
-      - "$ref": "#/components/schemas/FilingProvenance"
+      - "$ref": "#/components/schemas/AlertEventProvenance"
       - type: object
         required:
         - id
@@ -7574,6 +7671,8 @@ components:
         - transaction
         - cluster
         - position_change
+        - news
+        - news_available
         properties:
           id:
             type: integer
@@ -7590,6 +7689,13 @@ components:
             - insider_transaction
             - cluster
             - "13f_change"
+            - news
+          news:
+            "$ref": "#/components/schemas/NewsAlertSnapshot"
+          news_available:
+            type: boolean
+            nullable: true
+            description: Null for other triggers; false if current publication/source checks withhold news content while retaining alert state.
           position_change:
             type: object
             nullable: true
@@ -7677,6 +7783,7 @@ components:
       - transaction_condition_fields
       - cluster_condition_fields
       - institutional_condition_fields
+      - news_condition_fields
       properties:
         capabilities:
           type: object
@@ -7724,6 +7831,13 @@ components:
             - insider_transaction
             - cluster
             - "13f_change"
+            - news
+        news_condition_fields:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: [kinds, source, providers]
         institutional_condition_fields:
           type: array
           uniqueItems: true
@@ -7778,6 +7892,7 @@ components:
           - insider_transaction
           - cluster
           - "13f_change"
+          - news
         channels:
           type: array
           items:
@@ -7807,6 +7922,7 @@ components:
           - insider_transaction
           - cluster
           - "13f_change"
+          - news
         channels:
           type: array
           items:

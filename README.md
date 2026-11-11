@@ -149,3 +149,8 @@ headlines remain stored but suppressed. Local company/fund/insider news feeds an
 private watchlist news use signed cursors and scoped mention previews. Headline
 publication defaults to disabled; no provider, refresh job or external request is
 enabled.
+
+[News alerts](docs/api-v1.md#news-alerts) support typed filters, immutable source
+evidence and shared instant/digest controls. Provider publication/language checks
+are repeated before delivery and history rendering. News events have no fabricated
+SEC filing provenance. Providers, refresh schedules and real delivery remain off.

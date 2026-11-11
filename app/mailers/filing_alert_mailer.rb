@@ -1,6 +1,14 @@
 # frozen_string_literal: true
 
 class FilingAlertMailer < ApplicationMailer
+  def news_item(delivery)
+    @news = delivery.news_alert_snapshot
+    user = delivery.alert_rule.follow.user
+    headers["List-Unsubscribe"] = "<#{EmailUnsubscribe.url(user)}>"
+    headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+    mail to: user.email_address, subject: NewsAlertText.subject(delivery.alert_rule.follow.target_key)
+  end
+
   def new_filing(delivery)
     @delivery = delivery
     @filing = delivery.filing

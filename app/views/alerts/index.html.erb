@@ -4,8 +4,8 @@
   <section class="watchlist-hero">
     <div>
       <p class="eyebrow">Your alerts</p>
-      <h1>Know when a followed profile files.</h1>
-      <p class="hero__copy">Filing alerts require email consent and a configured time zone. Draft rules stay paused until enabled.</p>
+      <h1>Follow filing activity and source-linked news.</h1>
+      <p class="hero__copy">Alerts require email consent and a configured time zone. Draft rules stay paused until enabled.</p>
     </div>
     <%= link_to "Manage watchlist", watchlist_path, class: "follow-button follow-button--link" %>
   </section>
@@ -69,10 +69,16 @@
                     <strong class="table-primary"><%= delivery.alert_rule.follow.target_key %></strong>
                     <span class="table-secondary"><%= delivery.alert_rule.follow.target_type.humanize %></span>
                   </td>
-                  <td><%= delivery.filing.form_type %></td>
+                  <td><%= delivery.filing&.form_type || "News" %></td>
                   <td>
+                    <% if delivery.event_type == "news" %>
+                      <% if @news_visible_ids.include?(delivery.news_alert_snapshot_id) %>
+                        <%= link_to delivery.news_alert_snapshot.title, delivery.news_alert_snapshot.url, target: "_blank", rel: "noopener" %>
+                      <% else %><span>News source unavailable</span><% end %>
+                    <% else %>
                     <%= link_to signal_date(delivery.filing.filed_at), filing_path(delivery.filing.accession_no) %>
                     <span class="table-secondary"><%= link_to "SEC source", delivery.filing.edgar_url, target: "_blank", rel: "noopener" %></span>
+                    <% end %>
                     <% if delivery.status == "failed" && delivery.error.present? %>
                       <span class="table-secondary"><%= delivery.error %></span>
                     <% end %>
@@ -90,7 +96,7 @@
   </section>
 
   <footer class="dashboard-footer">
-    <p>Alerts report parsed public SEC filings and do not provide investment advice.</p>
+    <p>Alerts report public filings and external news headlines; they do not provide investment advice.</p>
     <p>Data from public SEC filings. Not investment advice.</p>
   </footer>
 </div>

@@ -7,6 +7,8 @@ class NewsItem < ApplicationRecord
 
   has_many :news_mentions, dependent: :restrict_with_exception
 
+  has_many :news_alert_snapshots, dependent: :restrict_with_exception
+
   validates :provider, format: { with: /\A[a-z][a-z0-9_]{0,39}\z/ }
   validates :provider_item_id, presence: true, length: { maximum: 200 }, uniqueness: { scope: :provider }
   validates :source, presence: true, length: { maximum: 200 }
