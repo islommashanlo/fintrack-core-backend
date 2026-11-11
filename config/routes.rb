@@ -54,6 +54,8 @@ Rails.application.routes.draw do
       end
       get "filings/:accession" => "filings#show", as: :filing,
           constraints: { accession: /\d{10}-\d{2}-\d{6}/ }
+      post "filings/:accession/explanation" => "filing_explanations#create", as: :filing_explanation,
+           constraints: { accession: /\d{10}-\d{2}-\d{6}/ }
     end
   end
 

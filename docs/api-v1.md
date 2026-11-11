@@ -94,6 +94,69 @@ returns HTTP 404 with `error.code = "NOT_FOUND"`.
 The filing-detail endpoint returns complete transaction/holdings arrays. Use the
 fund holdings endpoint below to page through large information tables.
 
+## Filing explanations
+
+`POST /api/v1/filings/:accession/explanation`
+
+Public, with the same browser-session CSRF protection as other mutations. Send an
+empty JSON object and the token from `/auth/csrf`; caller prompts, model selection,
+and all other parameters are rejected. Responses are HTTP 200 with
+`{ data, meta: { cached: true | false } }` and `Cache-Control: no-store`. The
+persistent cache is shared across readers of the public filing. There is a
+separate limit of 30 explanation requests per IP per hour, including cache hits,
+in addition to the normal API limits. Limit responses include `Retry-After`.
+
+`data` includes filing provenance (`accession`, `form_type`, `sec_url`, `filed_at`,
+`accepted_at`, `ingested_at`, `data_age_days`), `period_of_report`, `source_url`,
+`disclaimer`, plain-text `body`, `model`, `prompt_version`, `source_digest`,
+`generation_method` (`template` or `provider`), `generated_at`, and `coverage`.
+Freshness is calculated at request time even when the explanation is cached.
+Render the body as text, without HTML or Markdown interpretation.
+
+The current route uses the local `template-v1` implementation. No external AI
+service is configured or called. A provider interface can select approved fact
+sentences; free-form generated prose is never accepted. Unknown IDs, missing
+required context, duplicate IDs and prohibited model/output language trigger one
+regeneration attempt, then the factual template. Provider outages immediately
+use the template. A cached fallback remains cached for that source/provider
+version; a later provider rollout should use a new cache key.
+
+Supported source data is parsed Form 4 / 4/A and 13F-HR / 13F-HR/A / 13F-NT.
+Transaction lines are deduplicated in SQL across joint reporting-owner copies,
+with up to eight lines and eight represented owners shown. Ownership-only filings
+include the stored owner CIKs without inferring unpersisted holdings. Missing or
+suspect prices do not produce a calculated transaction value. Footnotes are
+identified as context, with a factual weighted-average topic notice when present;
+their full wording is linked through the source rather than paraphrased.
+
+13F summaries show up to eight stored rows and five included managers, separate
+reported and normalized value units, principal quantities, put/call labels, and
+integrity flags. They explain the amendment classification for this accession;
+they do not merge effective holdings across filings. No holdings value is inferred
+from an empty table or notice. The existing ingestor does not persist the cover's
+`other_managers` (including an NT reporting manager); explanations therefore do
+not invent those identities. Included-manager records are persisted separately
+and can be shown. Raw filing documents and account data are never provider input.
+
+For Form 4, coverage keys are `transaction_lines`, `transaction_lines_shown`,
+`reporting_owners`, and `reporting_owners_shown`; the owner counts describe stored
+transaction rows. For 13F, keys are `holding_rows`, `holding_rows_shown`,
+`included_managers`, and `included_managers_shown`. Shown counts reflect actual
+selected sentences, and summaries explicitly describe their bounded coverage.
+
+The cache key covers the filing, a digest of all normalized source rows (including
+omitted rows), prompt version and provider key. Changed source data creates a new
+record and retains earlier explanations. Bookkeeping-only updates do not invalidate
+the cache. Counts, sums, deduplication and source fingerprints run in SQL, so large
+tables do not load all holdings into Ruby. Source hashing still reads the complete
+table in PostgreSQL on each request; no p95 latency claim has been established.
+Concurrent requests serialize on the filing row and share a single cache record.
+
+Unknown accessions return 404 `NOT_FOUND`. Pending/failed filings, missing 13F
+reports and pending/failed 13F reports return 409 `FILING_NOT_READY`. Unsupported
+forms and skipped pre-XML reports return 422 `EXPLANATION_UNSUPPORTED`. Invalid
+parameters return 400 and invalid CSRF tokens return 403.
+
 ## Funds
 
 | Route | Behavior |

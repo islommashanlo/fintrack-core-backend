@@ -2,8 +2,8 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.10.0
-  description: Implemented account, watchlist, plan-catalog and filing-data read APIs.
+  version: 1.11.0
+  description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
@@ -1156,6 +1156,76 @@ paths:
                     "$ref": "#/components/schemas/FilingDetail"
         '404':
           "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/filings/{accession}/explanation":
+    parameters:
+    - name: accession
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+    post:
+      operationId: explainFiling
+      summary: Get or create a cached factual explanation of normalized filing data
+      description: Public with browser-session CSRF protection. Send an empty body;
+        caller prompts, models and other parameters are rejected. The current
+        implementation uses a local template without external AI calls. Counts and
+        source fingerprints cover all stored rows; examples are bounded. Earlier
+        explanation versions remain stored when source data changes. Responses are
+        no-store; the persistent cache is shared across readers. Additional limit
+        of 30 requests per IP per hour, including cache hits.
+      security:
+      - CsrfToken: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              maxProperties: 0
+      responses:
+        '200':
+          description: A factual explanation, either cached or newly generated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/FilingExplanation"
+                  meta:
+                    type: object
+                    required:
+                    - cached
+                    properties:
+                      cached:
+                        type: boolean
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '409':
+          description: Normalized filing data is pending, failed or incomplete.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/FilingExplanationError"
+        '422':
+          description: Unsupported form or skipped pre-XML institutional report.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/FilingExplanationError"
         '429':
           "$ref": "#/components/responses/RateLimited"
         '503':
@@ -2336,6 +2406,123 @@ components:
         data_age_days:
           type: integer
           nullable: true
+    FilingExplanation:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required:
+        - period_of_report
+        - body
+        - model
+        - prompt_version
+        - source_digest
+        - generation_method
+        - generated_at
+        - coverage
+        - source_url
+        - disclaimer
+        properties:
+          period_of_report:
+            type: string
+            format: date
+            nullable: true
+          body:
+            type: string
+            maxLength: 30000
+            description: Plain text. Render without interpreting HTML or Markdown.
+          model:
+            type: string
+            example: template-v1
+          prompt_version:
+            type: string
+            example: facts-v1
+          source_digest:
+            type: string
+            pattern: "^[0-9a-f]{64}$"
+          generation_method:
+            type: string
+            enum:
+            - template
+            - provider
+          generated_at:
+            type: string
+            format: date-time
+          coverage:
+            oneOf:
+            - "$ref": "#/components/schemas/Form4ExplanationCoverage"
+            - "$ref": "#/components/schemas/Form13fExplanationCoverage"
+          source_url:
+            type: string
+            format: uri
+          disclaimer:
+            type: string
+            example: Data from public SEC filings. Not investment advice.
+    Form4ExplanationCoverage:
+      type: object
+      additionalProperties: false
+      required:
+      - transaction_lines
+      - transaction_lines_shown
+      - reporting_owners
+      - reporting_owners_shown
+      properties:
+        transaction_lines:
+          type: integer
+          minimum: 0
+          description: Distinct security-table/sequence pairs, without joint-owner copies.
+        transaction_lines_shown:
+          type: integer
+          minimum: 0
+          maximum: 8
+        reporting_owners:
+          type: integer
+          minimum: 0
+          description: Distinct owners represented in stored transaction rows.
+        reporting_owners_shown:
+          type: integer
+          minimum: 0
+          maximum: 8
+    Form13fExplanationCoverage:
+      type: object
+      additionalProperties: false
+      required:
+      - holding_rows
+      - holding_rows_shown
+      - included_managers
+      - included_managers_shown
+      properties:
+        holding_rows:
+          type: integer
+          minimum: 0
+        holding_rows_shown:
+          type: integer
+          minimum: 0
+          maximum: 8
+        included_managers:
+          type: integer
+          minimum: 0
+        included_managers_shown:
+          type: integer
+          minimum: 0
+          maximum: 5
+    FilingExplanationError:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              enum:
+              - FILING_NOT_READY
+              - EXPLANATION_UNSUPPORTED
+            message:
+              type: string
     Fund:
       type: object
       required:

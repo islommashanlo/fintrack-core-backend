@@ -9,6 +9,7 @@ class Filing < ApplicationRecord
 
   has_many :insider_transactions, dependent: :restrict_with_exception
   has_many :alert_deliveries, dependent: :restrict_with_exception
+  has_many :filing_explanations, dependent: :restrict_with_exception
   has_one :institutional_report, dependent: :restrict_with_exception
 
   validates :accession_no, presence: true, uniqueness: true, format: { with: ACCESSION_FORMAT }

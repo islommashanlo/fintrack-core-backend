@@ -10,6 +10,7 @@ Data from public SEC filings. Not investment advice.
 - `docs/api-v1.md` and `docs/openapi.yml` document the implemented JSON read APIs.
 - `docs/activity-methodology.md` explains the cluster definition and draft Activity Score proposal.
 - `docs/plan-alert-digests.md` documents digest delivery, read tracking, and history-preserving unfollows.
+- `docs/filing-explanations.md` describes cached factual summaries and the provider interface.
 
 ## Getting started
 
@@ -46,3 +47,10 @@ prints legacy-rule counts without changing data; `CONFIRM=convert` performs the
 approved local-only conversion and pauses old Free instant rules. Configure
 `APP_HOST`, `MAIL_FROM`, the mail transport and provider DKIM before real delivery.
 No production delivery or deployment has been validated.
+
+`POST /api/v1/filings/:accession/explanation` returns a cached plain-text summary
+of stored Form 4 or 13F data with provenance and a disclaimer. The current route
+uses a local factual template; no external AI service is configured. Source
+changes create new cached versions, and large tables use bounded examples.
+Browser requests require a CSRF token. See the API documentation for coverage,
+limits and unsupported formats.

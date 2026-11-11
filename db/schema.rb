@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_10_233500) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -130,6 +130,25 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_10_233500) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["cik"], name: "index_filers_on_cik", unique: true
+  end
+
+  create_table "filing_explanations", force: :cascade do |t|
+    t.bigint "filing_id", null: false
+    t.string "source_digest", null: false
+    t.string "prompt_version", null: false
+    t.string "provider_key", null: false
+    t.string "model", null: false
+    t.string "generation_method", null: false
+    t.text "body", null: false
+    t.jsonb "coverage", default: {}, null: false
+    t.datetime "generated_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["filing_id", "source_digest", "prompt_version", "provider_key"], name: "index_filing_explanations_on_source_and_provider", unique: true
+    t.index ["filing_id"], name: "index_filing_explanations_on_filing_id"
+    t.check_constraint "generation_method::text = ANY (ARRAY['template'::character varying, 'provider'::character varying]::text[])", name: "filing_explanation_method"
+    t.check_constraint "jsonb_typeof(coverage) = 'object'::text", name: "filing_explanation_coverage"
+    t.check_constraint "source_digest::text ~ '^[0-9a-f]{64}$'::text", name: "filing_explanation_digest"
   end
 
   create_table "filings", force: :cascade do |t|
@@ -396,6 +415,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_10_233500) do
   add_foreign_key "alert_rule_settings", "alert_rules"
   add_foreign_key "alert_rules", "follows"
   add_foreign_key "cusip_security_mappings", "securities"
+  add_foreign_key "filing_explanations", "filings"
   add_foreign_key "follows", "users"
   add_foreign_key "insider_transactions", "filings"
   add_foreign_key "institutional_holdings", "institutional_reports"

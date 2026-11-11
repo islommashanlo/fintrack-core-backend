@@ -50,4 +50,15 @@ RSpec.describe Policy::BannedLanguageScan do
       expect(described_class.new(root:).violations.sole).to have_attributes(path: "app/views/filing_digest_mailer/daily.text.erb", line: 1)
     end
   end
+
+  it "scans explanation prompts and factual templates" do
+    Dir.mktmpdir("filingsintel-policy") do |root|
+      %w[app/prompts/filing_explanations/system.txt app/services/filing_explanations/facts.rb].each do |relative|
+        path = Pathname(root).join(relative)
+        path.dirname.mkpath
+        path.write("Strong Buy\n")
+      end
+      expect(described_class.new(root:).violations.size).to eq(2)
+    end
+  end
 end
