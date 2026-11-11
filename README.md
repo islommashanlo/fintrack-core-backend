@@ -131,3 +131,8 @@ stale work without writes or requests; execution requires confirmation and a req
 budget (see `docs/billing-recovery.md`). Local migrations create empty storage only.
 Provider setup, unknown-outcome recovery and live activation remain pending. See `docs/billing.md`
 before configuring keys, prices or account cancellation.
+
+13F ingestion preserves cover-page other managers independently of included managers.
+Factual filing explanations preview five identities per list and report whether
+cover identities were captured; legacy reports remain unknown until authorized
+reprocessing. See [filing explanations](docs/filing-explanations.md).

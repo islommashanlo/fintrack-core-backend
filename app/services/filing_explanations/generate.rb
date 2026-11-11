@@ -2,7 +2,7 @@
 
 module FilingExplanations
   class Generate
-    PROMPT_VERSION = "facts-v1"
+    PROMPT_VERSION = "facts-v2"
     Result = Data.define(:explanation, :cached)
     class NotReady < StandardError; end
     class Unsupported < StandardError; end

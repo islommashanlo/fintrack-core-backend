@@ -68,10 +68,16 @@ schema, so its stored owner CIKs and source link are the available context.
 Reported value, unit, normalized USD, principal quantities and options remain
 distinct. Actual real fixtures use title-case `Put`/`Call`; the display recognizes
 those without rewriting stored values. Notice/empty tables do not imply a zero
-portfolio. The current ingestor persists included managers but omits the cover
-parser's `other_managers`, including NT reporting-manager identities. Fixing that
-ingestion gap is separate from these normalized-data explanations and would not
-retroactively populate existing records without authorized reprocessing.
+portfolio. Ingestion stores cover-page other managers separately from summary-page
+included managers, preserving optional reported identifiers. Cover keys are document
+ordinals; included-manager sequences retain their reported meaning. Explanations
+show at most five identities from each list. `other_managers_recorded` distinguishes
+captured empty lists (`other_managers: 0`) from legacy records whose cover identities
+were never captured (`other_managers: null`). No legacy data is reprocessed by the
+migration. Notice summaries identify stored cover managers without inferring holdings
+or resolving external identities. All stored manager rows participate in the source
+digest, including identities outside the preview. `facts-v2` preserves earlier cached
+summaries while generating summaries with this coverage contract on demand.
 
 The source digest covers all source rows, including sampled-out lines. PostgreSQL
 hashes ordered row representations, excluding creation/update/parse bookkeeping
@@ -97,8 +103,9 @@ unchanged re-ingestion, provider errors/malformed selections, language filtering
 prompt versioning, unique keys and concurrent generation. WebMock blocks all real
 HTTP. The CI language scan includes both explanation templates and prompts.
 
-Local verification: 675 examples passed with CI eager loading (seed 39617);
-RuboCop passed for 366 Ruby files; language-policy and whitespace checks passed.
-OpenAPI 1.11.0 has 43 unique operation IDs and 497 resolved local references.
-The local development/test migration was applied. No deployment, real SEC/AI
-requests, seeding, enrichment, or real email delivery was performed.
+Local verification after cover-manager capture: 953 examples passed with CI eager
+loading (seed 216); RuboCop passed for 484 Ruby files. Language-policy and whitespace
+checks passed. OpenAPI 1.26.0 has 63 unique operation IDs and 765 resolved local
+references. The local development/test migration was applied. No deployment,
+real SEC/AI requests, seeding, enrichment, reprocessing, or real email delivery
+was performed.

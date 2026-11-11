@@ -5,6 +5,7 @@ class InstitutionalReport < ApplicationRecord
 
   belongs_to :filing
   belongs_to :institutional_filer
+  has_many :institutional_report_other_managers, dependent: :restrict_with_exception
   has_many :institutional_report_managers, dependent: :restrict_with_exception
   has_many :institutional_holdings, dependent: :restrict_with_exception
   has_many :position_diffs, dependent: :restrict_with_exception

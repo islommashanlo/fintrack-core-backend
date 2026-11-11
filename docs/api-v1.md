@@ -515,19 +515,22 @@ suspect prices do not produce a calculated transaction value. Footnotes are
 identified as context, with a factual weighted-average topic notice when present;
 their full wording is linked through the source rather than paraphrased.
 
-13F summaries show up to eight stored rows and five included managers, separate
+13F summaries show up to eight stored rows and five identities per manager list, separate
 reported and normalized value units, principal quantities, put/call labels, and
 integrity flags. They explain the amendment classification for this accession;
 they do not merge effective holdings across filings. No holdings value is inferred
-from an empty table or notice. The existing ingestor does not persist the cover's
-`other_managers` (including an NT reporting manager); explanations therefore do
-not invent those identities. Included-manager records are persisted separately
-and can be shown. Raw filing documents and account data are never provider input.
+from an empty table or notice. The ingestor stores cover-page other managers
+(including NT reporting-manager identities) independently of included managers.
+Optional reported CIKs and file numbers remain factual identifiers, without
+external resolution. Raw filing documents and account data are never provider input.
 
 For Form 4, coverage keys are `transaction_lines`, `transaction_lines_shown`,
 `reporting_owners`, and `reporting_owners_shown`; the owner counts describe stored
 transaction rows. For 13F, keys are `holding_rows`, `holding_rows_shown`,
-`included_managers`, and `included_managers_shown`. Shown counts reflect actual
+`included_managers`, `included_managers_shown`, `other_managers_recorded`,
+`other_managers`, and `other_managers_shown`. The other-manager count is null for
+legacy reports whose list was not captured; a captured empty list is zero.
+The migration does not reprocess stored reports. Shown counts reflect actual
 selected sentences, and summaries explicitly describe their bounded coverage.
 
 The cache key covers the filing, a digest of all normalized source rows (including

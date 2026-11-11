@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_200000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_210000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -441,6 +441,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_200000) do
     t.check_constraint "sequence_no > 0", name: "institutional_report_managers_sequence_positive"
   end
 
+  create_table "institutional_report_other_managers", force: :cascade do |t|
+    t.bigint "institutional_report_id", null: false
+    t.integer "sequence_no", null: false
+    t.string "cik"
+    t.string "name"
+    t.string "form13f_file_number"
+    t.string "crd_number"
+    t.string "sec_file_number"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["institutional_report_id", "sequence_no"], name: "index_13f_other_managers_on_report_and_sequence", unique: true
+    t.check_constraint "sequence_no > 0", name: "institutional_other_managers_positive_sequence"
+  end
+
   create_table "institutional_reports", force: :cascade do |t|
     t.bigint "filing_id", null: false
     t.bigint "institutional_filer_id", null: false
@@ -461,6 +475,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_200000) do
     t.string "suspect_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "other_managers_recorded", default: false, null: false
     t.index ["filing_id"], name: "index_institutional_reports_on_filing_id", unique: true
     t.index ["institutional_filer_id", "filed_at"], name: "index_institutional_reports_on_filer_and_filed_at"
     t.index ["institutional_filer_id", "period_of_report"], name: "index_institutional_reports_on_filer_and_period"
@@ -631,6 +646,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_200000) do
   add_foreign_key "institutional_change_snapshots", "institutional_filers"
   add_foreign_key "institutional_holdings", "institutional_reports"
   add_foreign_key "institutional_report_managers", "institutional_reports"
+  add_foreign_key "institutional_report_other_managers", "institutional_reports"
   add_foreign_key "institutional_reports", "filings"
   add_foreign_key "institutional_reports", "institutional_filers"
   add_foreign_key "notification_preferences", "users"

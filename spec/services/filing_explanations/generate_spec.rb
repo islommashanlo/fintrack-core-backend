@@ -61,6 +61,43 @@ RSpec.describe FilingExplanations::Generate do
     expect(result.coverage).to include("holding_rows" => 2, "holding_rows_shown" => 2, "included_managers" => 1)
   end
 
+  it "distinguishes unknown legacy manager coverage from a captured empty list" do
+    report = create(:institutional_report)
+    first = explanation(report.filing)
+    expect(first.coverage).to include("other_managers_recorded" => false, "other_managers" => nil, "other_managers_shown" => 0)
+    expect(first.body).to include("were not captured during ingestion")
+    report.update!(other_managers_recorded: true)
+    second = explanation(report.filing)
+    expect(second.id).not_to eq(first.id)
+    expect(second.coverage).to include("other_managers_recorded" => true, "other_managers" => 0)
+    expect(second.body).to include("Stored cover-page other-manager records: 0")
+  end
+
+  it "bounds manager previews while invalidating the cache when an omitted manager changes" do
+    report = create(:institutional_report, other_managers_recorded: true)
+    6.times do |index|
+      report.institutional_report_other_managers.create!(sequence_no: index + 1, name: "Manager #{index + 1}")
+    end
+    first = explanation(report.filing)
+    expect(first.body).to include("Manager 5")
+    expect(first.body).not_to include("Manager 6")
+    expect(first.coverage).to include("other_managers" => 6, "other_managers_shown" => 5)
+    report.institutional_report_other_managers.order(:sequence_no).last.update!(name: "Omitted identity")
+    second = explanation(report.filing)
+    expect(second.id).not_to eq(first.id)
+    expect(FilingExplanation.exists?(first.id)).to be(true)
+    expect(explanation(report.filing).id).to eq(second.id)
+  end
+
+  it "retains the explanation cache after identical notice re-ingestion" do
+    parsed = Form13fCoverParser.parse(form13f_cover(:notice_2026_q1))
+    filing = create(:filing, form_type: parsed.submission_type, cik: parsed.filer.cik, period_of_report: parsed.period_of_report)
+    Form13fIngestor.call(filing:, cover: parsed, holdings: [], value_unit: nil)
+    first = explanation(filing)
+    Form13fIngestor.call(filing:, cover: parsed, holdings: [], value_unit: nil)
+    expect(explanation(filing).id).to eq(first.id)
+  end
+
   it "does not present a partial normalized sum as a complete total" do
     report = create(:institutional_report)
     create(:institutional_holding, institutional_report: report, value_usd: nil)
@@ -82,7 +119,8 @@ RSpec.describe FilingExplanations::Generate do
         expect(result.body).to include("Option type: call", "Option type: put", "13F COMBINATION REPORT")
         expect(result.body.scan("CUSIP 88579Y101").size).to eq(2)
       elsif name == :notice_2026_q1
-        expect(result.body).to include("No holdings are inferred", "no holdings value is inferred")
+        expect(result.body).to include("No holdings are inferred", "no holdings value is inferred", "SOFTBANK GROUP CORP.", "0001065521", "028-20337")
+        expect(result.coverage).to include("other_managers_recorded" => true, "other_managers" => 1, "other_managers_shown" => 1)
         expect(result.body).not_to include("normalized reported value USD 0")
       else
         expect(result.body).to include(unit == "thousands" ? "thousands of USD" : "(USD)")
@@ -207,10 +245,10 @@ RSpec.describe FilingExplanations::Generate do
   it "versions the cache by prompt and provider and restricts deletion of linked source filings" do
     filing = create(:filing)
     first = explanation(filing)
-    stub_const("FilingExplanations::Generate::PROMPT_VERSION", "facts-v2")
+    stub_const("FilingExplanations::Generate::PROMPT_VERSION", "facts-v3")
     second = explanation(filing)
     expect(second.id).not_to eq(first.id)
-    expect(second.prompt_version).to eq("facts-v2")
+    expect(second.prompt_version).to eq("facts-v3")
     expect { filing.destroy! }.to raise_error(ActiveRecord::DeleteRestrictionError)
     duplicate = first.attributes.except("id", "created_at", "updated_at")
     expect { FilingExplanation.create!(duplicate) }.to raise_error(ActiveRecord::RecordNotUnique)

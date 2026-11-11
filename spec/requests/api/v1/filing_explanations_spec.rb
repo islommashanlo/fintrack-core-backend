@@ -18,7 +18,7 @@ RSpec.describe "API v1 filing explanations" do
     expect(first.fetch("data")).to include(
       "accession" => filing.accession_no, "source_url" => filing.sec_url, "sec_url" => filing.sec_url,
       "filed_at" => filing.filed_at.iso8601(3), "ingested_at" => filing.ingested_at.iso8601(3),
-      "generation_method" => "template", "model" => "template-v1", "prompt_version" => "facts-v1",
+      "generation_method" => "template", "model" => "template-v1", "prompt_version" => "facts-v2",
       "data_age_days" => 41, "disclaimer" => FilingsIntel::DISCLAIMER
     )
     expect(first.dig("data", "body")).to include("500 shares", "USD 12500", "1500 shares", "open-market purchase")
@@ -30,6 +30,22 @@ RSpec.describe "API v1 filing explanations" do
     expect(response.parsed_body.fetch("meta")).to eq("cached" => true)
     expect(response.parsed_body.dig("data", "generated_at")).to eq(first.dig("data", "generated_at"))
     expect(response.parsed_body.dig("data", "data_age_days")).to eq(42)
+  end
+
+  it "exposes captured notice manager identities and coverage without holdings" do
+    parsed = Form13fCoverParser.parse(form13f_cover(:notice_2026_q1))
+    filing = create(:filing, form_type: parsed.submission_type, cik: parsed.filer.cik, period_of_report: parsed.period_of_report)
+    Form13fIngestor.call(filing:, cover: parsed, holdings: [], value_unit: nil)
+
+    post api_v1_filing_explanation_path(filing.accession_no), as: :json
+
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.dig("data", "coverage")).to include(
+      "other_managers_recorded" => true, "other_managers" => 1, "other_managers_shown" => 1,
+      "included_managers" => 0, "holding_rows" => 0
+    )
+    expect(response.parsed_body.dig("data", "body")).to include("SOFTBANK GROUP CORP.", "0001065521", "028-20337")
+    expect(WebMock).not_to have_requested(:get, /sec\.gov/)
   end
 
   it "rejects caller prose, provider overrides and unexpected nested parameters" do

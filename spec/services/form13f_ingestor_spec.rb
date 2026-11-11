@@ -74,6 +74,14 @@ RSpec.describe Form13fIngestor do
     )
     described_class.call(filing:, cover: cover(fixture), holdings: holdings(fixture), value_unit: "whole_dollars")
 
+    report = InstitutionalReport.sole
+    expect(report.other_included_managers_count).to eq(0)
+    expect(report.institutional_report_managers).to be_empty
+    expect(report.institutional_report_other_managers.count).to eq(7)
+    cover(fixture).other_managers.each do |manager|
+      expect(report.institutional_report_other_managers.find_by!(sequence_no: manager.sequence_no)).to have_attributes(manager.to_h)
+    end
+
     repeated = InstitutionalHolding.where(cusip: "88579Y101").order(:row_seq)
     expect(repeated.map(&:put_call)).to eq([ nil, "Call" ])
   end
@@ -96,6 +104,56 @@ RSpec.describe Form13fIngestor do
 
     expect(InstitutionalReport.sole).to have_attributes(status: "parsed", table_entry_total: nil, suspect: false)
     expect(InstitutionalHolding.count).to eq(0)
+  end
+
+  it "captures notice manager identities idempotently without inferring holdings" do
+    filing = filing_for(:notice_2026_q1)
+    parsed = cover(:notice_2026_q1)
+    2.times { described_class.call(filing:, cover: parsed, holdings: [], value_unit: nil) }
+
+    report = InstitutionalReport.sole
+    expect(report).to be_other_managers_recorded
+    expect(report.institutional_report_other_managers.sole).to have_attributes(
+      sequence_no: 1, name: "SOFTBANK GROUP CORP.", cik: "0001065521", form13f_file_number: "028-20337"
+    )
+    expect(report.institutional_report_managers).to be_empty
+    expect(report.institutional_holdings).to be_empty
+  end
+
+  it "keeps cover ordinals separate from included-manager sequence numbers" do
+    parsed = cover(:post_cutoff_2023_q1)
+    manager = parsed.included_managers.first.with(name: "Cover example", cik: nil)
+    filing = filing_for(:post_cutoff_2023_q1)
+    2.times do
+      described_class.call(filing:, cover: parsed.with(other_managers: [ manager ]), holdings: holdings(:post_cutoff_2023_q1), value_unit: "whole_dollars")
+    end
+
+    report = InstitutionalReport.sole
+    expect(report.institutional_report_managers.count).to eq(2)
+    expect(report.institutional_report_other_managers.sole).to have_attributes(manager.to_h)
+    expect(report.institutional_report_managers.find_by!(sequence_no: manager.sequence_no).name).not_to eq("Cover example")
+  end
+
+  it "rejects duplicate cover ordinals before writing any report or manager" do
+    parsed = cover(:notice_2026_q1)
+    filing = filing_for(:notice_2026_q1)
+    expect do
+      described_class.call(filing:, cover: parsed.with(other_managers: parsed.other_managers * 2), holdings: [], value_unit: nil)
+    end.to raise_error(described_class::NaturalKeyCollisionError, /cover manager/)
+    expect(InstitutionalReport.count).to eq(0)
+    expect(InstitutionalReportOtherManager.count).to eq(0)
+    expect(InstitutionalFiler.count).to eq(0)
+  end
+
+  it "records a known empty list while leaving legacy coverage unknown" do
+    legacy = create(:institutional_report)
+    expect(legacy).not_to be_other_managers_recorded
+    parsed = cover(:recent_2026_q1).with(other_managers: [])
+    filing = filing_for(:recent_2026_q1)
+    described_class.call(filing:, cover: parsed, holdings: holdings(:recent_2026_q1), value_unit: "whole_dollars")
+    expect(filing.institutional_report).to be_other_managers_recorded
+    expect(filing.institutional_report.institutional_report_other_managers).to be_empty
+    expect(legacy.reload).not_to be_other_managers_recorded
   end
 
   it "retains NEW HOLDINGS and RESTATEMENT amendments as distinct report types" do
@@ -144,7 +202,7 @@ RSpec.describe Form13fIngestor do
 
     report = described_class.skip!(filing:, reason: "pre_xml_information_table")
 
-    expect(report).to have_attributes(status: "skipped", report_type: "PRE-XML 13F")
+    expect(report).to have_attributes(status: "skipped", report_type: "PRE-XML 13F", other_managers_recorded: false)
     expect(filing.reload.parse_status).to eq("parsed")
     expect(ParseFailure.count).to eq(0)
   end

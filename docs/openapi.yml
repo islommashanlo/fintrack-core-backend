@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.25.0
+  version: 1.26.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -3965,7 +3965,7 @@ components:
             example: template-v1
           prompt_version:
             type: string
-            example: facts-v1
+            example: facts-v2
           source_digest:
             type: string
             pattern: "^[0-9a-f]{64}$"
@@ -4020,6 +4020,9 @@ components:
       - holding_rows_shown
       - included_managers
       - included_managers_shown
+      - other_managers_recorded
+      - other_managers
+      - other_managers_shown
       properties:
         holding_rows:
           type: integer
@@ -4032,6 +4035,18 @@ components:
           type: integer
           minimum: 0
         included_managers_shown:
+          type: integer
+          minimum: 0
+          maximum: 5
+        other_managers_recorded:
+          type: boolean
+          description: Whether ingestion captured the cover-page other-manager list.
+        other_managers:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Stored cover-page manager count; null for legacy records without captured coverage.
+        other_managers_shown:
           type: integer
           minimum: 0
           maximum: 5

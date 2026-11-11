@@ -30,6 +30,7 @@ class Form13fIngestor
 
   def call
     verify!
+    assert_unique_sequences!(@cover.other_managers.map(&:sequence_no), "cover manager")
     assert_unique_sequences!(@cover.included_managers.map(&:sequence_no), "manager")
     assert_unique_sequences!(@holdings.map(&:row_seq), "holding")
 
@@ -37,6 +38,7 @@ class Form13fIngestor
       institutional_filer = upsert_institutional_filer
       report = upsert_report(institutional_filer)
       upsert_managers(report)
+      upsert_other_managers(report)
       upsert_holdings(report)
       update_filing
     end
@@ -99,6 +101,7 @@ class Form13fIngestor
         report_type: @cover.report_type,
         amendment_type: @cover.amendment_type,
         amendment_number: @cover.amendment_number,
+        other_managers_recorded: true,
         other_included_managers_count: @cover.other_included_managers_count,
         table_entry_total: @cover.table_entry_total,
         table_value_total: @cover.table_value_total,
@@ -127,6 +130,17 @@ class Form13fIngestor
     return if rows.empty?
 
     InstitutionalReportManager.upsert_all(rows, unique_by: :index_13f_report_managers_on_report_and_sequence)
+  end
+
+  # Cover sequence numbers are document ordinals, independent of the included
+  # managers' reported sequence numbers referenced by information-table rows.
+  def upsert_other_managers(report)
+    rows = @cover.other_managers.map do |manager|
+      manager.to_h.merge(institutional_report_id: report.id, created_at: Time.current, updated_at: Time.current)
+    end
+    return if rows.empty?
+
+    InstitutionalReportOtherManager.upsert_all(rows, unique_by: :index_13f_other_managers_on_report_and_sequence)
   end
 
   def upsert_holdings(report)

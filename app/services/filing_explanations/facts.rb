@@ -133,6 +133,7 @@ module FilingExplanations
       fingerprint(InstitutionalReport.where(id: report.id))
       fingerprint(InstitutionalFiler.where(id: report.institutional_filer_id))
       fingerprint(report.institutional_report_managers)
+      fingerprint(report.institutional_report_other_managers)
       scope = report.institutional_holdings
       fingerprint(scope)
       count, total, missing, suspect = scope.pick(*[ "COUNT(*)", "SUM(value_usd)", "COUNT(*) FILTER (WHERE value_usd IS NULL)", "COUNT(*) FILTER (WHERE suspect)" ].map { |sql| Arel.sql(sql) })
@@ -166,13 +167,32 @@ module FilingExplanations
         add("suspect", "Integrity review is flagged for #{suspect} holding rows#{report.suspect ? ' and the report' : ''}; reported values have not been corrected.")
       end
       scope.order(:row_seq).limit(ROW_LIMIT).each { |row| holding_fact(row) }
-      add("manager-count", "Cover-page other-manager count: #{report.other_included_managers_count || 'not recorded'}; stored included-manager records: #{managers}.")
-      report.institutional_report_managers.order(:sequence_no).limit(MANAGER_LIMIT).each do |manager|
-        add("included-manager-#{manager.sequence_no}", "Included manager: #{label(manager.name, fallback: 'name not recorded')}" \
-                                                     "#{manager.cik.present? ? " (CIK #{label(manager.cik)})" : ''}.")
-      end
-      add("coverage", "This summary shows at most #{ROW_LIMIT} information-table rows and #{MANAGER_LIMIT} included managers. Rows sharing a CUSIP remain separate.")
+      manager_facts(report, managers)
+      add("coverage", "This summary shows at most #{ROW_LIMIT} information-table rows and #{MANAGER_LIMIT} managers from each manager list. Rows sharing a CUSIP remain separate.")
       add("limitations", "Values describe the reported period, not current positions or current market prices. The complete table is available in the source.")
+    end
+
+    def manager_facts(report, included_count)
+      other_count = report.other_managers_recorded? ? report.institutional_report_other_managers.count : nil
+      @coverage.merge!("other_managers_recorded" => report.other_managers_recorded?,
+                       "other_managers" => other_count, "other_managers_shown" => [ other_count || 0, MANAGER_LIMIT ].min)
+      add("manager-count", "Summary-page other-included-manager count: #{report.other_included_managers_count || 'not recorded'}; stored included-manager records: #{included_count}.")
+      if other_count.nil?
+        add("other-manager-count", "Cover-page other-manager identities were not captured during ingestion; consult the source filing.")
+      else
+        add("other-manager-count", "Stored cover-page other-manager records: #{other_count}.")
+        manager_rows(report.institutional_report_other_managers, "other-manager", "Cover-page other manager")
+      end
+      manager_rows(report.institutional_report_managers, "included-manager", "Included manager")
+    end
+
+    def manager_rows(scope, id_prefix, description)
+      scope.order(:sequence_no).limit(MANAGER_LIMIT).each do |manager|
+        identifiers = { "CIK" => manager.cik, "Form 13F file number" => manager.form13f_file_number,
+                        "CRD number" => manager.crd_number, "SEC file number" => manager.sec_file_number }
+        details = identifiers.filter_map { |key, value| "#{key} #{label(value)}" if value.present? }.join("; ")
+        add("#{id_prefix}-#{manager.sequence_no}", "#{description}: #{label(manager.name, fallback: 'name not recorded')}#{details.present? ? " (#{details})" : ''}.")
+      end
     end
 
     def holding_fact(row)
