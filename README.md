@@ -56,6 +56,12 @@ changes create new cached versions, and large tables use bounded examples.
 Browser requests require a CSRF token. See the API documentation for coverage,
 limits and unsupported formats.
 
+`/api/v1/funds/compare?ciks=...` compares effective local 13F portfolios for one
+common quarter, with pairwise key overlap, a paginated positions matrix and
+adjacent-quarter change classifications. Free comparisons enforce two funds and
+four quarters; missing coverage stays unknown. See `docs/api-v1.md` for source and
+amendment semantics. No provider calls or schema change are needed.
+
 Public `/api/v1/search?q=...` groups ranked local company, fund and insider results.
 It supports exact identifiers, name prefixes/substrings, fuzzy names and signed
 per-group cursors. Local migrations enable PostgreSQL `pg_trgm`; no provider or

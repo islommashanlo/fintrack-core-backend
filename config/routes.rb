@@ -51,6 +51,7 @@ Rails.application.routes.draw do
       post "alert-events/:id/read" => "alert_events#read", as: :alert_event_read
       get "me/notification-preferences" => "notification_preferences#show", as: :notification_preferences
       patch "me/notification-preferences" => "notification_preferences#update"
+      get "funds/compare" => "fund_comparisons#show", as: :fund_comparison
       resources :funds, param: :cik, only: %i[index show] do
         get :holdings, on: :member
         get :history, on: :member

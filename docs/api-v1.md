@@ -7,6 +7,104 @@ built. The machine-readable contract is in
 
 Data from public SEC filings. Not investment advice.
 
+## Fund comparison
+
+`GET /api/v1/funds/compare?ciks=0008000001,0008000002` compares locally stored
+effective 13F holdings. It is public for two funds; verified Pro can request up
+to ten funds per request. Every response is `Cache-Control: no-store` because
+plan eligibility can change. No data fetch, enrichment, write or job is performed.
+
+| Parameter | Values |
+| --- | --- |
+| `ciks` | Required comma-separated 10-digit CIKs; 2–10 distinct local funds; duplicates collapse and order is canonicalized |
+| `period` | Optional ISO quarter-end date; omitted selects the latest common holdings quarter known by the snapshot |
+| `scope` | `all` (default), `shared` (at least two observed holders), `differing_moves` (known differing change classifications) |
+| `cusip`, `put_call`, `share_type` | Existing exact filters: 9-character CUSIP, PUT/CALL, SH/PRN |
+| `sort` | `holders`, `-holders` (default), `cusip`, `-cusip` |
+| `limit`, `cursor` | Standard signed cursor pagination, default 50 and maximum 100 position keys per page |
+
+The response is `{ data: { funds, overlaps, positions }, meta }`. Fund summaries
+and pair overlaps always cover the entire selected comparison; scope/security
+filters and pagination apply only to `positions`. CUSIP, put/call and share type
+form the security key; options and principal are never merged with ordinary shares.
+Repeated rows are summed within that key in SQL. These are aggregates of reported
+rows, not estimates of independently owned economic exposure. Original reported
+rows/values remain accessible through the existing holdings APIs.
+
+`funds` contains each fund's CIK/name, source provenance, `current_report_present`,
+`prior_report_present`, `current_available`, `prior_available`, report suspect
+flags, excluded-row counts, `position_count`, and `current_sources`/`prior_sources`.
+Availability requires an effective base, no report-level suspect flag and no
+excluded malformed security keys. Notices and additions without a base do not
+establish a holdings portfolio. A known empty, valid report is available with
+position count zero; a missing/incomplete report has a null count.
+
+`overlaps` contains one row per unordered fund pair, identified by `left_cik` and
+`right_cik`, with source provenance and:
+
+- `complete`: both current portfolios are available.
+- `shared_position_count` / `union_position_count`: count intersection/union of
+  current reported security keys, null when coverage is incomplete.
+- `overlap_percent`: 100 × intersection / union as a decimal string. It is null
+  for incomplete coverage or an empty union; it is not a portfolio-value weight.
+- `differing_move_count`: keys with different change classifications, null unless
+  both funds have adjacent-quarter coverage and all compared changes are known.
+
+`positions` contains the union of current and immediately preceding-quarter keys,
+including exits. Each row includes source provenance, CUSIP/put-call/share-type,
+a representative reported issuer name, `holder_count`, nullable `shared_by_all`,
+nullable `differing_moves`, and a `funds` matrix. `holder_count` counts observed
+reported rows, including reported zero quantities, and can be a lower bound if a
+fund's report is unavailable. It does not assert positive beneficial ownership.
+
+Matrix entries contain CIK, source provenance/lists, availability, nullable
+`present`, `shares`, `value_usd`, `prior_shares`, `prior_value_usd`, `shares_delta`,
+`value_usd_delta`, current/prior suspect flags, `row_count`, and `change_type`:
+`new`, `added`, `reduced`, `exited`, `unchanged`, `not_reported`, or `unknown`.
+Absence is false only with complete current coverage; otherwise it is null.
+Changes need the immediately preceding quarter, not an older available baseline.
+Missing coverage or suspect/missing quantities make changes unknown. Monetary
+deltas additionally require known values. Reported sums and flags remain visible;
+anomalies are never corrected. Decimal amounts use JSON strings.
+
+`shared_by_all` is null if any current portfolio is unavailable. `differing_moves`
+is null unless every selected fund has a known classification for that key; when
+known, it tests whether classifications differ (not whether change magnitudes
+differ). Representative top-level provenance points to the latest input filing,
+including a later prior-quarter amendment. Source lists retain all effective
+current/prior reports, including evidence of absence from a valid report.
+
+Without a common period, `period_of_report` is null, `available` is false and
+`unavailable_reason` is `no_common_period`. Explicit periods retain the requested
+date and per-fund unknown states; if none has a current report, the reason is
+`no_current_reports`. Parsed but suspect current reports can be present while
+`complete` remains false. An explicit missing current period can still display
+known prior keys with unknown changes. `meta.prior_complete` describes prior
+portfolio coverage; complete reports can still contain suspect individual values.
+
+Meta also includes the prior quarter, `period_selection` (`explicit` or
+`latest_common`), security key, disclaimer and normal page metadata. The resolved
+default quarter is pinned inside the signed cursor: a pending report finishing
+parsing cannot switch quarters halfway through paging. Snapshot ID ceilings
+exclude late inserts; updates within the pinned quarter can still affect rows.
+Repeat filters/sort while paging. Cursors bind the fund set, user and current
+plan limits; changes invalidate the cursor. Eligibility is checked on every request.
+
+Free is limited to two distinct funds and the last four completed calendar quarters
+relative to the page snapshot. Older periods return HTTP 402 with
+`{ code: "PRO_REQUIRED", feature: "history_quarters", limit: 4 }`; more than two
+funds use feature `fund_compare` and limit 2. The adjacent baseline is context for
+the selected quarter, even if it falls just outside that four-quarter window.
+Pro has full comparison history and a technical ten-fund request bound. Unknown
+local funds return 404, invalid inputs/cursors 400, shared throttles 429 and
+limiter unavailability 503. Existing historical fund/company read-route gates
+remain separate follow-up work; this change enforces these limits on comparison.
+
+Regression tests cover report amendments, missing/empty books, repeated rows,
+quality flags, precise key overlap, adjacent changes, pagination through parsing
+updates, downgrade gates and batch loading. Production-scale latency remains
+unbenchmarked. No schema migration or new dependency is required.
+
 ## Grouped search
 
 `GET /api/v1/search?q=Acme` searches public, locally stored companies, funds and

@@ -28,6 +28,13 @@ module Api
         @snapshot.fetch("bounds").fetch(name)
       end
 
+      # Pin resolved defaults as well as request filters across signed continuations.
+      def snapshot_value(name)
+        values = (@snapshot["resolved"] ||= {})
+        values[name] = yield unless values.key?(name)
+        values[name]
+      end
+
       def self.sql_rows(sql)
         result = ApplicationRecord.connection.select_all(sql)
         result.cast_values.map { |values| result.columns.zip(values).to_h }

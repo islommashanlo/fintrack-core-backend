@@ -2,13 +2,79 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.18.0
+  version: 1.19.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
 - url: "/api/v1"
 paths:
+  "/funds/compare":
+    get:
+      operationId: compareFunds
+      summary: Compare local effective 13F portfolios for one quarter
+      description: No-store. Public Free requests allow two funds and four completed
+        calendar quarters; verified Pro allows up to ten funds per request and full
+        history. Defaults to the latest common quarter and pins it in the cursor.
+        Uses CUSIP/put-call/share-type keys, SQL overlap and adjacent-quarter changes.
+        Missing/suspect coverage is unknown, never an empty book. Source lists
+        retain amendment and absence evidence. No provider requests, writes or jobs.
+        Position filters do not filter fund summaries or pairwise overlaps.
+      security: []
+      parameters:
+      - name: ciks
+        in: query
+        required: true
+        description: Comma-separated 10-digit CIKs; 2–10 distinct funds. Duplicates collapse; ordering is canonicalized. Free cap is two.
+        schema:
+          type: string
+          maxLength: 200
+      - "$ref": "#/components/parameters/Period"
+      - name: scope
+        in: query
+        schema:
+          type: string
+          enum: [all, shared, differing_moves]
+          default: all
+      - "$ref": "#/components/parameters/Cusip"
+      - "$ref": "#/components/parameters/PutCall"
+      - "$ref": "#/components/parameters/ShareType"
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum: [holders, '-holders', cusip, '-cusip']
+          default: '-holders'
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: cursor
+        in: query
+        schema:
+          type: string
+          maxLength: 8192
+        description: Signed continuation bound to fund set, filters, actor and plan; expires after 24 hours.
+      responses:
+        '200':
+          description: Complete or explicitly partial comparison with source evidence.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/FundComparisonResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/search":
     get:
       operationId: searchEntities
@@ -2904,6 +2970,227 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    FundComparisonResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [funds, overlaps, positions]
+          properties:
+            funds:
+              type: array
+              minItems: 2
+              maxItems: 10
+              items:
+                "$ref": "#/components/schemas/ComparisonFund"
+            overlaps:
+              type: array
+              minItems: 1
+              maxItems: 45
+              items:
+                "$ref": "#/components/schemas/ComparisonOverlap"
+            positions:
+              type: array
+              maxItems: 100
+              items:
+                "$ref": "#/components/schemas/ComparisonPosition"
+        meta:
+          allOf:
+          - "$ref": "#/components/schemas/ReadPageMeta"
+          - type: object
+            required: [period_of_report, prior_period_of_report, period_selection, available, unavailable_reason, complete, prior_complete, security_key, disclaimer]
+            properties:
+              period_of_report:
+                type: string
+                format: date
+                nullable: true
+              prior_period_of_report:
+                type: string
+                format: date
+                nullable: true
+              period_selection:
+                type: string
+                enum: [explicit, latest_common]
+              available:
+                type: boolean
+              unavailable_reason:
+                type: string
+                nullable: true
+                enum: [no_common_period, no_current_reports]
+              complete:
+                type: boolean
+                description: Every selected current portfolio has comparable report/key coverage.
+              prior_complete:
+                type: boolean
+              security_key:
+                type: array
+                items:
+                  type: string
+                  enum: [cusip, put_call, share_type]
+              disclaimer:
+                type: string
+    ComparisonProvenance:
+      type: object
+      required: [accession, form_type, sec_url, filed_at, accepted_at, ingested_at, data_age_days]
+      properties:
+        accession:
+          type: string
+          nullable: true
+        form_type:
+          type: string
+          nullable: true
+        sec_url:
+          type: string
+          format: uri
+          nullable: true
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+    ComparisonSources:
+      type: array
+      items:
+        "$ref": "#/components/schemas/FilingProvenance"
+    ComparisonFund:
+      allOf:
+      - "$ref": "#/components/schemas/ComparisonProvenance"
+      - type: object
+        required: [cik, name, current_available, prior_available, current_report_present, prior_report_present, current_report_suspect, prior_report_suspect, position_count, excluded_current_rows, excluded_prior_rows, current_sources, prior_sources]
+        properties:
+          cik:
+            "$ref": "#/components/schemas/Cik"
+          name:
+            type: string
+          current_available:
+            type: boolean
+          prior_available:
+            type: boolean
+          current_report_present:
+            type: boolean
+          prior_report_present:
+            type: boolean
+          current_report_suspect:
+            type: boolean
+          prior_report_suspect:
+            type: boolean
+          position_count:
+            type: integer
+            nullable: true
+          excluded_current_rows:
+            type: integer
+            minimum: 0
+          excluded_prior_rows:
+            type: integer
+            minimum: 0
+          current_sources:
+            "$ref": "#/components/schemas/ComparisonSources"
+          prior_sources:
+            "$ref": "#/components/schemas/ComparisonSources"
+    ComparisonOverlap:
+      allOf:
+      - "$ref": "#/components/schemas/ComparisonProvenance"
+      - type: object
+        required: [left_cik, right_cik, complete, shared_position_count, union_position_count, overlap_percent, differing_move_count, sources]
+        properties:
+          left_cik:
+            "$ref": "#/components/schemas/Cik"
+          right_cik:
+            "$ref": "#/components/schemas/Cik"
+          complete:
+            type: boolean
+          shared_position_count:
+            type: integer
+            nullable: true
+          union_position_count:
+            type: integer
+            nullable: true
+          overlap_percent:
+            "$ref": "#/components/schemas/NullableDecimal"
+          differing_move_count:
+            type: integer
+            nullable: true
+          sources:
+            "$ref": "#/components/schemas/ComparisonSources"
+    ComparisonPosition:
+      allOf:
+      - "$ref": "#/components/schemas/ComparisonProvenance"
+      - type: object
+        required: [cusip, put_call, share_type, issuer_name, holder_count, shared_by_all, differing_moves, funds]
+        properties:
+          cusip:
+            type: string
+          put_call:
+            type: string
+            nullable: true
+            enum: [PUT, CALL]
+          share_type:
+            type: string
+            enum: [SH, PRN]
+          issuer_name:
+            type: string
+          holder_count:
+            type: integer
+            minimum: 0
+            maximum: 10
+          shared_by_all:
+            type: boolean
+            nullable: true
+          differing_moves:
+            type: boolean
+            nullable: true
+          funds:
+            type: array
+            minItems: 2
+            maxItems: 10
+            items:
+              "$ref": "#/components/schemas/ComparisonEntry"
+    ComparisonEntry:
+      allOf:
+      - "$ref": "#/components/schemas/ComparisonProvenance"
+      - type: object
+        required: [cik, present, shares, value_usd, prior_shares, prior_value_usd, shares_delta, value_usd_delta, change_type, suspect, prior_suspect, row_count, current_available, prior_available, current_sources, prior_sources]
+        properties:
+          cik:
+            "$ref": "#/components/schemas/Cik"
+          present:
+            type: boolean
+            nullable: true
+          shares:
+            "$ref": "#/components/schemas/NullableDecimal"
+          value_usd:
+            "$ref": "#/components/schemas/NullableDecimal"
+          prior_shares:
+            "$ref": "#/components/schemas/NullableDecimal"
+          prior_value_usd:
+            "$ref": "#/components/schemas/NullableDecimal"
+          shares_delta:
+            "$ref": "#/components/schemas/NullableDecimal"
+          value_usd_delta:
+            "$ref": "#/components/schemas/NullableDecimal"
+          change_type:
+            type: string
+            enum: [new, added, reduced, exited, unchanged, not_reported, unknown]
+          suspect:
+            type: boolean
+          prior_suspect:
+            type: boolean
+          row_count:
+            type: integer
+            minimum: 0
+          current_available:
+            type: boolean
+          prior_available:
+            type: boolean
+          current_sources:
+            "$ref": "#/components/schemas/ComparisonSources"
+          prior_sources:
+            "$ref": "#/components/schemas/ComparisonSources"
     SearchResponse:
       type: object
       required: [data, meta]
@@ -4450,6 +4737,8 @@ components:
           - instant_alerts
           - alert_rules
           - saved_screens
+          - fund_compare
+          - history_quarters
         limit:
           type: integer
           minimum: 0
