@@ -7,6 +7,7 @@ module Api
         @as_of = as_of
         rows = deliveries.filter_map(&:insider_cluster_snapshot).map(&:attributes)
         @clusters = InsiderClusterSerializer.new(rows:, as_of:)
+        @institutional = InstitutionalAlertSerializer.new(snapshots: deliveries.filter_map(&:institutional_change_snapshot), as_of:)
       end
 
       def render(delivery)
@@ -18,6 +19,7 @@ module Api
           transaction: delivery.insider_transaction && InsiderTransactionSerializer.render(delivery.insider_transaction, as_of:),
           cluster: snapshot && @clusters.render(snapshot.attributes).merge(observed_at: snapshot.observed_at,
             definition_minimum_insiders: snapshot.definition_minimum_insiders),
+          position_change: delivery.institutional_change_snapshot && @institutional.render(delivery.institutional_change_snapshot),
           entity: { type: WatchlistTarget::API_TYPES.fetch(rule.follow.target_type), key: rule.follow.target_key },
           channel: rule.channel, frequency: delivery.frequency, status: delivery.status, read_at: delivery["api_read_at"],
           error_code: delivery.status == "failed" ? "DELIVERY_FAILED" : nil,

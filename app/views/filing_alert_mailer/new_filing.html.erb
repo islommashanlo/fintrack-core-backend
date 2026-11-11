@@ -1,4 +1,4 @@
-<p><% if @cluster %><%= ClusterAlertText.render(@cluster) %><% else %><%= @transaction ? TransactionAlertText.render(@transaction) : "A new SEC filing matches your FilingsIntel alert." %><% end %></p>
+<p><% if @position_change %><%= InstitutionalAlertText.render(@position_change) %><% elsif @cluster %><%= ClusterAlertText.render(@cluster) %><% else %><%= @transaction ? TransactionAlertText.render(@transaction) : "A new SEC filing matches your FilingsIntel alert." %><% end %></p>
 
 <p>
   Followed <strong><%= @follow.target_type.humanize %> <%= @follow.target_key %></strong><br>
@@ -13,3 +13,6 @@
 <% end %>
 
 <p>Data from public SEC filings. Not investment advice.</p>
+
+<% if @position_change %><ul><% @institutional_sources.each do |report| %><li><%= link_to report.filing.accession_no, report.filing.sec_url %></li><% end %></ul>
+<% if @position_change.evidence_report_ids.length > 20 %><p>Additional comparison sources are available in your alert history.</p><% end %><% end %>

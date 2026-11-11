@@ -1,8 +1,11 @@
 <h1>SEC filing digest for <%= @batch.local_date %></h1>
 <ul><% @deliveries.each do |delivery| %>
   <% cluster = delivery.insider_cluster_snapshot %>
-  <li><% if cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %><% end %>:
+<% position = delivery.institutional_change_snapshot %>
+  <li><% if position %><%= InstitutionalAlertText.render(position) %><% elsif cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %><% end %>:
     <%= link_to delivery.filing.accession_no, delivery.filing.sec_url %>
+    <% if position %><ul><% position.evidence_report_ids.first(20).each do |id| %><li><%= link_to @institutional_sources.fetch(id).filing.accession_no, @institutional_sources.fetch(id).filing.sec_url %></li><% end %></ul>
+    <% if position.evidence_report_ids.length > 20 %><p>Additional comparison sources are available in your alert history.</p><% end %><% end %>
     <% if cluster %><ul><% cluster.filing_ids.first(20).each do |id| %><li><%= link_to @cluster_sources.fetch(id).accession_no, @cluster_sources.fetch(id).sec_url %></li><% end %></ul>
     <% if cluster.filing_ids.length > 20 %><p>Additional cluster source filings are available in your alert history.</p><% end %><% end %>
   </li>

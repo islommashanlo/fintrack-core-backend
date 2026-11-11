@@ -79,4 +79,13 @@ RSpec.describe Policy::BannedLanguageScan do
       expect(described_class.new(root:).violations.sole).to have_attributes(path: "app/services/cluster_alert_text.rb", line: 1)
     end
   end
+
+  it "scans institutional alert text" do
+    Dir.mktmpdir("filingsintel-policy") do |root|
+      path = Pathname(root).join("app/services/institutional_alert_text.rb")
+      path.dirname.mkpath
+      path.write("message = 'Strong Buy'\n")
+      expect(described_class.new(root:).violations.sole).to have_attributes(path: "app/services/institutional_alert_text.rb", line: 1)
+    end
+  end
 end

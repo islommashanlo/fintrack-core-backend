@@ -19,7 +19,11 @@ module Api
         end
         selected_trigger = create ? result[:event_type] : trigger
         if values.key?("conditions")
-          normalizer = selected_trigger == "cluster" ? ClusterAlertConditions : TransactionAlertConditions
+          normalizer = case selected_trigger
+          when "cluster" then ClusterAlertConditions
+          when "13f_change" then InstitutionalAlertConditions
+          else TransactionAlertConditions
+          end
           result[:conditions] = normalizer.normalize(values["conditions"])
         end
         invalid! if selected_trigger == "new_filing" && result[:conditions].present?

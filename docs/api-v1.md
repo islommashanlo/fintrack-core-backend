@@ -1506,8 +1506,9 @@ A rule request uses an existing owned, current watchlist follow:
 {"follow_id":12,"trigger":"new_filing","channels":["email"],"conditions":{},"frequency":"daily_digest","active":true}
 ```
 
-The triggers are `new_filing`, `insider_transaction` and `cluster`; the channel is email.
-Filing rules require empty conditions. Transaction/cluster conditions are described below.
+The triggers are `new_filing`, `insider_transaction`, `cluster` and `13f_change`;
+the channel is email. Filing rules require empty conditions; other conditions are
+described below.
 New rules default to paused daily digests. Duplicate creates keep
 the existing ID and settings unless changes are explicitly requested. Restoring
 an archived rule retains its ID/history and defaults to daily digest frequency.
@@ -1529,7 +1530,7 @@ different trigger. One follow may have one email rule of each supported trigger.
 
 Rule rows contain ID/follow ID, trigger, `entity: {type,key}` (issuer/fund/person),
 conditions, channels, stored frequency, active state and creation/update times.
-Rule filters: `active=true|false`, `trigger=new_filing|insider_transaction|cluster`, `entity_type=issuer|fund|person`; sorts:
+Rule filters: `active=true|false`, `trigger=new_filing|insider_transaction|cluster|13f_change`, `entity_type=issuer|fund|person`; sorts:
 `created_at` (descending default), `active`, `entity_key`, with optional `-`.
 
 Event rows contain ID/rule ID, trigger/entity/channel, the frequency recorded at
@@ -1539,7 +1540,8 @@ freshness fields. Transaction events additionally contain `transaction`, using t
 existing insider-transaction serializer with the matched owner's identity, role,
 reported quantities/prices/flags, and provenance. Filing events have
 `transaction:null`. Cluster events contain `cluster` as described below; other
-events have `cluster:null`. The trigger is stored with each event. A rule's later
+events have `cluster:null`. Institutional events contain `position_change`; other
+events have `position_change:null`. The trigger is stored with each event. A rule's later
 configuration change does not rewrite old events.
 Provider errors stay private; failures expose only `error_code: DELIVERY_FAILED`.
 Read state is independent of sending: a read event may still await its digest.
@@ -1560,8 +1562,9 @@ parameters and malformed boolean/ID/filter values return JSON 400.
 
 Metadata publishes the shared rule limit, supported trigger/channel/frequencies
 and capability flags. Creation, archival, pause, digest and read tracking are
-available; `condition_filters` is true for transaction/cluster rules, and
-`transaction_condition_fields` / `cluster_condition_fields` list their supported keys. Free supported frequencies
+available; `condition_filters` is true for supported data triggers, and
+`transaction_condition_fields`, `cluster_condition_fields` and
+`institutional_condition_fields` list their supported keys. Free supported frequencies
 contain only `daily_digest`; `instant_alerts` indicates trusted paid entitlement.
 
 ### Insider transaction conditions
@@ -1696,6 +1699,92 @@ keys. It is applied locally to development/test and does not modify reported SEC
 values. Removing it requires explicit review of stored cluster history; automatic
 rollback is disabled. Account deletion purges private delivery/read/rule data but
 retains shared source snapshots and SEC data. No worker or provider was activated.
+
+### 13F position-change alerts
+
+`trigger:"13f_change"` applies to an owned fund follow. Issuer/person follows
+return 422 for this trigger; no CUSIP-to-ticker lookup or issuer inference occurs.
+The shared Free quota counts these drafts/active rules, with digest-only delivery;
+verified Pro can use instant email. Consent, time zone, pause-before-edit,
+immutable-trigger, versioning, removal, ownership and read-state controls apply.
+
+```json
+{"follow_id":12,"trigger":"13f_change","conditions":{"change_types":["new","added"],"direction":"increase","min_value":"10000"},"frequency":"daily_digest","active":false}
+```
+
+| Condition | Values |
+| --- | --- |
+| `change_types` | Array of 1–4 values from `new`, `added`, `reduced`, `exited`; canonicalized unique/sorted |
+| `direction` | `increase` (`new`/`added`) or `decrease` (`reduced`/`exited`) |
+| `cusip` | Exact nine-character uppercase alphanumeric CUSIP |
+| `put_call` | `PUT` or `CALL` |
+| `share_type` | `SH` or `PRN` |
+| `min_value` | Inclusive absolute normalized dollar-value change; same exact string/integer bounds as transaction conditions |
+
+Conditions combine with AND; `{}` selects all eligible changes. Unknown keys,
+nulls, floats, unsupported labels and malformed keys return 400. These directions
+describe a change in reported quantity, not an execution or recommendation.
+Dollar changes compare reported quarter-end values; they are not transaction
+cash flows or investment returns.
+
+Alerts reuse `InstitutionalPositionDiffQuery` and share `InstitutionalReportChecks`
+with institutional scoring diagnostics. **Alerts require adjacent quarters**;
+the existing fund changes endpoint continues to compare the preceding available
+period. A missing baseline, quarter gap or notice cannot establish a new holding
+or exit. Valid empty reports can establish absence. Repeated information-table
+rows sum by CUSIP/put-call/share-type; options and principal remain separate.
+RESTATEMENT replaces a base and later NEW HOLDINGS adds, through the existing
+SQL resolution. Amendments require a resolvable visible original.
+
+Every effective comparison report must be parsed/known, unflagged, have matching
+cover entry/value totals and valid finite positive-share rows with usable security
+keys. Suspect rows or incomplete structure suppress the comparison. Dollar values
+additionally require correct nonnegative finite normalization and unit multipliers
+across both report contexts. Without that coverage, quantity changes can still
+alert but stored dollar fields are null and `values_complete:false`; amount filters
+cannot match. Original reported values/flags are never corrected or overwritten.
+
+Evaluation runs from the existing post-ingest alert job, independently of diff
+materialization. The incoming report must contribute comparison or original-resolution
+evidence and be accepted at or after the current follow/configuration start.
+Matching also checks the following quarter, allowing a delayed baseline or baseline
+amendment to complete/update a later comparison. No rule request evaluates past
+filings. Failed, future, skipped, notice-only and unresolved source contexts do not
+qualify. Both current and baseline sources can determine the latest filing provenance.
+
+`institutional_change_snapshots` retains immutable comparison states, quantities,
+normalization availability, full current/prior effective report sets and original
+amendment evidence. Each state has a hash of its fund, periods, security key and
+source sets, with unique rule/snapshot delivery. Retries do not duplicate events;
+new source sets can create a new state. Originals and old events remain history.
+An updated source set can notify again for a previously alerted key even when its
+quantities are unchanged. Value-only changes with unchanged quantity do not create
+events in the underlying diff query.
+Both delivery paths require exact equality with the current effective report sets,
+including added reports, and continued visibility of original-resolution evidence.
+This suppresses stale queued quantities after RESTATEMENT or NEW HOLDINGS changes.
+
+Event `position_change` includes `id`, `observed_at`, fund CIK/name, both periods,
+security key, reported issuer/class, canonical change type/direction, before/after /
+delta quantities and normalized values, `values_complete`, and full
+`current_sources`, `prior_sources`, `evidence_sources` provenance arrays. Unknown
+amounts are null; decimals are JSON strings. A baseline amendment can be the parent
+event's latest source while `position_change.period_of_report` identifies the
+comparison quarter. Evidence reads are batched. Shared snapshots remain after an
+account's private alert data is deleted.
+
+Factual digest/instant copy labels the derived classification, reports the two
+periods and quantities, and includes only known dollar changes. Up to 20 evidence
+links are shown per email, with overflow disclosed and full links in event history.
+HTML escaping, disclaimer, unsubscribe headers and transport uncertainty controls
+remain shared. No provider or worker was activated.
+
+Migration `20261111200000` is applied locally to development/test. It adds shared
+snapshots and a nullable delivery reference, extends source checks, and separates
+per-position uniqueness from filing/transaction/cluster keys. Removing stored
+comparison evidence requires explicit review; automatic rollback is disabled.
+No SEC requests, enrichment, seeding or filing reprocessing occurred. Production
+matching latency has not been benchmarked.
 
 ### Digest and watchlist behavior
 

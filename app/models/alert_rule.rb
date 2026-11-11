@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class AlertRule < ApplicationRecord
-  EVENT_TYPES = %w[new_filing insider_transaction cluster].freeze
+  EVENT_TYPES = %w[new_filing insider_transaction cluster 13f_change].freeze
   CHANNELS = %w[email].freeze
 
   belongs_to :follow
@@ -23,6 +23,9 @@ class AlertRule < ApplicationRecord
   validate do
     if event_type.in?(%w[insider_transaction cluster]) && follow&.target_type == "InstitutionalFiler"
       errors.add(:event_type, "requires an issuer or person follow")
+    end
+    if event_type == "13f_change" && follow&.target_type != "InstitutionalFiler"
+      errors.add(:event_type, "requires a fund follow")
     end
   end
 end

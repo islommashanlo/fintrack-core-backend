@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_190000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -28,14 +28,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_190000) do
     t.string "event_type", default: "new_filing", null: false
     t.bigint "rule_revision", default: 1, null: false
     t.bigint "insider_cluster_snapshot_id"
-    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true, where: "((insider_transaction_id IS NULL) AND (insider_cluster_snapshot_id IS NULL))"
+    t.bigint "institutional_change_snapshot_id"
+    t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true, where: "((insider_transaction_id IS NULL) AND (insider_cluster_snapshot_id IS NULL) AND (institutional_change_snapshot_id IS NULL))"
     t.index ["alert_rule_id", "insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_rule_and_cluster", unique: true, where: "(insider_cluster_snapshot_id IS NOT NULL)"
     t.index ["alert_rule_id", "insider_transaction_id"], name: "index_alert_deliveries_on_rule_and_transaction", unique: true, where: "(insider_transaction_id IS NOT NULL)"
+    t.index ["alert_rule_id", "institutional_change_snapshot_id"], name: "index_alert_deliveries_on_rule_and_institutional_change", unique: true, where: "(institutional_change_snapshot_id IS NOT NULL)"
     t.index ["alert_rule_id"], name: "index_alert_deliveries_on_alert_rule_id"
     t.index ["filing_id"], name: "index_alert_deliveries_on_filing_id"
     t.index ["insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_insider_cluster_snapshot_id"
     t.index ["insider_transaction_id"], name: "index_alert_deliveries_on_insider_transaction_id"
-    t.check_constraint "event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND insider_cluster_snapshot_id IS NULL OR event_type::text = 'cluster'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NOT NULL", name: "alert_delivery_source"
+    t.index ["institutional_change_snapshot_id"], name: "index_alert_deliveries_on_institutional_change_snapshot_id"
+    t.check_constraint "event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'cluster'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NOT NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = '13f_change'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NOT NULL", name: "alert_delivery_source"
     t.check_constraint "frequency::text = ANY (ARRAY['instant'::character varying::text, 'daily_digest'::character varying::text])", name: "alert_delivery_frequency"
     t.check_constraint "rule_revision > 0", name: "alert_delivery_revision"
   end
@@ -354,6 +357,40 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_190000) do
     t.check_constraint "security_table::text = ANY (ARRAY['non_derivative'::character varying::text, 'derivative'::character varying::text])", name: "insider_transactions_security_table_check"
   end
 
+  create_table "institutional_change_snapshots", force: :cascade do |t|
+    t.string "event_key", null: false
+    t.bigint "institutional_filer_id", null: false
+    t.bigint "primary_filing_id", null: false
+    t.date "period_of_report", null: false
+    t.date "prior_period_of_report", null: false
+    t.string "cusip", null: false
+    t.string "put_call"
+    t.string "share_type", null: false
+    t.string "name_of_issuer"
+    t.string "title_of_class"
+    t.string "change_type", null: false
+    t.decimal "shares_before"
+    t.decimal "shares_after"
+    t.decimal "shares_delta"
+    t.decimal "value_usd_before"
+    t.decimal "value_usd_after"
+    t.decimal "value_usd_delta"
+    t.boolean "current_suspect", default: false, null: false
+    t.boolean "prior_suspect", default: false, null: false
+    t.boolean "values_complete", null: false
+    t.bigint "current_report_ids", null: false, array: true
+    t.bigint "prior_report_ids", null: false, array: true
+    t.bigint "evidence_report_ids", null: false, array: true
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_key"], name: "index_institutional_change_snapshots_on_event_key", unique: true
+    t.index ["institutional_filer_id"], name: "index_institutional_change_snapshots_on_institutional_filer_id"
+    t.index ["primary_filing_id"], name: "index_institutional_change_snapshots_on_primary_filing_id"
+    t.check_constraint "event_key::text ~ '^[0-9a-f]{64}$'::text AND cusip::text ~ '^[0-9A-Z]{9}$'::text AND (share_type::text = ANY (ARRAY['SH'::character varying, 'PRN'::character varying]::text[])) AND (put_call IS NULL OR (put_call::text = ANY (ARRAY['PUT'::character varying, 'CALL'::character varying]::text[]))) AND (change_type::text = ANY (ARRAY['new'::character varying, 'add'::character varying, 'trim'::character varying, 'exit'::character varying]::text[]))", name: "institutional_snapshot_identity"
+    t.check_constraint "prior_period_of_report = (date_trunc('quarter'::text, period_of_report::timestamp with time zone)::date - 1) AND cardinality(current_report_ids) > 0 AND cardinality(prior_report_ids) > 0 AND cardinality(evidence_report_ids) >= (cardinality(current_report_ids) + cardinality(prior_report_ids))", name: "institutional_snapshot_context"
+  end
+
   create_table "institutional_filers", force: :cascade do |t|
     t.string "cik", null: false
     t.string "name", null: false
@@ -574,6 +611,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_190000) do
   add_foreign_key "alert_deliveries", "filings"
   add_foreign_key "alert_deliveries", "insider_cluster_snapshots"
   add_foreign_key "alert_deliveries", "insider_transactions"
+  add_foreign_key "alert_deliveries", "institutional_change_snapshots"
   add_foreign_key "alert_digest_batches", "users"
   add_foreign_key "alert_digest_items", "alert_deliveries"
   add_foreign_key "alert_digest_items", "alert_digest_batches"
@@ -589,6 +627,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_190000) do
   add_foreign_key "follows", "users"
   add_foreign_key "insider_cluster_snapshots", "filings", column: "primary_filing_id"
   add_foreign_key "insider_transactions", "filings"
+  add_foreign_key "institutional_change_snapshots", "filings", column: "primary_filing_id"
+  add_foreign_key "institutional_change_snapshots", "institutional_filers"
   add_foreign_key "institutional_holdings", "institutional_reports"
   add_foreign_key "institutional_report_managers", "institutional_reports"
   add_foreign_key "institutional_reports", "filings"

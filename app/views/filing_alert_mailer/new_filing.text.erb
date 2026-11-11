@@ -1,4 +1,4 @@
-<% if @cluster %><%= ClusterAlertText.render(@cluster) %>
+<% if @position_change %><%= InstitutionalAlertText.render(@position_change) %><% elsif @cluster %><%= ClusterAlertText.render(@cluster) %>
 <% else %><%= @transaction ? TransactionAlertText.render(@transaction) : "A new SEC filing matches your FilingsIntel alert." %>
 <% end %>
 
@@ -15,3 +15,6 @@ Additional cluster source filings are available in your alert history.
 <% end %>
 
 Data from public SEC filings. Not investment advice.
+
+<% @institutional_sources.each do |report| %>Comparison source: <%= report.filing.sec_url %>
+<% end %><% if @position_change && @position_change.evidence_report_ids.length > 20 %>Additional comparison sources are available in your alert history.<% end %>

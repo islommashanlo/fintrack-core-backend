@@ -42,7 +42,7 @@ feed and match queries exclude removed follows; historical alert ownership still
 uses the retained relationship. Account deletion explicitly removes private
 notification dependencies in order, while retaining shared SEC data.
 
-The matcher implements follow-scoped `new_filing`, `insider_transaction` and `cluster` email
+The matcher implements follow-scoped `new_filing`, `insider_transaction`, `cluster` and `13f_change` email
 rules. Filing events use the unique rule/filing key; transaction events use a
 partial unique rule/transaction key and retain their normalized source row.
 Transaction rules support typed direction/code/role/type/table/value conditions,
@@ -58,6 +58,13 @@ direction/count/complete-value conditions retain unknown values and fixed window
 definitions. Other activity triggers, push and watchlist-wide/any-entity rules
 remain pending. Migration `20261111190000` is applied locally in development/test;
 no reported values, provider settings or real delivery were changed.
+
+Fund position-change rules reuse adjacent-quarter SQL diffs and the scoring
+report-integrity checks. Immutable shared snapshots retain full effective report
+contexts and amendment-original evidence; delivery requires exact current report
+sets. Typed security/change/direction/value filters preserve unknown normalization.
+Migration `20261111200000` is applied locally; no SEC requests, enrichment, seeding
+or reprocessing occurred. See `docs/api-v1.md` for the current contract.
 
 ## Digest scheduling and failure behavior
 

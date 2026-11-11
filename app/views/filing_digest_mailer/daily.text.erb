@@ -2,9 +2,12 @@ SEC filing digest for <%= @batch.local_date %>
 
 <% @deliveries.each do |delivery| %>
 <% cluster = delivery.insider_cluster_snapshot %>
-<% if cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %><% end %>
+<% position = delivery.institutional_change_snapshot %>
+<% if position %><%= InstitutionalAlertText.render(position) %><% elsif cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %><% end %>
 Accession: <%= delivery.filing.accession_no %>
 SEC source: <%= delivery.filing.sec_url %>
+<% if position %><% position.evidence_report_ids.first(20).each do |id| %>Comparison source: <%= @institutional_sources.fetch(id).filing.sec_url %>
+<% end %><% if position.evidence_report_ids.length > 20 %>Additional comparison sources are available in your alert history.<% end %><% end %>
 <% if cluster %><% cluster.filing_ids.first(20).each do |id| %>
 Cluster source: <%= @cluster_sources.fetch(id).sec_url %>
 <% end %><% if cluster.filing_ids.length > 20 %>Additional cluster source filings are available in your alert history.<% end %><% end %>

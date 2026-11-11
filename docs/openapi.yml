@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.24.0
+  version: 1.25.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -2535,10 +2535,10 @@ paths:
   "/alert-rules":
     get:
       operationId: listAlertRules
-      summary: List owned filing, transaction and cluster email rules
+      summary: List owned filing, transaction, cluster and institutional email rules
       security:
       - CookieSession: []
-      description: Owned unarchived filing/transaction/cluster email rules with typed conditions and stored frequency. Free
+      description: Owned unarchived filing/transaction/cluster/institutional email rules with typed conditions and stored frequency. Free
         supported frequencies contain daily_digest; paused rules count toward the
         three-rule limit. Legacy over-limit rules remain readable. Ownership and cursor
         snapshots are enforced; current active state remains mutable.
@@ -2547,7 +2547,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [new_filing, insider_transaction, cluster]
+          enum: [new_filing, insider_transaction, cluster, "13f_change"]
       - name: entity_type
         in: query
         schema:
@@ -2619,7 +2619,8 @@ paths:
         is server-gated. Filing rules require empty conditions. Transaction rules
         support direction, codes, role, type, security table and minimum known value.
         Cluster rules support direction, minimum insider count and complete value;
-        transaction/cluster rules require issuer/person follows. Triggers are immutable; no old filings are reprocessed.
+        transaction/cluster rules require issuer/person follows. Institutional
+        13f_change rules require fund follows and adjacent complete report contexts. Triggers are immutable; no old filings are reprocessed.
       security:
       - CookieSession: []
         CsrfToken: []
@@ -2758,12 +2759,13 @@ paths:
   "/alert-events":
     get:
       operationId: listAlertEvents
-      summary: Read owned filing, transaction and cluster alert delivery history
+      summary: Read owned filing, transaction, cluster and institutional alert history
       security:
       - CookieSession: []
       description: Owned delivery history with independent read_at timestamps,
         source trigger and frequency captured at matching time. Transaction events
-        include the matched normalized row; cluster events include immutable window evidence. Dates filter UTC delivery creation. Provider
+        include the matched normalized row; cluster events include immutable window evidence. Institutional events contain immutable
+        position-change evidence, including both report sets and original-resolution sources. Dates filter UTC delivery creation. Provider
         error text remains private. Owner/route/filter-bound cursors exclude later
         source IDs; read/delivery state can change between pages.
       parameters:
@@ -2771,7 +2773,7 @@ paths:
         in: query
         schema:
           type: string
-          enum: [new_filing, insider_transaction, cluster]
+          enum: [new_filing, insider_transaction, cluster, "13f_change"]
       - name: entity_type
         in: query
         schema:
@@ -6943,12 +6945,83 @@ components:
           - type: integer
             minimum: 0
             maximum: 999999999999999999999999999999
+    InstitutionalAlertConditions:
+      type: object
+      additionalProperties: false
+      description: Optional AND filters for fund-only 13f_change rules. Requires
+        complete adjacent report quarters; amount means absolute normalized value
+        change and needs complete normalization. No issuer lookup or enrichment.
+      properties:
+        change_types:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            type: string
+            enum: [new, added, reduced, exited]
+        direction:
+          type: string
+          enum: [increase, decrease]
+        cusip:
+          type: string
+          pattern: "^[0-9A-Z]{9}$"
+        put_call:
+          type: string
+          enum: [PUT, CALL]
+        share_type:
+          type: string
+          enum: [SH, PRN]
+        min_value:
+          description: Inclusive absolute normalized dollar-value change. Floats,
+            exponent notation and unknown amounts are rejected or cannot match.
+          oneOf:
+          - type: string
+            pattern: "^[0-9]{1,30}(\\.[0-9]{1,12})?$"
+          - type: integer
+            minimum: 0
+            maximum: 999999999999999999999999999999
+    InstitutionalAlertPosition:
+      allOf:
+      - "$ref": "#/components/schemas/PositionChange"
+      - type: object
+        required: [id, observed_at, fund, direction, values_complete, evidence_sources]
+        properties:
+          id:
+            type: string
+            pattern: "^institutional_change_[0-9a-f]{64}$"
+          observed_at:
+            type: string
+            format: date-time
+          fund:
+            type: object
+            required: [cik, name]
+            properties:
+              cik:
+                "$ref": "#/components/schemas/Cik"
+              name:
+                type: string
+          direction:
+            type: string
+            enum: [increase, decrease]
+          values_complete:
+            type: boolean
+            description: Both full report contexts have valid normalized values; otherwise dollar fields are null.
+          evidence_sources:
+            type: array
+            items:
+              "$ref": "#/components/schemas/FilingProvenance"
+      description: Immutable adjacent-quarter fund comparison with full current,
+        prior and original-amendment evidence. Parent provenance can be a baseline
+        amendment; period_of_report identifies the comparison quarter. Source sets
+        must remain exactly effective to send pending alerts. Shared state survives
+        private account deletion; reported SEC values remain unchanged.
     AlertRuleConditions:
       description: Schema is selected by trigger. Filing rules require an empty
-        object; insider_transaction and cluster accept only their own listed fields.
+        object; insider_transaction, cluster and 13f_change accept only their own listed fields.
       anyOf:
       - "$ref": "#/components/schemas/TransactionAlertConditions"
       - "$ref": "#/components/schemas/ClusterAlertConditions"
+      - "$ref": "#/components/schemas/InstitutionalAlertConditions"
     FilingAlertRule:
       type: object
       required:
@@ -6977,6 +7050,7 @@ components:
           - new_filing
           - insider_transaction
           - cluster
+          - "13f_change"
         entity:
           type: object
           required:
@@ -7034,6 +7108,7 @@ components:
         - read_at
         - transaction
         - cluster
+        - position_change
         properties:
           id:
             type: integer
@@ -7049,6 +7124,13 @@ components:
             - new_filing
             - insider_transaction
             - cluster
+            - "13f_change"
+          position_change:
+            type: object
+            nullable: true
+            allOf:
+            - "$ref": "#/components/schemas/InstitutionalAlertPosition"
+            description: Immutable fund comparison state; null for other triggers.
           cluster:
             type: object
             nullable: true
@@ -7129,6 +7211,7 @@ components:
       - supported_frequencies
       - transaction_condition_fields
       - cluster_condition_fields
+      - institutional_condition_fields
       properties:
         capabilities:
           type: object
@@ -7175,6 +7258,13 @@ components:
             - new_filing
             - insider_transaction
             - cluster
+            - "13f_change"
+        institutional_condition_fields:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum: [change_types, direction, cusip, put_call, share_type, min_value]
         cluster_condition_fields:
           type: array
           uniqueItems: true
@@ -7222,6 +7312,7 @@ components:
           - new_filing
           - insider_transaction
           - cluster
+          - "13f_change"
         channels:
           type: array
           items:
@@ -7250,6 +7341,7 @@ components:
           - new_filing
           - insider_transaction
           - cluster
+          - "13f_change"
         channels:
           type: array
           items:

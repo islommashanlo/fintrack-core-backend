@@ -16,7 +16,8 @@ class AlertEvaluator
 
     enqueue(matching_rules, event_type: "new_filing", unique_by: :index_alert_deliveries_on_alert_rule_id_and_filing_id) +
       enqueue(TransactionAlertMatcher.call(@filing), event_type: "insider_transaction", unique_by: :index_alert_deliveries_on_rule_and_transaction) +
-      enqueue(ClusterAlertMatcher.call(@filing), event_type: "cluster", unique_by: :index_alert_deliveries_on_rule_and_cluster)
+      enqueue(ClusterAlertMatcher.call(@filing), event_type: "cluster", unique_by: :index_alert_deliveries_on_rule_and_cluster) +
+      enqueue(InstitutionalAlertMatcher.call(@filing), event_type: "13f_change", unique_by: :index_alert_deliveries_on_rule_and_institutional_change)
   end
 
   private
@@ -26,6 +27,7 @@ class AlertEvaluator
       { alert_rule_id: rule.fetch("id"), filing_id: rule["filing_id"] || @filing.id, status: "pending", frequency: rule.fetch("frequency"),
         event_type:, rule_revision: rule.fetch("rule_revision"), insider_transaction_id: rule["insider_transaction_id"],
         insider_cluster_snapshot_id: rule["insider_cluster_snapshot_id"],
+        institutional_change_snapshot_id: rule["institutional_change_snapshot_id"],
         created_at: Time.current, updated_at: Time.current }
     end
     return [] if rows.empty?

@@ -89,6 +89,11 @@ API, with direction, minimum-insider and complete-value conditions. Matched wind
 states retain immutable source snapshots; delayed parsing, amendments, retries and
 delivery checks are covered. See `docs/api-v1.md` for window-state semantics.
 
+Fund-scoped `13f_change` alerts compare adjacent complete 13F quarters using the
+existing SQL diffs and shared report checks. They retain immutable comparison /
+amendment evidence, keep missing normalized values unknown, and reject stale
+queued states after report-set changes. See `docs/api-v1.md` for filters and delivery.
+
 Public `/api/v1/search?q=...` groups ranked local company, fund and insider results.
 It supports exact identifiers, name prefixes/substrings, fuzzy names and signed
 per-group cursors. Local migrations enable PostgreSQL `pg_trgm`; no provider or
