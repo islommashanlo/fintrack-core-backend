@@ -3,7 +3,7 @@
 module Api
   module V1
     class FundComparisonSql
-      VALID_KEY = "h.cusip ~ '^[0-9A-Z]{9}$' AND h.share_type IN ('SH', 'PRN') AND (h.put_call IS NULL OR h.put_call IN ('PUT', 'CALL'))".freeze
+      VALID_KEY = InstitutionalHoldingKey::VALID_SQL
 
       def initialize(page:, funds:, reports:, period:)
         @page, @funds, @reports, @period = page, funds, reports, period

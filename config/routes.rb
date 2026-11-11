@@ -61,6 +61,7 @@ Rails.application.routes.draw do
         get :insiders, on: :member
         get :filings, on: :member
         get :institutional, on: :member
+        get :history, on: :member
       end
       get "insiders/transactions" => "insider_transactions#index", as: :insider_transactions
       get "insiders/clusters" => "insider_clusters#index", as: :insider_clusters

@@ -113,10 +113,11 @@ The shared `HistoryWindow` policy enforces `PlanCatalog.history_quarters` on:
 - `/funds/:cik/changes`
 - `/funds/:cik/history`
 - `/companies/:ticker/institutional`
+- `/companies/:ticker/history`
 
 Fund comparison uses the same cutoff check. These routes remain usable without
 authentication under Free limits. Verified Pro removes the history cutoff.
-All four routes now return `Cache-Control: no-store`, including errors, because
+All five routes return `Cache-Control: no-store`, including errors, because
 the response depends on the current account's entitlement.
 
 Free permits the last four completed report quarters, with the lower bound
@@ -139,8 +140,9 @@ Resolved default periods are pinned in signed cursors, so a pending report
 finishing parsing cannot change the selected quarter halfway through paging.
 Funds without reports retain empty-list behavior.
 
-Report-history lists without a period, and company ownership lists using each
-fund's latest known period, clip older output in SQL. Their metadata includes:
+Report-history lists and company quarterly timelines without a period, and company
+ownership lists using each fund's latest known period, clip older output in SQL.
+Their metadata includes:
 
 | Field | Meaning |
 | --- | --- |
@@ -539,6 +541,7 @@ report-history browsing, with explicit truncation metadata and Pro access.
 | `GET /api/v1/companies/:ticker/insiders` | Transaction rows using the transaction-list filters, pagination and serializer |
 | `GET /api/v1/companies/:ticker/filings` | Paginated filing summaries, retaining originals and amendments |
 | `GET /api/v1/companies/:ticker/institutional` | Paginated effective holding rows across funds using existing CUSIP mappings |
+| `GET /api/v1/companies/:ticker/history` | Quarterly reported holdings timeline with explicit local-cohort coverage and source evidence |
 
 Ticker matching is exact and case-insensitive; `ACME` and `ACME.A` remain distinct.
 Company identity comes from the latest known parsed Form 4, including filings
@@ -568,6 +571,82 @@ identity data. Mapping IDs and first-seen times are bounded when paging.
 Quarterly history limits filter the final institutional ownership rows after
 per-fund period and effective-report resolution. Default mixed-period results can
 therefore be truncated for Free; explicitly older periods require Pro.
+
+### Company institutional timeline
+
+`GET /api/v1/companies/:ticker/history` summarizes effective local 13F reports in
+SQL. It uses a fixed cohort: funds with at least one matching, valid holding key in
+any effective report known at the page snapshot. This retrospective local cohort
+is not a census of all institutions or a measure of marketwide ownership. Its
+membership includes known holdings outside the plan's output window. Security
+filters do not shrink the cohort or change its reporting-coverage denominator.
+
+| Parameter | Values |
+| --- | --- |
+| `period` | Optional ISO quarter-end; older selected periods require Pro |
+| `cusip`, `put_call`, `share_type` | Exact 9-character CUSIP, PUT/CALL, SH/PRN filters |
+| `sort` | `period`, `-period` (default), `holders`, `-holders`; unknown counts last |
+| `limit`, `cursor` | Normal signed pagination; default 50, maximum 100 periods |
+
+The response is `{ data: [...], meta }`. Each row contains `period_of_report`,
+`expected_fund_count`, `reporting_fund_count`, `missing_fund_count`,
+`notice_fund_count`, `suspect_report_fund_count`, `excluded_holding_rows`,
+`complete`, `observed_holder_count`, nullable `holder_count`, `holding_row_count`,
+`suspect`, `positions`, `sources`, and source provenance. Holder counts measure
+funds with matching reported rows, including zero reported quantities; they do
+not assert positive beneficial ownership. Restatements replace prior tables and
+later NEW HOLDINGS amendments add rows through the shared effective-report scope.
+
+`complete` requires effective holdings reports for every cohort fund, no suspect
+report and no malformed security keys in those reports. Valid empty reports can
+establish zero matching holdings. Missing reports, notices and unresolved additive
+amendments cannot establish zero: observed counts remain visible, but `holder_count`
+is null. Notice-only and unresolved-addition quarters retain source evidence;
+quarters with no usable local reports are omitted rather than filled with zeroes.
+
+Each position groups CUSIP/put-call/share-type independently and returns a reported
+issuer name, `row_count`, `observed_holder_count`, `shares_reported`,
+`value_usd_reported`, `suspect`, comparable `shares`/`value_usd`, `source_count`,
+representative provenance and `detail_path`. Repeated rows sum within a key;
+different options, classes and principal units are never merged. Decimal quantities
+are strings. Reported sums retain anomalous values; missing normalized dollar
+values make the dollar sum null. Comparable quantities are null when coverage is
+incomplete or a contributing report/row is suspect. Original rows remain available
+through the institutional holdings endpoint.
+
+`prior_period_of_report` identifies the preceding recorded period. The nullable
+`holder_count_delta` is calculated only when both periods have complete coverage
+and are adjacent calendar quarters. This calculation precedes Free clipping, so
+an allowed quarter may use an older baseline. `prior_sources`, `prior_source_count`
+and `prior_sources_truncated` retain that baseline evidence when the delta is
+known; otherwise they are empty/zero/false. A gap never becomes an inferred exit.
+
+`sources` contains effective reports plus notices and unresolved additions for the
+quarter, with fund CIK/name, period, report/amendment type and filing provenance.
+Top-level provenance identifies the latest current-quarter evidence; positions
+identify their latest contributing report. Source previews contain at most 20
+reports each; `source_count`/`sources_truncated` disclose the full size. Positions
+contain at most 100 keys ordered by CUSIP, put/call, share type;
+`position_count`/`positions_truncated` disclose omitted keys. Counts and sums use
+all matching rows. `detail_path` links to paginated holding rows for the period and
+requested security filters. A plain-position link can also return option rows for
+the same CUSIP/share type; the holdings endpoint has no null put/call filter.
+
+Meta includes the normal history/page fields plus `ticker`, `available`,
+`unavailable_reason` (`mapping_unavailable`, `no_local_holdings`, or null),
+`cohort_fund_count`, `cohort_basis: ever_reported_in_effective_local_holdings`,
+`mapping_policy: current_local_cache`, `marketwide_ownership_available: false`,
+`missing_periods_filled: false`, `source_limit: 20`, `position_limit: 100`, and the
+disclaimer. Availability describes local mapping/cohort inputs, not completeness
+of every quarter. Exact eligible cached mappings only are used; neither names nor
+historical ticker identities are inferred.
+
+Every response, including errors, is no-store. Cursors bind ticker, filters, sort,
+actor and current entitlement, with snapshot ID ceilings for reports, filings,
+holdings, mappings and securities. Late inserts are excluded; updates to existing
+rows can still affect output. Eligibility is rechecked on continuation. This route
+makes no provider request, creates no records/jobs and requires no migration.
+Source loading is batched; production-scale query latency remains unbenchmarked.
 
 The new lists use signed 24-hour cursors bound to their resource, filters and
 sort. Snapshot ID bounds prevent late inserts from entering subsequent pages;

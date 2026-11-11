@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.20.0
+  version: 1.21.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -669,6 +669,60 @@ paths:
         not historical identity data.
     parameters:
     - "$ref": "#/components/parameters/CompanyTicker"
+  "/companies/{ticker}/history":
+    parameters:
+    - "$ref": "#/components/parameters/CompanyTicker"
+    get:
+      operationId: listCompanyInstitutionalHistory
+      summary: List quarterly reported holdings with local-cohort coverage
+      description: No-store. Uses exact cached mappings and a fixed cohort of funds
+        with effective local holdings known at the snapshot. Missing coverage is
+        unknown; missing periods are omitted. Options and principal are separate
+        keys. Source previews are limited to 20 reports and position previews to
+        100 keys per quarter, with full counts and detail links. Free permits four
+        completed quarters; verified Pro permits full history. Deltas require
+        adjacent complete quarters; older baselines remain source evidence.
+        Cursors bind actor, plan, filters, sort and ingestion ID ceilings.
+        No provider requests, writes or jobs. Not marketwide ownership.
+      parameters:
+      - "$ref": "#/components/parameters/Period"
+      - "$ref": "#/components/parameters/Cusip"
+      - "$ref": "#/components/parameters/PutCall"
+      - "$ref": "#/components/parameters/ShareType"
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum: [period, "-period", holders, "-holders"]
+          default: "-period"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Quarterly local coverage and reported quantities; private history preview metadata.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/CompanyHistoryQuarter"
+                  meta:
+                    "$ref": "#/components/schemas/CompanyHistoryMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/insiders/{cik}":
     parameters:
     - "$ref": "#/components/parameters/InsiderCik"
@@ -4337,6 +4391,200 @@ components:
         superseded_by:
           type: string
           nullable: true
+    CompanyHistorySource:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required: [cik, fund_name, period_of_report, report_type, amendment_type]
+        properties:
+          cik:
+            "$ref": "#/components/schemas/Cik"
+          fund_name:
+            type: string
+          period_of_report:
+            type: string
+            format: date
+          report_type:
+            type: string
+          amendment_type:
+            type: string
+            nullable: true
+            enum: [RESTATEMENT, NEW HOLDINGS, null]
+    CompanyHistoryPosition:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required: [cusip, put_call, share_type, issuer_name, row_count, observed_holder_count,
+          shares_reported, value_usd_reported, suspect, shares, value_usd, source_count, detail_path]
+        properties:
+          cusip:
+            type: string
+            pattern: "^[0-9A-Z]{9}$"
+          put_call:
+            type: string
+            nullable: true
+            enum: [PUT, CALL, null]
+          share_type:
+            type: string
+            enum: [SH, PRN]
+          issuer_name:
+            type: string
+          row_count:
+            type: integer
+            minimum: 1
+          observed_holder_count:
+            type: integer
+            minimum: 1
+          shares_reported:
+            "$ref": "#/components/schemas/NullableDecimal"
+          value_usd_reported:
+            "$ref": "#/components/schemas/NullableDecimal"
+          suspect:
+            type: boolean
+          shares:
+            "$ref": "#/components/schemas/NullableDecimal"
+          value_usd:
+            "$ref": "#/components/schemas/NullableDecimal"
+          source_count:
+            type: integer
+            minimum: 1
+          detail_path:
+            type: string
+            description: Relative path to paginated reported rows; plain positions may also include options.
+    CompanyHistoryQuarter:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required: [ticker, period_of_report, prior_period_of_report, holder_count_delta,
+          expected_fund_count, reporting_fund_count, missing_fund_count, notice_fund_count,
+          suspect_report_fund_count, excluded_holding_rows, complete, observed_holder_count,
+          holder_count, holding_row_count, suspect, source_count, position_count, positions,
+          sources, prior_sources, prior_source_count, prior_sources_truncated,
+          sources_truncated, positions_truncated, detail_path]
+        properties:
+          ticker:
+            type: string
+          period_of_report:
+            type: string
+            format: date
+          prior_period_of_report:
+            type: string
+            format: date
+            nullable: true
+            description: Preceding recorded period; may be nonadjacent.
+          holder_count_delta:
+            type: integer
+            nullable: true
+            description: Current minus prior holder count, only for adjacent complete quarters.
+          expected_fund_count:
+            type: integer
+            minimum: 1
+            description: Fixed local cohort size, before security filters.
+          reporting_fund_count:
+            type: integer
+            minimum: 0
+          missing_fund_count:
+            type: integer
+            minimum: 0
+          notice_fund_count:
+            type: integer
+            minimum: 0
+          suspect_report_fund_count:
+            type: integer
+            minimum: 0
+          excluded_holding_rows:
+            type: integer
+            minimum: 0
+          complete:
+            type: boolean
+            description: Every cohort fund has effective reports without report flags or malformed keys.
+          observed_holder_count:
+            type: integer
+            minimum: 0
+          holder_count:
+            type: integer
+            minimum: 0
+            nullable: true
+            description: Observed count only when complete; reported zero quantities still count as rows.
+          holding_row_count:
+            type: integer
+            minimum: 0
+          suspect:
+            type: boolean
+          source_count:
+            type: integer
+            minimum: 1
+          position_count:
+            type: integer
+            minimum: 0
+          positions:
+            type: array
+            maxItems: 100
+            items:
+              "$ref": "#/components/schemas/CompanyHistoryPosition"
+          sources:
+            type: array
+            maxItems: 20
+            items:
+              "$ref": "#/components/schemas/CompanyHistorySource"
+          prior_sources:
+            type: array
+            maxItems: 20
+            description: Adjacent complete baseline evidence when holder_count_delta is known, including older gated periods.
+            items:
+              "$ref": "#/components/schemas/CompanyHistorySource"
+          prior_source_count:
+            type: integer
+            minimum: 0
+          prior_sources_truncated:
+            type: boolean
+          sources_truncated:
+            type: boolean
+          positions_truncated:
+            type: boolean
+          detail_path:
+            type: string
+    CompanyHistoryMeta:
+      allOf:
+      - "$ref": "#/components/schemas/HistoryReadPageMeta"
+      - type: object
+        required: [ticker, available, unavailable_reason, cohort_fund_count, cohort_basis,
+          mapping_policy, missing_periods_filled, marketwide_ownership_available, source_limit,
+          position_limit, disclaimer]
+        properties:
+          ticker:
+            type: string
+          available:
+            type: boolean
+            description: Mapping and cohort inputs exist; does not imply every quarter is complete.
+          unavailable_reason:
+            type: string
+            nullable: true
+            enum: [mapping_unavailable, no_local_holdings, null]
+          cohort_fund_count:
+            type: integer
+            minimum: 0
+          cohort_basis:
+            type: string
+            enum: [ever_reported_in_effective_local_holdings]
+          mapping_policy:
+            type: string
+            enum: [current_local_cache]
+          missing_periods_filled:
+            type: boolean
+            enum: [false]
+          marketwide_ownership_available:
+            type: boolean
+            enum: [false]
+          source_limit:
+            type: integer
+            enum: [20]
+          position_limit:
+            type: integer
+            enum: [100]
+          disclaimer:
+            type: string
+            enum: [Data from public SEC filings. Not investment advice.]
     HistoryReadPageMeta:
       allOf:
       - "$ref": "#/components/schemas/ReadPageMeta"

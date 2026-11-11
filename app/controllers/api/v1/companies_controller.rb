@@ -3,7 +3,7 @@
 module Api
   module V1
     class CompaniesController < BaseController
-      prepend_before_action :private_response!, only: :institutional
+      prepend_before_action :private_response!, only: %i[institutional history]
 
       def show
         read_parameters(allowed: [], path_keys: [ :ticker ])
@@ -46,6 +46,18 @@ module Api
         result = history.preview(page:, scope:, allowed_scope: history.holdings(scope, as_of: page.as_of),
           preload: [ { institutional_report: [ :filing, :institutional_filer ] } ])
         render_read_page(result, InstitutionalHoldingSerializer)
+      end
+
+      def history
+        values = read_parameters(allowed: %w[period cusip put_call share_type sort limit cursor], path_keys: [ :ticker ])
+        period_parameter(values["period"])
+        InstitutionalHoldingsQuery.validate_filters!(values)
+        history = HistoryWindow.new(limit: PlanCatalog.limit_for(Current.user, :history_quarters), user_id: Current.user&.id)
+        page = CursorPage.new(parameters: values, context: history.context.merge("resource" => "company_history", "ticker" => company.ticker),
+          sorts: CompanyHistoryQuery::SORTS, default_sort: "-period", bounds: CompanyHistoryQuery::BOUNDS, as_of:)
+        result = CompanyHistoryQuery.new(ticker: company.ticker, page:, filters: values, history:).call
+        serializer = CompanyHistorySerializer.new(rows: result.records, ticker: company.ticker, as_of: page.as_of, filters: values)
+        render json: { data: result.records.map { |row| serializer.render(row) }, meta: result.meta }
       end
 
       private

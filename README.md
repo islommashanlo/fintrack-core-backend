@@ -68,6 +68,11 @@ previews disclose hidden history in metadata. These responses are no-store and
 cursors bind account/plan, so clients must restart cursors after this update or a
 plan change. Calculation baselines and public source links remain intact.
 
+`/api/v1/companies/:ticker/history` adds a quarterly timeline over funds with known
+local holdings, using the same history policy. It separates security keys, reports
+coverage and source evidence, and leaves missing coverage unknown. It does not
+estimate marketwide ownership or fill missing quarters. See `docs/api-v1.md`.
+
 Public `/api/v1/search?q=...` groups ranked local company, fund and insider results.
 It supports exact identifiers, name prefixes/substrings, fuzzy names and signed
 per-group cursors. Local migrations enable PostgreSQL `pg_trgm`; no provider or
