@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.12.0
+  version: 1.13.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -2122,6 +2122,63 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+  "/me/preferences":
+    get:
+      operationId: getAccountPreferences
+      summary: Read the authenticated account's display preferences
+      description: Returns defaults system/split without creating a record. Free
+        and Pro accounts have the same settings. Response is no-store.
+      security:
+      - CookieSession: []
+      responses:
+        '200':
+          description: Complete display preferences.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountPreferencesResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+    patch:
+      operationId: updateAccountPreferences
+      summary: Update one or both display settings for the authenticated account
+      description: Omitted fields keep their previous value or the first-write
+        default. Concurrent partial writes serialize on the user. Does not change
+        email consent, credentials or sessions. Response is no-store.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/AccountPreferencesUpdate"
+      responses:
+        '200':
+          description: Complete updated display preferences.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountPreferencesResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '422':
+          "$ref": "#/components/responses/AccountValidationFailed"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/me/notification-preferences":
     get:
       operationId: getNotificationPreferences
@@ -3364,6 +3421,51 @@ components:
           - pro
         limits:
           "$ref": "#/components/schemas/PlanLimits"
+    AccountPreferences:
+      type: object
+      additionalProperties: false
+      required:
+      - theme
+      - dashboard_layout
+      properties:
+        theme:
+          type: string
+          enum:
+          - system
+          - light
+          - dark
+          default: system
+        dashboard_layout:
+          type: string
+          enum:
+          - split
+          - focus
+          - columns
+          default: split
+    AccountPreferencesUpdate:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        theme:
+          type: string
+          enum:
+          - system
+          - light
+          - dark
+        dashboard_layout:
+          type: string
+          enum:
+          - split
+          - focus
+          - columns
+    AccountPreferencesResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          "$ref": "#/components/schemas/AccountPreferences"
     CsrfToken:
       type: object
       required:

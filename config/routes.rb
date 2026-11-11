@@ -21,6 +21,8 @@ Rails.application.routes.draw do
       get "me" => "accounts#show", as: :me
       patch "me" => "accounts#update"
       delete "me" => "accounts#destroy"
+      get "me/preferences" => "preferences#show", as: :preferences
+      patch "me/preferences" => "preferences#update"
       get "watchlist" => "watchlist#index", as: :watchlist
       post "watchlist" => "watchlist#create"
       delete "watchlist" => "watchlist#destroy"

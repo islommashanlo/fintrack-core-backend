@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_010000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -397,6 +397,17 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_000000) do
     t.index ["user_id"], name: "index_sessions_on_user_id"
   end
 
+  create_table "user_preferences", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "theme", default: "system", null: false
+    t.string "dashboard_layout", default: "split", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_user_preferences_on_user_id", unique: true
+    t.check_constraint "dashboard_layout::text = ANY (ARRAY['split'::character varying, 'focus'::character varying, 'columns'::character varying]::text[])", name: "user_preference_dashboard_layout"
+    t.check_constraint "theme::text = ANY (ARRAY['system'::character varying, 'light'::character varying, 'dark'::character varying]::text[])", name: "user_preference_theme"
+  end
+
   create_table "users", force: :cascade do |t|
     t.string "email_address", null: false
     t.string "password_digest", null: false
@@ -427,4 +438,5 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_000000) do
   add_foreign_key "position_diffs", "institutional_reports"
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"
   add_foreign_key "sessions", "users"
+  add_foreign_key "user_preferences", "users"
 end

@@ -329,6 +329,8 @@ other read lists; `total_count` counts distinct issuer CIKs.
 | `GET /api/v1/me` | Read the authenticated account |
 | `PATCH /api/v1/me` | Change email and/or password after verifying `current_password` |
 | `DELETE /api/v1/me` | Delete the authenticated account after verifying `current_password` |
+| `GET /api/v1/me/preferences` | Read theme/layout settings, or defaults without creating a record |
+| `PATCH /api/v1/me/preferences` | Persist partial theme/layout changes for the authenticated account |
 | `GET /api/v1/plans` | Public plan feature/limit definitions from the server's shared catalog |
 
 Bodies are flat JSON objects. Unknown fields and structured values where a string
@@ -368,7 +370,31 @@ Account deletion requires a JSON `current_password` and removes only that user's
 private sessions, follows, linked alert rules/deliveries and account. Public
 filings and normalized reported data remain stored.
 
-Google OAuth and persisted general user preferences are still pending.
+Google OAuth remains pending.
+
+### Display preferences
+
+`GET /me/preferences` returns
+`{ data: { theme: "system", dashboard_layout: "split" } }` for an account without
+saved settings. Reading does not create a preference record or infer email
+consent. Supported themes are `system`, `light`, and `dark`; supported layouts
+are `split`, `focus`, and `columns`. Enum values are case-sensitive.
+
+`PATCH /me/preferences` takes a flat JSON object containing at least one of those
+two fields, for example `{ "theme": "dark" }`. Omitted fields retain their prior
+value; an account's first write uses the defaults for omitted fields. It returns
+the complete two-field object with HTTP 200. A user row lock and unique user key
+serialize concurrent first writes and preserve independent partial updates.
+The table has database checks for both enums.
+
+Both routes require authentication, return `Cache-Control: no-store`, and are
+available to Free and Pro accounts. Mutations require the standard CSRF token.
+Unknown fields, empty PATCH bodies, nulls, empty strings and structured/non-string
+values return 400 `INVALID_PARAMETER`. Unknown GET parameters also return 400.
+Unsupported nonempty enum strings return 422 `VALIDATION_FAILED` without applying
+any part of the update. There are no user-ID or plan overrides. Preference writes
+do not rotate credentials/sessions or change notification settings. Deleting an
+account removes only its own display preference record.
 
 ### Password recovery
 

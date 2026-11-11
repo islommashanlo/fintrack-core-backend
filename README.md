@@ -61,3 +61,8 @@ encrypted, expiring notification jobs and the existing mail transport; successfu
 reset revokes sessions and requires sign-in again. With `FRONTEND_ORIGIN` set, the
 React app must handle `/reset-password#token=...`. Without it, mail links use the
 existing HTML reset page. See the API contract for limits and token expiry.
+
+Authenticated clients can read or update `/api/v1/me/preferences` for `theme`
+(`system`, `light`, `dark`) and `dashboard_layout` (`split`, `focus`, `columns`).
+Reads return defaults without writing a record. Partial updates preserve other
+fields and remain separate from notification consent.
