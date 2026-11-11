@@ -139,5 +139,6 @@ reprocessing. See [filing explanations](docs/filing-explanations.md).
 
 The [market-price foundation](docs/market-data.md) adds exact daily OHLCV storage,
 provider-specific series identities and bounded session gap filling. The default
-provider is disabled; no price fetching, API redistribution, scheduled price jobs
-or price-based scoring is enabled.
+provider is disabled. The company-price API reads local bars and filing markers;
+raw-price output requires a provider publication allowlist, which defaults to empty.
+No price fetching, scheduled price jobs or price-based scoring is enabled.

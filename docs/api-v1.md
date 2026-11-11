@@ -608,6 +608,73 @@ other-manager count and suspect flags. It is report history, not portfolio
 performance. The quarterly history policy above applies to holdings, changes and
 report-history browsing, with explicit truncation metadata and Pro access.
 
+## Company prices
+
+`GET /api/v1/companies/:ticker/prices` reads stored daily OHLCV only. It never
+fetches, fills gaps, queues work, creates mappings or values SEC transactions.
+Responses and validation errors use `Cache-Control: no-store`.
+
+| Parameter | Values |
+| --- | --- |
+| `range` | `1m`, `3m` (default), `6m`, `1y`; rolling calendar-month windows |
+| `series_id` | Optional positive ID of a currently mapped, publication-approved series for this exact ticker |
+| `sort` | `date` (default), `-date` |
+| `limit`, `cursor` | Standard signed bar pagination; 1–100 rows, default 50 |
+
+The inclusive window ends on the first page's UTC date and begins one day after
+that date shifted back by the requested number of months. Cursor pages retain
+the window, observation cutoff and price/filing ID ceilings. Changed filters,
+provider publication policy, company issuer identity or resolved series context
+invalidate continuations with 400; callers must restart. Newly inserted bars,
+late observations and filings parsed after the snapshot do not enter that page
+sequence. Legacy filings without `parsed_at` use their stored ingestion time.
+
+`data` contains nullable `series`, paginated `bars`, and a `filing_markers` preview.
+Series metadata includes `id`, `security_id`, `figi`, `provider`, `provider_symbol`,
+`currency` and `adjustment`. Every bar has `session_date`, exact decimal strings
+`open/high/low/close/volume`, and `observed_at`; currency and basis belong to its
+series. Incompatible providers, currencies, adjustment bases and securities are
+never combined. No prior close or synthetic zero fills missing dates.
+
+Raw-price publication defaults to disabled. Operators must approve redistribution
+terms before listing a provider key in `MARKET_DATA_PUBLIC_PROVIDERS`. The committed
+example is blank. This setting only permits local reads; it does not configure a
+vendor or enable fetching. An unapproved series cannot be exposed by guessing its
+ID. Public SEC marker previews remain available when prices are disabled.
+
+`meta.status` is one of:
+
+- `redistribution_disabled`: the provider allowlist is empty; no raw prices or series metadata are returned.
+- `security_unmapped` / `security_ambiguous`: no unique current mapped security can be selected.
+- `series_unavailable` / `series_ambiguous`: no unique approved series exists for the sole mapped security.
+- `available`: a series resolved; its stored bar count may still be zero.
+
+An explicit eligible `series_id` resolves ambiguity, while an unknown, unapproved,
+stale-mapped or other-ticker series returns 404 when publication is configured.
+Company existence still follows the existing local profile resolver. Price mapping
+uses the **current local cache**, not historical ticker/CIK verification; coverage
+reports `mapping_policy: current_local_cache` and
+`issuer_security_link_verified: false`. No historical issuer/security identity or
+complete price calendar is inferred. `coverage.stored_bar_count` is the window's
+visible row count, `complete` and `missing_sessions` are null,
+`calendar_available` and `prices_fetched` are false.
+
+Marker previews use parsed Form 4 / 4-A filings for the profile's exact ticker and
+issuer CIK, accepted by the snapshot and within the same whole-window date bounds.
+Each marker carries normal filing provenance plus `marker_date` (UTC `filed_at`
+date), `period_of_report` and `is_amendment`. Originals and amendments remain
+separate. Dates are never shifted to a nearby trading session, acceptance date or
+transaction date. A cache-only company without a local issuer CIK has no markers;
+13F fund filings are not guessed to be issuer events.
+
+Markers repeat across bar pages and are a newest-first preview of at most 20
+filings for the entire window. `meta.filing_markers` gives `total_count`, `shown`,
+`truncated`, `limit`, `date_basis`, and `supported_forms`. Use the existing paginated
+company filings route to explore the underlying filing history; the preview is
+not a complete event series when truncated. Normal cursor metadata at the top of
+`meta` describes **bars**, not markers. The response includes the product disclaimer.
+No external provider/license behavior or p95 latency has been validated.
+
 ## Companies
 
 | Route | Behavior |

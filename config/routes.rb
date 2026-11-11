@@ -59,6 +59,7 @@ Rails.application.routes.draw do
         get :changes, on: :member
       end
       resources :companies, param: :ticker, only: :show, constraints: { ticker: /[A-Za-z0-9.-]+/ } do
+        get :prices, on: :member
         get :insiders, on: :member
         get :filings, on: :member
         get :institutional, on: :member

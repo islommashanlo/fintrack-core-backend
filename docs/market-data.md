@@ -1,8 +1,10 @@
 # Market-price foundation
 
-This increment adds local storage and an internal daily-price provider interface.
-It does not configure a vendor, make requests, seed securities, enrich identifiers,
-schedule jobs, change filing values, enable scores, or expose prices over the API.
+Local storage and an internal daily-price provider interface support a bounded
+[company-price read API](api-v1.md#company-prices). Raw-price publication remains
+disabled unless a provider is explicitly allowlisted after redistribution approval.
+No vendor, requests, securities seeding, enrichment, schedules, filing-value changes
+or score activation is configured.
 
 ## Storage and identity
 
@@ -91,23 +93,28 @@ license, establish a session calendar and adjustment policy, and implement a
 bounded adapter with recorded response fixtures and error/retry tests. None of
 those decisions is implicitly made by this interface.
 
-A next local increment can add a bounded company-price read API with source and
-coverage metadata and filing markers, using synthetic storage tests. It must
-handle ambiguous security/series resolution explicitly, remain disabled for public
-vendor redistribution until licensing is established, and never fetch on a read
-request. Nightly and on-demand background filling remain unimplemented until the
-adapter/calendar and request-budget behavior are concrete. Activity scoring and
-dashboard market movers remain unavailable; these daily bars alone do not provide
-issuer market capitalization or sufficient validated scoring inputs.
+The company-price read API uses only stored data, signed bar pagination, explicit
+series selection, and capped Form 4 filing-date markers. It exposes unknown calendar
+coverage and unverified historical issuer/security linkage. `MARKET_DATA_PUBLIC_PROVIDERS`
+controls publication only and defaults to empty; even explicit series IDs cannot
+publish an unapproved provider. Synthetic tests enable only their fixture provider.
+The setting never enables an adapter or fetching.
+
+Nightly and on-demand background filling remain unimplemented until the adapter,
+calendar and request-budget behavior are concrete. Activity scoring and dashboard
+market movers remain unavailable; daily bars alone do not provide issuer market
+capitalization or sufficient validated scoring inputs.
 
 ## Verification
 
-Local verification: 19 focused examples and the full 972-example suite passed
-(full-suite seed 644). RuboCop passed for 497 Ruby files; language-policy and
-whitespace checks passed. Tests cover exact decimal/large-volume storage, invalid
-OHLCV, database keys/constraints, read-only identity, repeat ingestion, atomic
-conflicts, bounded gap requests, empty/partial coverage, disabled/mismatched
-providers and observation timing. WebMock blocks real HTTP. The migration was
-applied locally in development/test; no deployment, vendor/SEC request, enrichment, seeding, reprocessing
-or scheduled worker activation occurred. Provider behavior, data licenses and API
-latency have not been validated.
+Local verification after the company-price API: 22 focused company examples and
+the full 985-example suite passed (full-suite seed 46869). RuboCop passed for 501
+Ruby files; language-policy and whitespace checks passed. OpenAPI 1.27.0 has 64
+unique operation IDs and 778 resolved local references. Storage tests cover exact
+decimals, invalid OHLCV, database constraints, idempotency and atomic conflicts;
+request tests cover publication defaults, source ambiguity, snapshot pagination,
+late parsing, observation cutoffs, bounded markers and UTC amendment dates.
+WebMock blocks real HTTP. No migration was needed for this API increment; earlier
+storage migrations remain applied locally. No deployment, vendor/SEC requests,
+enrichment, seeding, reprocessing or worker activation occurred. Provider behavior,
+data licenses and p95 API latency have not been validated.

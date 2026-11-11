@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.26.0
+  version: 1.27.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -798,6 +798,56 @@ paths:
         not historical identity data.
     parameters:
     - "$ref": "#/components/parameters/CompanyTicker"
+  "/companies/{ticker}/prices":
+    parameters:
+    - "$ref": "#/components/parameters/CompanyTicker"
+    get:
+      operationId: listCompanyPrices
+      summary: Read local daily prices with filing-date markers
+      description: >-
+        No-store. Provider publication is disabled by default. Only allowlisted
+        providers may return raw prices; no read fetches or queues data. Series
+        must resolve unambiguously or be explicitly selected. Current local ticker
+        mappings do not verify a historical issuer/security relationship. Calendar
+        completeness is unknown. Markers are a capped whole-window Form 4/4-A
+        preview on actual UTC filing dates, including days without bars.
+      security: []
+      parameters:
+      - name: range
+        in: query
+        schema:
+          type: string
+          enum: [1m, 3m, 6m, 1y]
+          default: 3m
+      - name: series_id
+        in: query
+        description: Optional positive series ID belonging to a currently mapped security for this ticker and an approved provider.
+        schema:
+          type: string
+          pattern: '^[1-9][0-9]{0,17}$'
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum: [date, '-date']
+          default: date
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: Bounded stored bars, series-resolution status and a filing marker preview; unavailable prices remain empty.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CompanyPricesResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/companies/{ticker}/history":
     parameters:
     - "$ref": "#/components/parameters/CompanyTicker"
@@ -4775,6 +4825,160 @@ components:
             format: date
             nullable: true
             description: Earliest allowed reported quarter at the original UTC page snapshot; null for Pro.
+    CompanyPriceSeries:
+      type: object
+      nullable: true
+      required: [id, security_id, figi, provider, provider_symbol, currency, adjustment]
+      properties:
+        id:
+          type: integer
+        security_id:
+          type: integer
+        figi:
+          type: string
+        provider:
+          type: string
+        provider_symbol:
+          type: string
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        adjustment:
+          type: string
+          enum: [unadjusted, split_adjusted]
+    DailyPriceBar:
+      type: object
+      required: [session_date, open, high, low, close, volume, observed_at]
+      properties:
+        session_date:
+          type: string
+          format: date
+        open:
+          type: string
+          description: Exact decimal value in the series currency and adjustment basis.
+        high:
+          type: string
+        low:
+          type: string
+        close:
+          type: string
+        volume:
+          type: string
+          description: Exact integral decimal string; may exceed 64-bit integer range.
+        observed_at:
+          type: string
+          format: date-time
+    CompanyPriceMarker:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required: [marker_date, period_of_report, is_amendment]
+        properties:
+          marker_date:
+            type: string
+            format: date
+            description: UTC filed_at date; never shifted to a price session or transaction date.
+          period_of_report:
+            type: string
+            format: date
+            nullable: true
+          is_amendment:
+            type: boolean
+    CompanyPricesResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [series, bars, filing_markers]
+          properties:
+            series:
+              "$ref": "#/components/schemas/CompanyPriceSeries"
+            bars:
+              type: array
+              maxItems: 100
+              items:
+                "$ref": "#/components/schemas/DailyPriceBar"
+            filing_markers:
+              type: array
+              maxItems: 20
+              items:
+                "$ref": "#/components/schemas/CompanyPriceMarker"
+        meta:
+          allOf:
+          - "$ref": "#/components/schemas/ReadPageMeta"
+          - type: object
+            required: [status, range, from, to, coverage, filing_markers, disclaimer]
+            properties:
+              status:
+                type: string
+                enum: [available, redistribution_disabled, security_unmapped, security_ambiguous, series_unavailable, series_ambiguous]
+                description: Available means a series resolved; it does not guarantee bars or complete coverage.
+              range:
+                type: string
+                enum: [1m, 3m, 6m, 1y]
+              from:
+                type: string
+                format: date
+              to:
+                type: string
+                format: date
+              coverage:
+                type: object
+                required: [stored_bar_count, complete, calendar_available, missing_sessions, prices_fetched, mapping_policy, issuer_security_link_verified]
+                properties:
+                  stored_bar_count:
+                    type: integer
+                    minimum: 0
+                  complete:
+                    type: boolean
+                    nullable: true
+                    description: Always null until an authoritative calendar is integrated.
+                  calendar_available:
+                    type: boolean
+                    enum: [false]
+                  missing_sessions:
+                    type: array
+                    nullable: true
+                    description: Always null; no weekday or holiday guesses.
+                    items:
+                      type: string
+                      format: date
+                  prices_fetched:
+                    type: boolean
+                    enum: [false]
+                  mapping_policy:
+                    type: string
+                    enum: [current_local_cache]
+                  issuer_security_link_verified:
+                    type: boolean
+                    enum: [false]
+              filing_markers:
+                type: object
+                required: [total_count, shown, truncated, limit, date_basis, supported_forms]
+                properties:
+                  total_count:
+                    type: integer
+                    minimum: 0
+                  shown:
+                    type: integer
+                    minimum: 0
+                    maximum: 20
+                  truncated:
+                    type: boolean
+                  limit:
+                    type: integer
+                    enum: [20]
+                  date_basis:
+                    type: string
+                    enum: [filed_at_utc]
+                  supported_forms:
+                    type: array
+                    items:
+                      type: string
+                      enum: ['4', 4/A]
+              disclaimer:
+                type: string
     ReadPageMeta:
       type: object
       required:
