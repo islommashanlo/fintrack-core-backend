@@ -10,14 +10,16 @@ module Api
         invalid! if values.key?("active") && ![ true, false ].include?(values["active"])
         invalid! if values.key?("frequency") && !AlertRuleSetting::FREQUENCIES.include?(values["frequency"])
         invalid! if values.key?("trigger") && !AlertRule::EVENT_TYPES.include?(values["trigger"])
-        invalid! if values.key?("channels") && values["channels"] != [ "email" ]
+        invalid! if values.key?("channels") && ![ [ "email" ], [ "in_app" ] ].include?(values["channels"])
         result = values.slice("active", "frequency").symbolize_keys
+        result[:channel] = values["channels"].first if values.key?("channels")
         result[:event_type] = values["trigger"] if values.key?("trigger")
         if create
           result[:event_type] ||= "new_filing"
           result[:follow_id] = AlertParameters.id!(values["follow_id"].to_s)
         end
         selected_trigger = create ? result[:event_type] : trigger
+        invalid! if result[:channel] == "in_app" && selected_trigger != "new_filing"
         if values.key?("conditions")
           normalizer = case selected_trigger
           when "cluster" then ClusterAlertConditions

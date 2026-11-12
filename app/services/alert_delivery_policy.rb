@@ -9,7 +9,7 @@ class AlertDeliveryPolicy
     preference = user.notification_preference
     limit = PlanCatalog.limit_for(user, :alert_rules)
     return AlertDelivery.none unless preference&.email_enabled? && preference.email_enabled_at && preference.time_zone.present?
-    return AlertDelivery.none if limit && user.alert_rules.retained.count > limit
+    return AlertDelivery.none if limit && AlertRuleQuota.count(user) > limit
     return AlertDelivery.none if frequency == "instant" && !PlanCatalog.limit_for(user, :instant_alerts)
 
     scope = AlertDelivery.joins(alert_rule: [ :setting, :follow ])

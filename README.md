@@ -10,6 +10,7 @@ Data from public SEC filings. Not investment advice.
 - `CLAUDE.md` has the invariants, conventions and commands.
 - `docs/api-v1.md` and `docs/openapi.yml` document the implemented JSON read APIs.
 - `docs/activity-methodology.md` explains the cluster definition and draft Activity Score proposal.
+- `docs/in-app-notifications.md` describes independent in-app rules, publication and read APIs.
 - `docs/plan-alert-digests.md` documents digest delivery, read tracking, and history-preserving unfollows.
 - `docs/filing-explanations.md` describes cached factual summaries and the provider interface.
 - `docs/billing.md` describes signed webhook intake, subscription refresh and verified entitlements.

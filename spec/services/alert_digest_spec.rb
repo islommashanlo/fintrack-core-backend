@@ -115,7 +115,7 @@ RSpec.describe "Filing alert digests" do
     travel_to(Time.utc(2026, 11, 10, 15))
     ScheduleAlertDigestsJob.perform_now
     expect(SendAlertDigestJob).to have_been_enqueued.once
-    expect(CronSchedule.jobs(polling: false).keys).to eq([ "alert_digests" ])
+    expect(CronSchedule.jobs(polling: false).keys).to eq([ "alert_digests", "in_app_notifications" ])
   end
 
   it "keeps instant sends disabled for Free users even if a legacy rule is active" do

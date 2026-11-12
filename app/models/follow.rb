@@ -21,7 +21,7 @@ class Follow < ApplicationRecord
   def create_default_alert_rule
     user.with_lock do
       limit = PlanCatalog.limit_for(user, :alert_rules)
-      create_alert_rule!(event_type: "new_filing", channel: "email", active: false) unless limit && user.alert_rules.retained.count >= limit
+      create_alert_rule!(event_type: "new_filing", channel: "email", active: false) unless limit && AlertRuleQuota.count(user) >= limit
     end
   end
 end

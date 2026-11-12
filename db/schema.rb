@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_12_190000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_12_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -281,6 +281,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_12_190000) do
     t.index ["user_id", "removed_at"], name: "index_follows_on_user_id_and_removed_at"
     t.index ["user_id", "target_type", "target_key"], name: "index_follows_on_user_id_and_target_type_and_target_key", unique: true
     t.index ["user_id"], name: "index_follows_on_user_id"
+  end
+
+  create_table "in_app_notifications", force: :cascade do |t|
+    t.bigint "alert_rule_id", null: false
+    t.bigint "filing_id", null: false
+    t.integer "rule_revision", null: false
+    t.string "frequency", null: false
+    t.string "time_zone"
+    t.datetime "available_at", null: false
+    t.datetime "published_at"
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["alert_rule_id", "filing_id"], name: "index_in_app_notifications_on_alert_rule_id_and_filing_id", unique: true
+    t.index ["alert_rule_id"], name: "index_in_app_notifications_on_alert_rule_id"
+    t.index ["available_at"], name: "in_app_notifications_pending", where: "(published_at IS NULL)"
+    t.index ["filing_id"], name: "index_in_app_notifications_on_filing_id"
+    t.index ["published_at", "id"], name: "index_in_app_notifications_on_published_at_and_id"
+    t.check_constraint "read_at IS NULL OR published_at IS NOT NULL", name: "in_app_notification_read_state"
+    t.check_constraint "rule_revision > 0 AND (frequency::text = ANY (ARRAY['instant'::character varying, 'daily_digest'::character varying]::text[]))", name: "in_app_notification_configuration"
   end
 
   create_table "insider_cluster_snapshots", force: :cascade do |t|
@@ -779,6 +799,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_12_190000) do
   add_foreign_key "cusip_security_mappings", "securities"
   add_foreign_key "filing_explanations", "filings"
   add_foreign_key "follows", "users"
+  add_foreign_key "in_app_notifications", "alert_rules"
+  add_foreign_key "in_app_notifications", "filings"
   add_foreign_key "insider_cluster_snapshots", "filings", column: "primary_filing_id"
   add_foreign_key "insider_transactions", "filings"
   add_foreign_key "institutional_change_snapshots", "filings", column: "primary_filing_id"

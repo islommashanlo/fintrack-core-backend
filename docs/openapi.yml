@@ -2,13 +2,210 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.35.0
+  version: 1.36.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
 - url: "/api/v1"
 paths:
+  "/notifications":
+    get:
+      operationId: listInAppNotifications
+      summary: List private published in-app filing notices
+      description: Only published, source-visible notices count. Pending rows are hidden.
+        Publication and ID ceilings are pinned by the user-bound cursor; read state
+        remains live. Originals/amendments remain historical filing notices. No email
+        consent, publishing or enqueueing on reads.
+      security:
+      - CookieSession: []
+      parameters:
+      - name: unread
+        in: query
+        schema:
+          type: boolean
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - published_at
+          - "-published_at"
+          default: "-published_at"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      responses:
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+        '200':
+          description: Private no-store page
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/InAppNotification"
+                  meta:
+                    "$ref": "#/components/schemas/ReadPageMeta"
+  "/notifications/summary":
+    get:
+      operationId: getInAppNotificationSummary
+      summary: Count private published in-app notifications
+      description: No filters. Private/no-store. Counts only visible published notices,
+        independently of email history and email read state. No publication or work
+        is triggered.
+      security:
+      - CookieSession: []
+      responses:
+        '200':
+          description: Live owned alert-history counts; read status is independent of
+            email status
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - total_count
+                    - unread_count
+                    - read_count
+                    - as_of
+                    properties:
+                      total_count:
+                        type: integer
+                        minimum: 0
+                      unread_count:
+                        type: integer
+                        minimum: 0
+                      read_count:
+                        type: integer
+                        minimum: 0
+                      as_of:
+                        type: string
+                        format: date-time
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/notifications/{id}/read":
+    post:
+      operationId: readInAppNotification
+      summary: Mark an owned visible in-app notification read once
+      description: Private/no-store. CSRF required. Preserves the first read timestamp.
+        Foreign, pending or unavailable-source records return 404. Email state is unchanged.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      responses:
+        '200':
+          description: First read timestamp.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - id
+                    - read_at
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                      read_at:
+                        type: string
+                        format: date-time
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/notifications/read-all":
+    post:
+      operationId: readAllInAppNotifications
+      summary: Mark the visible owned in-app notification set read
+      description: Private/no-store. CSRF required. One SQL statement captures visible
+        membership and updates unread rows. Later publications, including older pending
+        IDs, remain unread. Returns count, captured through_id and as_of.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      responses:
+        '200':
+          description: Acknowledgement count and bound.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - updated_count
+                    - through_id
+                    - as_of
+                    properties:
+                      updated_count:
+                        type: integer
+                        minimum: 0
+                      through_id:
+                        type: integer
+                        format: int64
+                        minimum: 0
+                      as_of:
+                        type: string
+                        format: date-time
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/auth/google/start":
     post:
       operationId: startGoogleSignIn
@@ -3453,7 +3650,7 @@ paths:
       security:
       - CookieSession: []
         CsrfToken: []
-      description: Only implemented triggers, email channel and typed conditions are accepted.
+      description: Implemented triggers and typed conditions are accepted; in_app supports new_filing only, and other triggers remain email-only.
         Activation requires consent/time zone and quota; Free instant configuration
         returns PRO_REQUIRED/instant_alerts/0. Frequency/condition changes require
         pause, which can be included in the same PATCH. Old configuration versions
@@ -3942,6 +4139,61 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    InAppNotification:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required:
+        - id
+        - rule_id
+        - trigger
+        - channel
+        - entity
+        - published_at
+        - read_at
+        - created_at
+        - historical_filing_notice
+        properties:
+          id:
+            type: integer
+          rule_id:
+            type: integer
+          trigger:
+            type: string
+            enum:
+            - new_filing
+          channel:
+            type: string
+            enum:
+            - in_app
+          entity:
+            type: object
+            required:
+            - type
+            - key
+            properties:
+              type:
+                type: string
+                enum:
+                - issuer
+                - fund
+                - person
+              key:
+                type: string
+          published_at:
+            type: string
+            format: date-time
+          read_at:
+            type: string
+            format: date-time
+            nullable: true
+          created_at:
+            type: string
+            format: date-time
+          historical_filing_notice:
+            type: boolean
+            enum:
+            - true
     PushChannelEligibility:
       type: object
       required:
@@ -8314,7 +8566,7 @@ components:
           - new_filing
           - insider_transaction
           - cluster
-          - "13f_change"
+          - 13f_change
           - news
         entity:
           type: object
@@ -8338,8 +8590,12 @@ components:
             type: string
             enum:
             - email
+            - in_app
           minItems: 1
           maxItems: 1
+          description: Exactly one channel per record. in_app supports new_filing only.
+            Channel changes require a separate record; same follow/trigger shares a logical
+            quota slot.
         frequency:
           type: string
           enum:
@@ -8487,6 +8743,8 @@ components:
       - cluster_condition_fields
       - institutional_condition_fields
       - news_condition_fields
+      - rule_quota
+      - in_app_supported_triggers
       properties:
         capabilities:
           type: object
@@ -8533,38 +8791,57 @@ components:
             - new_filing
             - insider_transaction
             - cluster
-            - "13f_change"
+            - 13f_change
             - news
         news_condition_fields:
           type: array
           uniqueItems: true
           items:
             type: string
-            enum: [kinds, source, providers]
+            enum:
+            - kinds
+            - source
+            - providers
         institutional_condition_fields:
           type: array
           uniqueItems: true
           items:
             type: string
-            enum: [change_types, direction, cusip, put_call, share_type, min_value]
+            enum:
+            - change_types
+            - direction
+            - cusip
+            - put_call
+            - share_type
+            - min_value
         cluster_condition_fields:
           type: array
           uniqueItems: true
           items:
             type: string
-            enum: [direction, min_insiders, min_value]
+            enum:
+            - direction
+            - min_insiders
+            - min_value
         transaction_condition_fields:
           type: array
           uniqueItems: true
           items:
             type: string
-            enum: [direction, codes, role, type, security_table, min_value]
+            enum:
+            - direction
+            - codes
+            - role
+            - type
+            - security_table
+            - min_value
         supported_channels:
           type: array
           items:
             type: string
             enum:
             - email
+            - in_app
         supported_frequencies:
           type: array
           items:
@@ -8572,6 +8849,25 @@ components:
             enum:
             - daily_digest
             - instant
+        in_app_supported_triggers:
+          type: array
+          items:
+            type: string
+            enum:
+            - new_filing
+        rule_quota:
+          type: object
+          required:
+          - used
+          - shared_across_channels
+          properties:
+            used:
+              type: integer
+              minimum: 0
+            shared_across_channels:
+              type: boolean
+              enum:
+              - true
     FilingAlertPageMeta:
       allOf:
       - "$ref": "#/components/schemas/ReadPageMeta"
@@ -8594,7 +8890,7 @@ components:
           - new_filing
           - insider_transaction
           - cluster
-          - "13f_change"
+          - 13f_change
           - news
         channels:
           type: array
@@ -8602,8 +8898,12 @@ components:
             type: string
             enum:
             - email
+            - in_app
           minItems: 1
           maxItems: 1
+          description: Exactly one channel per record. in_app supports new_filing only.
+            Channel changes require a separate record; same follow/trigger shares a logical
+            quota slot.
         conditions:
           "$ref": "#/components/schemas/AlertRuleConditions"
     FilingAlertRuleCreate:
@@ -8624,7 +8924,7 @@ components:
           - new_filing
           - insider_transaction
           - cluster
-          - "13f_change"
+          - 13f_change
           - news
         channels:
           type: array
@@ -8632,8 +8932,12 @@ components:
             type: string
             enum:
             - email
+            - in_app
           minItems: 1
           maxItems: 1
+          description: Exactly one channel per record. in_app supports new_filing only.
+            Channel changes require a separate record; same follow/trigger shares a logical
+            quota slot.
         conditions:
           "$ref": "#/components/schemas/AlertRuleConditions"
         follow_id:

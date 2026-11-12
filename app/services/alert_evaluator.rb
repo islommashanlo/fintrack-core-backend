@@ -14,6 +14,7 @@ class AlertEvaluator
   def call
     return [] unless @filing&.parse_status == "parsed"
 
+    InAppNotificationMatcher.call(@filing)
     enqueue(matching_rules, event_type: "new_filing", unique_by: :index_alert_deliveries_on_alert_rule_id_and_filing_id) +
       enqueue(TransactionAlertMatcher.call(@filing), event_type: "insider_transaction", unique_by: :index_alert_deliveries_on_rule_and_transaction) +
       enqueue(ClusterAlertMatcher.call(@filing), event_type: "cluster", unique_by: :index_alert_deliveries_on_rule_and_cluster) +
@@ -41,19 +42,9 @@ class AlertEvaluator
   end
 
   def matching_rules
-    sql = case @filing.form_type
-    when *Filing::FORM4_TYPES
-      form4_sql
-    when *Filing::FORM13F_TYPES
-      institutional_sql
-    else
-      return []
-    end
+    return [] unless Filing::SEC_INGEST_TYPES.include?(@filing.form_type)
 
-    ApplicationRecord.connection.select_all(
-      ApplicationRecord.sanitize_sql([ sql, { filing_id: @filing.id, cik: @filing.cik,
-                                               issuer_ticker: @filing.issuer_ticker } ])
-    ).to_a
+    ApplicationRecord.connection.select_all("#{base_sql} AND #{FilingFollowMatch.sql(@filing)}").to_a
   end
 
   def base_sql
@@ -66,37 +57,6 @@ class AlertEvaluator
         AND follows.removed_at IS NULL AND settings.archived_at IS NULL
         AND alert_rules.event_type = 'new_filing'
         AND alert_rules.channel = 'email'
-    SQL
-  end
-
-  def form4_sql
-    <<~SQL
-      #{base_sql}
-        AND (
-          (follows.target_type = 'Insider' AND EXISTS (
-            SELECT 1
-            FROM insider_transactions
-            WHERE insider_transactions.filing_id = :filing_id
-              AND insider_transactions.insider_cik = follows.target_key
-          ))
-          OR (follows.target_type = 'Ticker' AND (
-            follows.target_key = :issuer_ticker
-            OR EXISTS (
-              SELECT 1
-              FROM insider_transactions
-              WHERE insider_transactions.filing_id = :filing_id
-                AND COALESCE(NULLIF(insider_transactions.issuer_ticker, ''), :issuer_ticker) = follows.target_key
-            )
-          ))
-        )
-    SQL
-  end
-
-  def institutional_sql
-    <<~SQL
-      #{base_sql}
-        AND follows.target_type = 'InstitutionalFiler'
-        AND follows.target_key = :cik
     SQL
   end
 end

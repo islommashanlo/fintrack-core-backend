@@ -1726,7 +1726,7 @@ described below.
 New rules default to paused daily digests. Duplicate creates keep
 the existing ID and settings unless changes are explicitly requested. Restoring
 an archived rule retains its ID/history and defaults to daily digest frequency.
-Free users can retain three unarchived rules, including paused drafts. Archive
+Free users can retain three unarchived logical follow/trigger rules, including paused drafts; channel rows share a slot. Archive
 frees a slot; pause does not. Creation/restoration and activation share a user-row
 lock, including the HTML paths. Legacy users above the limit must archive rules
 before adding or activating. History and pause/archive remain accessible.
@@ -2059,3 +2059,7 @@ Use the existing `/alert-events?unread=true` list for inbox entries and the exis
 ## Linked external identities
 
 Private `GET /api/v1/me/oauth-identities` lists metadata; password- and CSRF-protected `DELETE /api/v1/me/oauth-identities/:id` unlinks an owned identity and rotates all sessions. Google linking uses password-confirmed `POST /api/v1/me/oauth-identities/google/start` and CSRF-protected `POST /api/v1/me/oauth-identities/google/complete` with state and id_token. Linking defaults off. Separately default-off Google sign-in uses browser-bound `POST /api/v1/auth/google/start` and `/api/v1/auth/google/complete` and accepts already-linked subjects only; no automatic account creation or email matching. See [the identity lifecycle contract](oauth-identities.md).
+
+## Independent in-app notifications
+
+The new_filing trigger now supports channels=["in_app"] as a separate rule record, without email consent. Free timing remains daily_digest at 07:00 user-local; verified Pro can use instant. Email and in-app rows for the same follow/trigger share one logical quota slot; meta.rule_quota reports usage. Private /notifications list/summary and CSRF-protected read/read-all routes expose only published notices. See [the in-app contract](in-app-notifications.md). Existing /alert-events history remains email-specific.

@@ -1,5 +1,9 @@
 # SEC jobs are opt-in; application digests remain scheduled independently.
 shared:
+  in_app_notifications:
+    cron: "* * * * *"
+    class: PublishInAppNotificationsJob
+    description: Publish due in-app notifications without email delivery
   alert_digests:
     cron: "* * * * *"
     class: ScheduleAlertDigestsJob

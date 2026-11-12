@@ -8,10 +8,12 @@ class AlertRuleControl
     user.with_lock do
       follow = user.follows.current.find(follow_id)
       trigger = attributes.fetch(:event_type, "new_filing")
-      rule = follow.alert_rules.find_by(event_type: trigger, channel: "email")
+      channel = attributes.fetch(:channel, "email")
+      rule = follow.alert_rules.find_by(event_type: trigger, channel:)
       existing = rule && rule.setting&.archived_at.nil?
-      assert_slot!(user) unless existing
-      rule ||= follow.alert_rules.create!(event_type: trigger, active: false)
+      same_logical_rule = follow.alert_rules.retained.where(event_type: trigger).exists?
+      assert_slot!(user) unless existing || same_logical_rule
+      rule ||= follow.alert_rules.create!(event_type: trigger, channel:, active: false)
       ensure_setting!(rule)
       rule.setting.update!(frequency: "daily_digest") if !existing && !attributes.key?(:frequency)
       rule.setting.update!(archived_at: nil)
@@ -39,6 +41,9 @@ class AlertRuleControl
   end
 
   def self.apply(user:, rule:, attributes:)
+    if attributes[:channel] && attributes[:channel] != rule.channel
+      raise InvalidConfiguration, "Create a separate rule for another channel"
+    end
     if attributes[:event_type] && attributes[:event_type] != rule.event_type
       raise InvalidConfiguration, "Create a separate rule for another trigger"
     end
@@ -58,9 +63,13 @@ class AlertRuleControl
         raise PlanCatalog::Required.new(feature: "instant_alerts", limit: 0)
       end
       preference = user.notification_preference
-      raise InvalidConfiguration, "Set a time zone and enable email in notification preferences first" unless preference&.email_enabled? && preference.time_zone.present?
+      if rule.channel == "email"
+        raise InvalidConfiguration, "Set a time zone and enable email in notification preferences first" unless preference&.email_enabled? && preference.time_zone.present?
+      elsif rule.setting.frequency == "daily_digest" && preference&.time_zone.blank?
+        raise InvalidConfiguration, "Set a time zone for daily in-app notifications first"
+      end
       limit = PlanCatalog.limit_for(user, :alert_rules)
-      raise PlanCatalog::Required.new(feature: "alert_rules", limit:) if limit && user.alert_rules.retained.count > limit
+      raise PlanCatalog::Required.new(feature: "alert_rules", limit:) if limit && AlertRuleQuota.count(user) > limit
     end
     rule.update!(active: attributes[:active]) if attributes.key?(:active)
     rule
@@ -68,7 +77,7 @@ class AlertRuleControl
 
   def self.assert_slot!(user)
     limit = PlanCatalog.limit_for(user, :alert_rules)
-    raise PlanCatalog::Required.new(feature: "alert_rules", limit:) if limit && user.alert_rules.retained.count >= limit
+    raise PlanCatalog::Required.new(feature: "alert_rules", limit:) if limit && AlertRuleQuota.count(user) >= limit
   end
 
   def self.ensure_setting!(rule)

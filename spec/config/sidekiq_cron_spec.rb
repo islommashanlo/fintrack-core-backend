@@ -6,7 +6,7 @@ RSpec.describe "Cron schedule" do
   let(:schedule) { CronSchedule.jobs(polling: true) }
 
   it "defines valid jobs that point at real job classes" do
-    expect(schedule.keys).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar", "alert_digests")
+    expect(schedule.keys).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar", "alert_digests", "in_app_notifications")
 
     schedule.each do |name, attributes|
       job = Sidekiq::Cron::Job.new(attributes.merge("name" => name))
@@ -26,7 +26,7 @@ RSpec.describe "Cron schedule" do
     errors = Sidekiq::Cron::Job.load_from_hash!(schedule)
 
     expect(errors).to be_empty
-    expect(Sidekiq::Cron::Job.all.map(&:name)).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar", "alert_digests")
+    expect(Sidekiq::Cron::Job.all.map(&:name)).to contain_exactly("poll_edgar", "poll_13f", "reconcile_edgar", "alert_digests", "in_app_notifications")
     expect(Sidekiq::Cron::Job.all).to all(be_is_active_job)
   ensure
     Sidekiq::Cron::Job.destroy_all!
@@ -40,7 +40,7 @@ RSpec.describe "Cron schedule" do
   it "retains only application scheduling when SEC polling is disabled" do
     Sidekiq::Cron::Job.load_from_hash!(schedule)
     CronSchedule.load!(polling: false)
-    expect(Sidekiq::Cron::Job.all.map(&:name)).to eq([ "alert_digests" ])
+    expect(Sidekiq::Cron::Job.all.map(&:name)).to contain_exactly("alert_digests", "in_app_notifications")
   ensure
     Sidekiq::Cron::Job.destroy_all!
   end

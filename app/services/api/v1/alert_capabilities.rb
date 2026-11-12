@@ -10,8 +10,9 @@ module Api
             resume_rules: true, instant_alerts: !!PlanCatalog.limit_for(user, :instant_alerts),
             daily_digest: true, condition_filters: true, read_tracking: true
           },
+          rule_quota: { used: AlertRuleQuota.count(user), shared_across_channels: true },
           limits: { alert_rules: PlanCatalog.limit_for(user, :alert_rules) },
-          supported_triggers: AlertRule::EVENT_TYPES, supported_channels: %w[email],
+          supported_triggers: AlertRule::EVENT_TYPES, supported_channels: %w[email in_app], in_app_supported_triggers: %w[new_filing],
           transaction_condition_fields: TransactionAlertConditions::ENUMS.keys + %w[codes min_value],
           cluster_condition_fields: ClusterAlertConditions::FIELDS,
           news_condition_fields: NewsAlertConditions::FIELDS,

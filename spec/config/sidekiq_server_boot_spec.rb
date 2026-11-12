@@ -10,7 +10,7 @@ RSpec.describe "Sidekiq server initialization" do
       require #{Rails.root.join('config/environment').to_s.inspect}
       config = Sidekiq.default_configuration
       raise "missing notification pool" unless config.capsules.fetch("notifications").concurrency == 2
-      raise "SEC polling unexpectedly enabled" unless CronSchedule.jobs.keys == ["alert_digests"]
+      raise "SEC polling unexpectedly enabled" unless CronSchedule.jobs.keys == ["alert_digests", "in_app_notifications"]
       puts "server configuration booted"
     RUBY
     stdout, stderr, status = Open3.capture3({ "RAILS_ENV" => "test", "EDGAR_POLLING" => "off" }, RbConfig.ruby, "-e", script)
