@@ -36,7 +36,14 @@ module Api
         scope = query.for_fund(fund, period:)
         history_window.check!(query.period, as_of: page.as_of)
         result = page.call(scope, preload: [ { institutional_report: [ :filing, :institutional_filer ] } ])
-        render_read_page(history_window.decorate(result), InstitutionalHoldingSerializer)
+        portfolio = FundPortfolioQuery.new(page:, reports: query.reports, fund:, period: query.period).call(result.records)
+        result = history_window.decorate(result)
+        render json: {
+          data: result.records.map do |holding|
+            InstitutionalHoldingSerializer.render(holding, as_of: page.as_of).merge(position: portfolio.positions[holding.id.to_s])
+          end,
+          meta: result.meta.merge(portfolio: portfolio.meta)
+        }
       end
 
       def history

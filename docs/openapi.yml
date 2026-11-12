@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.41.0
+  version: 1.42.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1250,9 +1250,9 @@ paths:
                     type: array
                     maxItems: 100
                     items:
-                      "$ref": "#/components/schemas/InstitutionalHolding"
+                      "$ref": "#/components/schemas/FundHolding"
                   meta:
-                    "$ref": "#/components/schemas/HistoryReadPageMeta"
+                    "$ref": "#/components/schemas/FundHoldingsReadPageMeta"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
         '402':
@@ -4139,6 +4139,94 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    FundHoldingPosition:
+      type: object
+      nullable: true
+      description: Full effective portfolio grouped by CUSIP/put-call/share-type. Repeated
+        on each source row; do not sum repeated summaries. Null for malformed keys. Weights
+        and ranks are null unless the entire portfolio passes integrity checks.
+      required:
+      - row_count
+      - value_usd
+      - weight_percent
+      - rank
+      properties:
+        row_count:
+          type: integer
+          minimum: 0
+        value_usd:
+          "$ref": "#/components/schemas/NullableDecimal"
+        weight_percent:
+          "$ref": "#/components/schemas/NullableDecimal"
+        rank:
+          type: integer
+          nullable: true
+          minimum: 1
+          description: Descending reported value competition rank (1, 1, 3). Null for
+            incomplete portfolios.
+    FundPortfolio:
+      type: object
+      description: Full effective fund/period before filters or pagination, bounded by
+        the holdings cursor. Completeness requires shared structural and normalization
+        checks, including cover totals and amendment originals. This is observed report
+        coverage, not AUM or complete SEC history. A complete zero total has null weights.
+      required:
+      - complete
+      - report_count
+      - report_ids
+      - incomplete_report_ids
+      - holding_row_count
+      - position_count
+      - known_value_usd
+      - total_value_usd
+      properties:
+        complete:
+          type: boolean
+        report_count:
+          type: integer
+          minimum: 0
+        report_ids:
+          type: array
+          items:
+            type: integer
+        incomplete_report_ids:
+          type: array
+          items:
+            type: integer
+        holding_row_count:
+          type: integer
+          minimum: 0
+        position_count:
+          type: integer
+          minimum: 0
+        known_value_usd:
+          allOf:
+          - "$ref": "#/components/schemas/NullableDecimal"
+          description: Observed finite nonnegative normalized subtotal; may be incomplete.
+            Null if none are usable.
+        total_value_usd:
+          allOf:
+          - "$ref": "#/components/schemas/NullableDecimal"
+          description: Complete normalized total, otherwise null. Valid empty reports
+            establish zero.
+    FundHolding:
+      allOf:
+      - "$ref": "#/components/schemas/InstitutionalHolding"
+      - type: object
+        required:
+        - position
+        properties:
+          position:
+            "$ref": "#/components/schemas/FundHoldingPosition"
+    FundHoldingsReadPageMeta:
+      allOf:
+      - "$ref": "#/components/schemas/HistoryReadPageMeta"
+      - type: object
+        required:
+        - portfolio
+        properties:
+          portfolio:
+            "$ref": "#/components/schemas/FundPortfolio"
     CompanyInsiderSummary:
       type: object
       required:

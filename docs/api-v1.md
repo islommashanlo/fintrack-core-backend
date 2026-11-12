@@ -584,6 +584,56 @@ flags and reasons, and filing provenance. `value_reported`, `value_unit`, and
 `value_usd` remain separate. Their `total_count` counts information-table rows,
 not distinct issuers or economic positions.
 
+### Reported portfolio weights and ranks
+
+The fund holdings route adds `position` to each row and `meta.portfolio` to the
+response. Company institutional rows and CSV exports retain their existing shape.
+Positions group the full effective fund/period by CUSIP, put/call and share type,
+matching the diff keys. Separate discretion, manager and class rows with that key
+contribute to one reported-position summary; this is not an inferred economic
+exposure. Each source row remains separate and keeps its original provenance and
+reported values. Do not sum the repeated position summaries across source rows.
+
+`position` contains `row_count`, nullable normalized `value_usd`, nullable
+`weight_percent` and nullable integer `rank`. Malformed security keys have a null
+position. A missing, negative or nonfinite normalized value in any contributing
+row makes the position value null. Other suspect flags remain visible on source
+rows and affect portfolio coverage below.
+
+Weight is `100 * position value / full portfolio value`. Ranking uses descending
+position value with competition ties (1, 1, 3); zero values may rank. Both are
+calculated in SQL over all effective rows **before** security filters, sorting or
+pagination. Options and principal amounts remain separate keys and use their
+as-reported normalized values. These weights describe the reported 13F value
+mix, not AUM, current market exposure, capital flows or performance.
+
+`meta.portfolio` includes:
+
+| Field | Meaning |
+| --- | --- |
+| `complete` | All effective reports pass the shared structural and normalization checks |
+| `report_count`, `report_ids` | Effective base/restatement and later additions at the pinned snapshot |
+| `incomplete_report_ids` | Effective reports failing those checks |
+| `holding_row_count`, `position_count` | Full effective row count and distinct valid grouping-key count |
+| `known_value_usd` | Observed nonnegative finite normalized subtotal; null when no usable values exist |
+| `total_value_usd` | Full normalized total only when complete; otherwise null |
+
+Completeness requires at least one effective report, matching cover entry/value
+totals, valid nonsuspect rows, consistent units/normalization and a visible
+original for amendments, using `InstitutionalReportChecks`. Suspect or incomplete
+reports suppress **every** weight and rank, including when the affected rows are
+outside the requested filter. Known subtotals and raw rows stay visible; values
+are never repaired. A valid empty report establishes a complete zero total.
+A zero total has null weights. No report, notices or unresolved additive
+amendments cannot establish a portfolio and have unknown totals. Coverage means
+internal completeness of the observed report set, not complete SEC history or
+all assets managed by the fund.
+
+Portfolio calculations share the holdings cursor's acceptance-time and
+filing/report/holding ID bounds. Later inserts do not change the denominator on
+continuation pages. History-plan gates and existing row sorts remain unchanged.
+No market data, mappings, provider requests or derived writes are needed.
+
 Effective holdings use the latest original or RESTATEMENT plus later NEW HOLDINGS
 amendments for the fund and period, resolved in SQL by filing timestamp and then
 accession. Notices cannot be bases; additions without a base return no holdings.
