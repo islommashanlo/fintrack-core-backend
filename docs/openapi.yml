@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.39.0
+  version: 1.40.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -12,10 +12,10 @@ paths:
   "/notifications":
     get:
       operationId: listInAppNotifications
-      summary: List private published in-app filing, transaction, cluster and position-change notices
+      summary: List private published in-app notices for filing and news sources
       description: Only published, source-visible notices count. Pending rows are hidden.
         Publication and ID ceilings are pinned by the user-bound cursor; read state
-        remains live. New-filing notices retain original/amendment history; transaction notices require effective source filings; cluster notices require every constituent source to remain valid; institutional notices require exact effective current/prior report sets and visible evidence. Version-3 cursors also pin report IDs, and old cursors must restart. Pre-extension notification cursors must restart; new cursors also pin source filing IDs. No email
+        remains live. New-filing notices retain original/amendment history; transaction notices require effective source filings; cluster notices require every constituent source to remain valid; institutional notices require exact effective current/prior report sets and visible evidence. News has null SEC provenance and requires current provider approval, source equality and canonical follow matching. Version-4 cursors also pin news item/mention and issuer identity bounds; old cursors must restart. Pre-extension notification cursors must restart; new cursors also pin source filing IDs. No email
         consent, publishing or enqueueing on reads.
       security:
       - CookieSession: []
@@ -3650,7 +3650,7 @@ paths:
       security:
       - CookieSession: []
         CsrfToken: []
-      description: Implemented triggers and typed conditions are accepted; in_app supports new_filing, insider_transaction, cluster and 13f_change, and other triggers remain email-only.
+      description: Implemented triggers and typed conditions are accepted; in_app supports new_filing, insider_transaction, cluster, 13f_change and news, and push remains unsupported.
         Activation requires consent/time zone and quota; Free instant configuration
         returns PRO_REQUIRED/instant_alerts/0. Frequency/condition changes require
         pause, which can be included in the same PATCH. Old configuration versions
@@ -4141,7 +4141,7 @@ components:
   schemas:
     InAppNotification:
       allOf:
-      - "$ref": "#/components/schemas/FilingProvenance"
+      - "$ref": "#/components/schemas/AlertEventProvenance"
       - type: object
         required:
         - id
@@ -4156,6 +4156,8 @@ components:
         - transaction
         - cluster
         - position_change
+        - news
+        - news_available
         properties:
           id:
             type: integer
@@ -4168,6 +4170,7 @@ components:
             - insider_transaction
             - cluster
             - 13f_change
+            - news
           channel:
             type: string
             enum:
@@ -4198,8 +4201,8 @@ components:
             format: date-time
           historical_filing_notice:
             type: boolean
-            enum:
-            - true
+            description: False for news, which has null SEC provenance; true for filing-derived
+              notices.
           transaction:
             type: object
             nullable: true
@@ -4234,6 +4237,13 @@ components:
             description: Immutable institutional comparison and current/prior/evidence
               SEC sources; null for other triggers. Superseded or unavailable report sets
               exclude the notification.
+          news:
+            "$ref": "#/components/schemas/NewsAlertSnapshot"
+          news_available:
+            type: boolean
+            nullable: true
+            description: Null for other triggers; false if current publication/source
+              checks withhold news content while retaining alert state.
     PushChannelEligibility:
       type: object
       required:
@@ -8633,7 +8643,7 @@ components:
             - in_app
           minItems: 1
           maxItems: 1
-          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster and 13f_change.
+          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster, 13f_change and news.
             Channel changes require a separate record; same follow/trigger shares a logical
             quota slot.
         frequency:
@@ -8898,6 +8908,7 @@ components:
             - insider_transaction
             - cluster
             - 13f_change
+            - news
         rule_quota:
           type: object
           required:
@@ -8944,7 +8955,7 @@ components:
             - in_app
           minItems: 1
           maxItems: 1
-          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster and 13f_change.
+          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster, 13f_change and news.
             Channel changes require a separate record; same follow/trigger shares a logical
             quota slot.
         conditions:
@@ -8978,7 +8989,7 @@ components:
             - in_app
           minItems: 1
           maxItems: 1
-          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster and 13f_change.
+          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster, 13f_change and news.
             Channel changes require a separate record; same follow/trigger shares a logical
             quota slot.
         conditions:

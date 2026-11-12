@@ -2,7 +2,11 @@
 
 class InAppNotification < ApplicationRecord
   belongs_to :alert_rule
-  belongs_to :filing
+  belongs_to :filing, optional: true
+  belongs_to :news_item, optional: true
+  belongs_to :news_alert_snapshot, optional: true
+  validates :filing, presence: true, unless: -> { event_type == "news" }
+  validates :news_item_id, uniqueness: { scope: :alert_rule_id }, allow_nil: true
   belongs_to :insider_transaction, optional: true
   belongs_to :insider_cluster_snapshot, optional: true
   belongs_to :institutional_change_snapshot, optional: true
@@ -12,6 +16,13 @@ class InAppNotification < ApplicationRecord
   validates :insider_cluster_snapshot_id, uniqueness: { scope: :alert_rule_id }, allow_nil: true
   validates :institutional_change_snapshot_id, uniqueness: { scope: :alert_rule_id }, allow_nil: true
   validate do
+    if event_type == "news"
+      unless filing_id.nil? && news_item && news_alert_snapshot && news_alert_snapshot.news_item_id == news_item_id
+        errors.add(:news_item, "must match the news snapshot without a SEC filing")
+      end
+    elsif news_item_id || news_alert_snapshot_id
+      errors.add(:news_item, "requires the news trigger")
+    end
     if event_type == "13f_change"
       errors.add(:institutional_change_snapshot, "must match the primary source filing") unless institutional_change_snapshot && institutional_change_snapshot.primary_filing_id == filing_id
     elsif institutional_change_snapshot_id
@@ -34,10 +45,8 @@ class InAppNotification < ApplicationRecord
   validates :rule_revision, numericality: { only_integer: true, greater_than: 0 }
   validates :available_at, presence: true
 
-  scope :visible_at, ->(time, max_filing_id: nil, max_report_id: nil) {
-    scope = joins(:filing).where("in_app_notifications.published_at <= ? AND filings.filed_at <= ?", time, time)
-      .where(filings: { parse_status: "parsed", form_type: Filing::SEC_INGEST_TYPES })
-    scope = scope.where("filings.id <= ?", max_filing_id) if max_filing_id
-    InAppNotificationSource.apply(scope, as_of: time, max_filing_id:, max_report_id:)
+  scope :visible_at, ->(time, max_filing_id: nil, max_report_id: nil, max_news_item_id: nil, max_news_mention_id: nil) {
+    scope = left_joins(:filing).where("in_app_notifications.published_at <= ?", time)
+    InAppNotificationSource.apply(scope, as_of: time, max_filing_id:, max_report_id:, max_news_item_id:, max_news_mention_id:)
   }
 end

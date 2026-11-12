@@ -5,6 +5,7 @@ class NewsItem < ApplicationRecord
   CONTENT_FIELDS = %i[source title url published_at kind].freeze
   NATURAL_KEY = %i[provider provider_item_id].freeze
 
+  has_many :in_app_notifications, dependent: :restrict_with_exception
   has_many :news_mentions, dependent: :restrict_with_exception
 
   has_many :news_alert_snapshots, dependent: :restrict_with_exception

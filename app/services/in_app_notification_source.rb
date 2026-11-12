@@ -1,11 +1,24 @@
 # frozen_string_literal: true
 
 class InAppNotificationSource
-  def self.apply(scope, as_of:, max_filing_id: nil, max_report_id: nil)
+  def self.apply(scope, as_of:, max_filing_id: nil, max_report_id: nil, max_news_item_id: nil, max_news_mention_id: nil)
+    news = NewsAlertValidity.notification_sources(as_of:, max_filing_id:, max_news_item_id:, max_news_mention_id:)
+    types = Filing::SEC_INGEST_TYPES.map { |type| ApplicationRecord.connection.quote(type) }.join(", ")
+    now = ApplicationRecord.connection.quote(as_of)
+    scope.where(<<~SQL.squish)
+      (in_app_notifications.event_type = 'news' AND in_app_notifications.filing_id IS NULL AND EXISTS (#{news})) OR (
+        filings.parse_status = 'parsed' AND filings.form_type IN (#{types}) AND filings.filed_at <= #{now}
+        #{max_filing_id ? "AND filings.id <= #{Integer(max_filing_id)}" : ''}
+        AND (#{filing_events_sql(as_of:, max_filing_id:, max_report_id:)})
+      )
+    SQL
+  end
+
+  def self.filing_events_sql(as_of:, max_filing_id:, max_report_id:)
     effective = Form4ReadScope.new(as_of:, max_filing_id:).effective_filings.select(:id).to_sql
     now = ApplicationRecord.connection.quote(as_of)
     reports = InstitutionalAlertValidity.report_sets_sql(as_of:, max_filing_id:, max_report_id:)
-    scope.where(<<~SQL.squish)
+    <<~SQL.squish
       in_app_notifications.event_type = 'new_filing' OR (
         in_app_notifications.event_type = 'insider_transaction'
         AND in_app_notifications.filing_id IN (#{effective})
@@ -47,4 +60,5 @@ class InAppNotificationSource
       )
     SQL
   end
+  private_class_method :filing_events_sql
 end
