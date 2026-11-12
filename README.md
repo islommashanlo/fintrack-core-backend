@@ -180,3 +180,8 @@ metadata checks are a separate bounded, read-only task:
 Use the emitted `next_after_id` and `filing_ceiling` for another batch; see
 [archive health](docs/archive-health.md). The task never fetches, repairs or reads
 document contents, and path coverage alone does not establish file availability.
+
+The operator metrics `queues` section adds configured ready-queue sizes and tail
+ages, with bounded retry/scheduled/dead samples and explicit count coverage.
+It never starts workers, enumerates all jobs or cleans process registrations.
+Worker heartbeat coverage remains unchecked. See [queue metrics](docs/queue-metrics.md).

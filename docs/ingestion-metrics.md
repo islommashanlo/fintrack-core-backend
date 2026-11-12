@@ -90,7 +90,7 @@ Existing top-level fields retain their prior behavior. In particular, legacy
 `parse_failures` counts all unresolved failures against a Form 4 denominator.
 They are compatibility counters, not suitable per-form health ratios. New
 consumers should use `ingestion.by_form`, including its attribution and timing
-coverage. Billing and Sidekiq queue statistics remain unchanged.
+coverage. Billing and legacy queue-depth statistics remain unchanged; the separate `queues` section adds bounded queue observations (see `queue-metrics.md`).
 
 These queries and Redis reads do not form one cross-store atomic snapshot, and
 metrics are not persisted. No health severity, alert threshold, external receiver

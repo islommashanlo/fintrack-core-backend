@@ -93,6 +93,9 @@ RSpec.describe "Operator endpoints" do
         expect(metrics.dig("ingestion", "by_form", "4", "live_ingestion_lag_seconds")).to include("filings" => 3, "median" => 120, "p95" => 552)
         expect(metrics.dig("ingestion", "by_form", "13F-HR", "parse_failures", "rate")).to be_nil
         expect(metrics.dig("ingestion", "unclassified_parse_failures", "unresolved")).to eq(1)
+        expect(metrics.dig("queues", "ready", "sec_live_form4")).to include("size" => 0, "latency_status" => "empty", "tail_age_seconds" => nil)
+        expect(metrics.dig("queues", "sets", "retry")).to include("total_count" => 0, "sampled_count" => 0, "counts_complete" => true)
+        expect(metrics.dig("queues", "workers_checked")).to be(false)
         expect(metrics.dig("archives", "filesystem_checked")).to be(false)
         expect(metrics.dig("archives", "by_form", "4")).to include("parsed_filings" => 4, "expected_documents" => 4, "missing_paths" => 4)
       end

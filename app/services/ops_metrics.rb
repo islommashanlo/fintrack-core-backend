@@ -22,6 +22,7 @@ class OpsMetrics
       parse_failures: parse_failures,
       filings: { pending: Filing.form4.pending.count, parsed_last_24h: recent.parsed.count },
       queue_depth: queue_depth,
+      queues: QueueMetrics.new(now: @now).to_h,
       ingestion: IngestionMetrics.new(now: @now).to_h,
       archives: ArchiveInventory.new.coverage,
       billing: billing
