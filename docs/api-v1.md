@@ -2219,3 +2219,13 @@ Private `GET /api/v1/me/oauth-identities` lists metadata; password- and CSRF-pro
 ## Independent in-app notifications
 
 The new_filing, insider_transaction, cluster, 13f_change and news triggers now support channels=["in_app"] as a separate rule record, without email consent. Free timing remains daily_digest at 07:00 user-local; verified Pro can use instant. Email and in-app rows for the same follow/trigger share one logical quota slot; meta.rule_quota reports usage. Private /notifications list/summary and CSRF-protected read/read-all routes expose only published source-valid notices. Transaction notices include normalized transaction evidence; cluster notices include immutable window evidence and all source filings. Position-change notices include immutable adjacent-quarter comparisons and exact current/prior report-set evidence. All derived notices hide invalid/superseded sources before counting; existing notification cursors must be restarted after the source-bound cursor update. See [the in-app contract](in-app-notifications.md). News notices carry null SEC provenance and recheck current publication/source policy before counts and reads. Version-4 notification cursors include news/identity bounds; old cursors must restart. Existing /alert-events history remains email-specific.
+
+## Automated contract checks
+
+`bundle exec rake api:validate_contract` checks the committed OpenAPI document
+against the Rails API route inventory. CI runs it in the policy job. It also
+checks local references, unique operation IDs, responses declarations, YAML keys
+and required path parameters. Export-dispatcher datasets and unsubscribe server
+overrides are included. See [API contract checks](api-contract-checks.md) for
+supported behavior and limits. Request specs remain responsible for observable
+API behavior; this task does not establish response-schema conformance.

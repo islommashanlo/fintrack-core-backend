@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.44.0
+  version: 1.44.1
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -117,6 +117,14 @@ paths:
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
   "/notifications/{id}/read":
+    parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
     post:
       operationId: readInAppNotification
       summary: Mark an owned visible in-app notification read once

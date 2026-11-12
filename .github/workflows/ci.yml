@@ -14,6 +14,7 @@ jobs:
           bundler-cache: true
           ruby-version: "3.4"
       - run: bundle exec rake policy:banned_terms
+      - run: bundle exec rake api:validate_contract
       - run: bundle exec rubocop
 
   test:

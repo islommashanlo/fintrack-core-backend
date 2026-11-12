@@ -26,6 +26,12 @@ make lint    # rubocop (rails-omakase)
 make up      # start web on http://localhost:3000 and Sidekiq
 ```
 
+Validate the committed API contract locally with `bundle exec rake api:validate_contract`
+(or `make rails T="api:validate_contract"`). CI runs this alongside lint and the
+language policy. It checks documented routes, references, operation IDs and path
+parameters without provider requests. See [API contract checks](docs/api-contract-checks.md)
+for scope and diagnostics; it does not validate live response bodies.
+
 Put your contact address in `.env` as `SEC_USER_AGENT_EMAIL`; the SEC requires one on every
 request. The EDGAR poller only runs when `EDGAR_POLLING=on`.
 

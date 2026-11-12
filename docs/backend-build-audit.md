@@ -30,7 +30,7 @@ No deployment, ingestion, backfill, enrichment, seeding, provider activation or 
 | News and prices | Immutable headline/link ingestion, mention matching, local feeds/news alerts; exact OHLCV storage, gap planner and company price API. | Default providers are disabled. No real vendor adapter, nightly price refresh or 15-minute news refresh job. No provider redistribution rights have been established by tests. Historical calendars/symbol identity coverage remain explicit gaps. |
 | Billing and gating | Signed Stripe intake, durable receipts, verified entitlements, hosted attempts/recovery and request/concurrency tests. `PlanCatalog` centralizes requested Free limits. | Live configuration and unknown/unmatched outcome resolution remain operational concerns. No real customer/payment or entitlement activation was performed. Having a plan limit does not make an unavailable feature available. |
 | Deadlines | `Form13fDeadline` and specs test the Q3 2026 deadline as Nov 16, contrasting the newer prompt's unadjusted Nov 14 example. | No general Form 4 business-day lateness engine. Draft scoring staleness uses calendar-day age and explicitly does not determine legal lateness. |
-| CI and monitoring | CI runs RSpec, RuboCop and the recommendation-language check. `OpsMetrics`, health/readiness and queue checks exist. | CI has no dependency/security scanner job. No measured p95-under-200ms result, production load test, external lag/failure alert receiver, or two-minute delivery result was verified. Ops coverage is primarily Form 4 plus billing; do not infer full per-form monitoring. |
+| CI and monitoring | CI runs RSpec, RuboCop, the recommendation-language check and API route/document validation. `OpsMetrics`, health/readiness and queue checks exist. | CI has no dependency/security scanner job. No measured p95-under-200ms result, production load test, external lag/failure alert receiver, or two-minute delivery result was verified. Ops coverage is primarily Form 4 plus billing; do not infer full per-form monitoring. |
 | Deliverables | Setup/env/task docs, current API docs, OpenAPI and extensive local tests/fixtures. | Fictional prototype seeds are intentionally not added under the owner's no-seeding instruction. Separate frontend integration, provider setup and production rollout remain outside this audit. |
 
 ## Route and contract verification
@@ -42,7 +42,7 @@ A read-only Rails runner enumerated routes and compared them to OpenAPI 1.35.0, 
 - Two unsubscribe operations are mounted at `/email/unsubscribe/:token`, outside the API prefix, with an explicit OpenAPI server override.
 - 78 expanded/documented operations; zero undocumented or unrouted operations after these normalizations.
 
-This confirms route coverage only. It does not prove every response conforms to its schema. OpenAPI references and unique operation IDs were also checked. No automated route/schema parity job currently enforces this audit in CI.
+This confirms route coverage only. It does not prove every response conforms to its schema. OpenAPI references and unique operation IDs were also checked. The later `api:validate_contract` task now enforces API route coverage and bounded document checks in CI; see `docs/api-contract-checks.md`. It does not establish response-schema conformance.
 
 Most recent full-suite evidence at the audited commit: 1,087 examples, zero failures; 564 Ruby files clean under RuboCop. Those checks ran during the immediately preceding sign-in increment, not again during this documentation-only audit. This audit ran the route comparison, local-reference/operation checks, language policy and diff checks. No assertion is made about remote CI status or production data.
 
@@ -67,7 +67,7 @@ A short implementation design should settle whether to extend rule channels or i
 | Next | Independent in-app alerts as scoped above | Local implementation; review channel/quota/timing design before schema changes. Routine local schema changes are already authorized. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Define reported turnover methodology and remaining fund analytics | Local SQL, coverage semantics and regression fixtures; no vendor activation needed for reported-data calculations. |
-| High | Add CI security/dependency checks and repeatable API contract validation | Security tools may require approved dependencies; scanners were not run in this audit. |
+| High | Add CI security/dependency checks and response-schema validation | Security tools may require approved dependencies; scanners were not run in this audit. |
 | Later | Complete scale/liquidity input storage and queries, then score/unusual activation | Point-in-time market identity and coverage, approved methodology and provider rights/selection; do not activate incomplete scores. |
 | Later | Form 3/5, Schedule 13D/G and Form 144 | Real-file format evidence first; separate ingestion/schema/parser increments. |
 | Separate activation track | Real news/price/LLM/push providers, Google/Stripe configuration, archive adapter, monitoring and load testing | Keep external requests, licensing, deployment and real delivery separately authorized. |
