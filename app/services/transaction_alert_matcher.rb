@@ -1,13 +1,19 @@
 # frozen_string_literal: true
 
 class TransactionAlertMatcher
-  def self.call(filing, as_of: Time.current)
-    return [] unless filing.form_type.in?(Filing::FORM4_TYPES)
+  def self.call(filing, as_of: Time.current, channel: "email")
+    query = sql(filing, as_of:, channel:)
+    query ? ApplicationRecord.connection.select_all(query).to_a : []
+  end
+
+  def self.sql(filing, as_of: Time.current, channel: "email")
+    raise ArgumentError, "Unsupported channel" unless AlertRule::CHANNELS.include?(channel)
+    return unless filing.form_type.in?(Filing::FORM4_TYPES)
 
     transactions = Form4ReadScope.new(as_of:).transactions.where(filing_id: filing.id)
     sql = <<~SQL
       SELECT DISTINCT ON (rules.id, t.security_table, t.txn_seq)
-        rules.id, settings.frequency, settings.revision AS rule_revision, t.id AS insider_transaction_id
+        rules.id, settings.frequency, settings.revision AS rule_revision, t.id AS insider_transaction_id, t.security_table, t.txn_seq
       FROM alert_rules rules
       INNER JOIN follows ON follows.id = rules.follow_id
       INNER JOIN alert_rule_settings settings ON settings.alert_rule_id = rules.id
@@ -15,7 +21,7 @@ class TransactionAlertMatcher
         (follows.target_type = 'Insider' AND follows.target_key = t.insider_cik)
         OR (follows.target_type = 'Ticker' AND follows.target_key = COALESCE(NULLIF(t.issuer_ticker, ''), :ticker))
       )
-      WHERE rules.active AND rules.event_type = 'insider_transaction' AND rules.channel = 'email'
+      WHERE rules.active AND rules.event_type = 'insider_transaction' AND rules.channel = :channel
         AND follows.removed_at IS NULL AND settings.archived_at IS NULL
         AND :filed_at >= settings.enabled_at AND :filed_at >= follows.followed_at
         AND (settings.conditions->>'direction' IS NULL OR settings.conditions->>'direction' =
@@ -31,7 +37,6 @@ class TransactionAlertMatcher
           (t.price IS NOT NULL AND NOT t.price_suspect AND t.shares * t.price >= (settings.conditions->>'min_value')::numeric))
       ORDER BY rules.id, t.security_table, t.txn_seq, t.owner_seq, t.id
     SQL
-    ApplicationRecord.connection.select_all(ApplicationRecord.sanitize_sql([ sql,
-      { ticker: filing.issuer_ticker, filed_at: filing.filed_at } ])).to_a
+    ApplicationRecord.sanitize_sql([ sql, { ticker: filing.issuer_ticker, filed_at: filing.filed_at, channel: } ])
   end
 end

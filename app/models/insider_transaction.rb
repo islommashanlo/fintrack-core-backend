@@ -10,6 +10,7 @@ class InsiderTransaction < ApplicationRecord
   SALE_CODE = "S"
   OPEN_MARKET_CODES = [ PURCHASE_CODE, SALE_CODE ].freeze
 
+  has_many :in_app_notifications, dependent: :restrict_with_exception
   belongs_to :filing
 
   def open_market?

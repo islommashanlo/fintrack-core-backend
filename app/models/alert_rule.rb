@@ -2,6 +2,7 @@
 
 class AlertRule < ApplicationRecord
   EVENT_TYPES = %w[new_filing insider_transaction cluster 13f_change news].freeze
+  IN_APP_EVENT_TYPES = %w[new_filing insider_transaction].freeze
   CHANNELS = %w[email in_app].freeze
 
   belongs_to :follow
@@ -22,7 +23,7 @@ class AlertRule < ApplicationRecord
   validates :channel, inclusion: { in: CHANNELS }
   validates :channel, uniqueness: { scope: %i[follow_id event_type] }
   validate do
-    errors.add(:channel, "only supports new_filing") if channel == "in_app" && event_type != "new_filing"
+    errors.add(:channel, "does not support this trigger") if channel == "in_app" && !IN_APP_EVENT_TYPES.include?(event_type)
     if event_type.in?(%w[insider_transaction cluster]) && follow&.target_type == "InstitutionalFiler"
       errors.add(:event_type, "requires an issuer or person follow")
     end

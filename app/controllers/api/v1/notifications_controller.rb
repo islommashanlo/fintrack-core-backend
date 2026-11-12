@@ -6,13 +6,13 @@ module Api
       def index
         values = read_parameters(allowed: %w[unread sort limit cursor])
         raise InvalidParameter, "Invalid unread filter" if values["unread"] && !%w[true false].include?(values["unread"])
-        page = CursorPage.new(parameters: values, context: { "resource" => "in_app_notifications", "user_id" => Current.user.id },
+        page = CursorPage.new(parameters: values, context: { "resource" => "in_app_notifications", "version" => 2, "user_id" => Current.user.id },
           sorts: { "published_at" => "in_app_notifications.published_at" }, default_sort: "-published_at",
-          bounds: { "notifications" => Current.user.in_app_notifications }, as_of:)
-        scope = Current.user.in_app_notifications.visible_at(page.as_of)
+          bounds: { "notifications" => Current.user.in_app_notifications, "filings" => Filing }, as_of:)
+        scope = Current.user.in_app_notifications.visible_at(page.as_of, max_filing_id: page.bound("filings"))
           .where("in_app_notifications.id <= ? AND in_app_notifications.created_at <= ?", page.bound("notifications"), page.as_of)
         scope = scope.where("in_app_notifications.read_at IS #{values['unread'] == 'true' ? '' : 'NOT '}NULL") if values["unread"]
-        result = page.call(scope, preload: [ :filing, { alert_rule: :follow } ])
+        result = page.call(scope, preload: [ :filing, { insider_transaction: :filing }, { alert_rule: :follow } ])
         render json: { data: result.records.map { |record| InAppNotificationSerializer.render(record, as_of: page.as_of) }, meta: result.meta }
       end
 

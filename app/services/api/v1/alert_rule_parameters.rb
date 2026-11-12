@@ -19,7 +19,7 @@ module Api
           result[:follow_id] = AlertParameters.id!(values["follow_id"].to_s)
         end
         selected_trigger = create ? result[:event_type] : trigger
-        invalid! if result[:channel] == "in_app" && selected_trigger != "new_filing"
+        invalid! if result[:channel] == "in_app" && !AlertRule::IN_APP_EVENT_TYPES.include?(selected_trigger)
         if values.key?("conditions")
           normalizer = case selected_trigger
           when "cluster" then ClusterAlertConditions
