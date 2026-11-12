@@ -2,13 +2,127 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.32.0
+  version: 1.33.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
 - url: "/api/v1"
 paths:
+  "/me/oauth-identities":
+    get:
+      operationId: listOauthIdentities
+      summary: List private external identity metadata; linking and sign-in unavailable
+      security:
+      - CookieSession: []
+      responses:
+        '400': &1
+          "$ref": "#/components/responses/InvalidParameter"
+        '401': &2
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429': &3
+          "$ref": "#/components/responses/RateLimited"
+        '503': &4
+          "$ref": "#/components/responses/LimiterUnavailable"
+        '200':
+          description: Owned metadata only; no provider subjects or tokens
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                      - id
+                      - provider
+                      - linked_at
+                      properties:
+                        id:
+                          type: integer
+                        provider:
+                          type: string
+                          enum:
+                          - google
+                        linked_at:
+                          type: string
+                          format: date-time
+                  meta:
+                    type: object
+                    required:
+                    - linking_enabled
+                    - sign_in_enabled
+                    - unlinking_enabled
+                    properties:
+                      linking_enabled:
+                        type: boolean
+                        enum:
+                        - false
+                      sign_in_enabled:
+                        type: boolean
+                        enum:
+                        - false
+                      unlinking_enabled:
+                        type: boolean
+                        enum:
+                        - true
+  "/me/oauth-identities/{id}":
+    delete:
+      operationId: unlinkOauthIdentity
+      summary: Unlink an owned identity after password confirmation and rotate all sessions
+      description: No-store. Requires current_password and CSRF. Invalid password returns
+        REAUTHENTICATION_REQUIRED. All old sessions and their push registrations are
+        removed. Replace the CSRF token from the response. No provider revocation request
+        is sent.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: "^[1-9][0-9]{0,18}$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - current_password
+              properties:
+                current_password:
+                  type: string
+                  writeOnly: true
+                  minLength: 1
+      responses:
+        '400': *1
+        '401': *2
+        '429': *3
+        '503': *4
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/AccountSession"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
   "/alert-events/summary":
     get:
       operationId: getAlertInboxSummary

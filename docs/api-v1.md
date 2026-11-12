@@ -2055,3 +2055,7 @@ Notification preferences also accept `push_enabled` and return private push elig
 `GET /api/v1/alert-events/summary` requires a session and returns `data` containing total_count, unread_count, read_count and as_of. This private, no-store endpoint accepts no filters. Counts use one SQL statement over owned alert history and read states; pending, failed and sent email deliveries all count. Removed watchlist items retain history. Events created after as_of are excluded. Counts are live at query time; as_of is not a historical replay token.
 
 Use the existing `/alert-events?unread=true` list for inbox entries and the existing CSRF-protected `/alert-events/:id/read` and `/alert-events/read-all` mutations for read state. Refresh the badge after mutations. Read-all captures the existing event set, so subsequent arrivals remain unread. Reads create no preferences, read states or jobs. These are counts of matched alert history; they do not claim a separate in-app delivery channel or real-time subscription. Revoked news can remain counted while its source details are redacted by the existing list serializer.
+
+## Linked external identities
+
+Private `GET /api/v1/me/oauth-identities` lists metadata; password- and CSRF-protected `DELETE /api/v1/me/oauth-identities/:id` unlinks an owned identity and rotates all sessions. External sign-in and linking remain unavailable. See [the identity lifecycle contract](oauth-identities.md).

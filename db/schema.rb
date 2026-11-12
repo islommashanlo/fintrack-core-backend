@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_12_170000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_12_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -559,6 +559,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_12_170000) do
     t.check_constraint "unsubscribe_version >= 0", name: "notification_unsubscribe_version"
   end
 
+  create_table "oauth_identities", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "provider", null: false
+    t.string "subject", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider", "subject"], name: "index_oauth_identities_on_provider_and_subject", unique: true
+    t.index ["user_id", "provider"], name: "index_oauth_identities_on_user_id_and_provider", unique: true
+    t.index ["user_id"], name: "index_oauth_identities_on_user_id"
+    t.check_constraint "char_length(subject::text) >= 1 AND char_length(subject::text) <= 255", name: "oauth_identity_subject"
+    t.check_constraint "provider::text = 'google'::text", name: "oauth_identity_provider"
+  end
+
   create_table "parse_failures", force: :cascade do |t|
     t.string "accession_no", null: false
     t.text "error", null: false
@@ -766,6 +779,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_12_170000) do
   add_foreign_key "news_alert_snapshots", "news_mentions"
   add_foreign_key "news_mentions", "news_items"
   add_foreign_key "notification_preferences", "users"
+  add_foreign_key "oauth_identities", "users", on_delete: :cascade
   add_foreign_key "position_diffs", "institutional_filers"
   add_foreign_key "position_diffs", "institutional_reports"
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"

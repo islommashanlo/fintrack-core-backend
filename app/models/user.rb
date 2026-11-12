@@ -5,6 +5,7 @@ class User < ApplicationRecord
   generates_token_for :password_reset, expires_in: 15.minutes do
     Digest::SHA256.hexdigest([ password_digest, email_address ].join("\0"))
   end
+  has_many :oauth_identities, dependent: :delete_all
   has_many :sessions, dependent: :destroy
   has_many :push_subscriptions, dependent: :delete_all
   has_many :follows, dependent: :destroy
