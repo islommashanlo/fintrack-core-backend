@@ -653,6 +653,41 @@ The response exposes `prior_period_of_report` so gaps between available quarters
 are explicit. Changes are computed on read without writing derived rows or
 depending on a materialization job being current.
 
+### Portfolio context on fund changes
+
+The JSON fund changes route adds nullable `current_position` and `prior_position`
+to each change. Each has the same `row_count`, `value_usd`, `weight_percent` and
+`rank` fields as the holdings route's position summary. These group CUSIP,
+put/call and share type over the full effective portfolio for that side. Unchanged
+positions contribute to the denominator and ranking even though the changes list
+omits them. Change-type filters, sorting and pagination never shrink a portfolio.
+Existing change classifications, reported deltas and source arrays remain intact.
+CSV change exports retain their existing columns and metadata.
+
+Metadata adds `period_of_report`, `prior_period_of_report`, `current_portfolio`
+and `prior_portfolio`. Each portfolio uses the full coverage object described
+above, including report IDs, completeness and known/complete value totals. The
+prior period is the preceding available holdings period, matching the existing
+change calculation; it is not necessarily the adjacent calendar quarter. Notices
+and unresolved additions do not establish a baseline. Metadata remains available
+when unchanged holdings produce an empty changes list.
+
+Each side passes the shared integrity checks independently. An incomplete current
+portfolio suppresses all current weights/ranks; it does not suppress valid prior
+figures, and vice versa. Absent positions return null summaries rather than
+invented zero values or ranks: new positions have no prior summary and exits have
+no current summary. Check the corresponding portfolio's `complete` flag before
+interpreting absence. The first observed period has no prior period and unknown
+prior coverage, even though the existing diff classifies its positions as `new`.
+Valid zero-value positions retain ranks but weights are null for a zero total.
+No percentage-point delta, trading-flow or performance measure is inferred.
+
+Both portfolio calculations use the changes cursor's pinned time, period and
+filing/report/holding ID bounds. Existing history-plan gates still apply to the
+selected current period; older baseline data remain calculation evidence. No
+schema, ingestion or provider activation is involved. Large-portfolio production
+latency has not been benchmarked.
+
 Report history preserves each cover page's totals, units, amendment information,
 other-manager count and suspect flags. It is report history, not portfolio
 performance. The quarterly history policy above applies to holdings, changes and

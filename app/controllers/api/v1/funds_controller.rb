@@ -69,9 +69,11 @@ module Api
         history_window.check!(query.period, as_of: page.as_of)
         result = history_window.decorate(query.call)
         sources = PositionChangesQuery.sources(result.records)
+        portfolios = query.portfolios(result.records)
         render json: {
-          data: result.records.map { |change| PositionChangeSerializer.render(change, reports: sources, as_of: page.as_of) },
-          meta: result.meta
+          data: result.records.map { |change| PositionChangeSerializer.render(change, reports: sources, as_of: page.as_of, portfolios:) },
+          meta: result.meta.merge(period_of_report: query.period, prior_period_of_report: query.prior_period,
+            current_portfolio: portfolios.fetch(:current).meta, prior_portfolio: portfolios.fetch(:prior).meta)
         }
       end
 

@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.42.0
+  version: 1.43.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1363,9 +1363,9 @@ paths:
                     type: array
                     maxItems: 100
                     items:
-                      "$ref": "#/components/schemas/PositionChange"
+                      "$ref": "#/components/schemas/FundPositionChange"
                   meta:
-                    "$ref": "#/components/schemas/HistoryReadPageMeta"
+                    "$ref": "#/components/schemas/FundChangesReadPageMeta"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
         '402':
@@ -4139,6 +4139,48 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    FundPositionChange:
+      allOf:
+      - "$ref": "#/components/schemas/PositionChange"
+      - type: object
+        required:
+        - current_position
+        - prior_position
+        description: Each side uses the full effective portfolio before change filters
+          and pagination. Null means no grouped position on that side; consult that side's
+          coverage before interpreting absence. Missing values suppress only the affected
+          portfolio's weights and ranks.
+        properties:
+          current_position:
+            "$ref": "#/components/schemas/FundHoldingPosition"
+          prior_position:
+            "$ref": "#/components/schemas/FundHoldingPosition"
+    FundChangesReadPageMeta:
+      allOf:
+      - "$ref": "#/components/schemas/HistoryReadPageMeta"
+      - type: object
+        required:
+        - period_of_report
+        - prior_period_of_report
+        - current_portfolio
+        - prior_portfolio
+        description: Independent full current/prior portfolio coverage at the pinned changes
+          snapshot, also returned for empty change lists. Prior means preceding available
+          holdings period, potentially across quarter gaps. Unknown or absent coverage
+          never establishes a zero portfolio.
+        properties:
+          period_of_report:
+            type: string
+            format: date
+            nullable: true
+          prior_period_of_report:
+            type: string
+            format: date
+            nullable: true
+          current_portfolio:
+            "$ref": "#/components/schemas/FundPortfolio"
+          prior_portfolio:
+            "$ref": "#/components/schemas/FundPortfolio"
     FundHoldingPosition:
       type: object
       nullable: true

@@ -5,9 +5,9 @@ module Api
     class PositionChangeSerializer
       CHANGE_TYPES = { "new" => "new", "add" => "added", "trim" => "reduced", "exit" => "exited" }.freeze
 
-      def self.render(change, reports:, as_of: Time.current)
+      def self.render(change, reports:, as_of: Time.current, portfolios: nil)
         report = reports.fetch(change["current_report_id"])
-        FilingProvenance.render(report.filing, as_of:).merge(
+        data = FilingProvenance.render(report.filing, as_of:).merge(
           period_of_report: change.period_of_report, prior_period_of_report: change.prior_period_of_report,
           cusip: change.cusip, put_call: change.put_call, share_type: change.share_type,
           issuer_name: change.name_of_issuer, title_of_class: change.title_of_class,
@@ -18,6 +18,11 @@ module Api
           current_sources: Array(change["current_report_ids"]).map { |id| FilingProvenance.render(reports.fetch(id).filing, as_of:) },
           prior_sources: Array(change["prior_report_ids"]).map { |id| FilingProvenance.render(reports.fetch(id).filing, as_of:) }
         )
+        if portfolios
+          data.merge!(current_position: portfolios.fetch(:current).positions[change.id.to_s],
+                      prior_position: portfolios.fetch(:prior).positions[change.id.to_s])
+        end
+        data
       end
     end
   end

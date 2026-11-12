@@ -36,6 +36,21 @@ module Api
         @page.call(scope)
       end
 
+      def prior_period
+        return @prior_period if defined?(@prior_period)
+
+        @prior_period = if @period
+          @reports.effective_reports.where(institutional_filer_id: @fund.id)
+            .where("institutional_reports.period_of_report < ?", @period).maximum(:period_of_report)
+        end
+      end
+
+      def portfolios(records)
+        { current: @period, prior: prior_period }.transform_values do |period|
+          FundPortfolioQuery.new(page: @page, reports: @reports, fund: @fund, period:).for_positions(records)
+        end
+      end
+
       def self.sources(records)
         ids = records.flat_map { |change| Array(change["current_report_ids"]) + Array(change["prior_report_ids"]) }
         InstitutionalReport.where(id: ids).includes(:filing).index_by(&:id)

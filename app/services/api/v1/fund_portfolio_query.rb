@@ -11,9 +11,44 @@ module Api
       end
 
       def call(holdings)
+        ids = holdings.map(&:id)
+        aggregate(<<~SQL)
+          SELECT COALESCE(jsonb_object_agg(h.id::text, #{position_json('p')}), '{}'::jsonb)
+          FROM lines h INNER JOIN ranked p ON p.cusip = h.cusip AND p.put_call IS NOT DISTINCT FROM h.put_call
+            AND p.share_type = h.share_type
+          WHERE h.id IN (#{ids.empty? ? 'NULL' : ids.join(',')})
+        SQL
+      end
+
+      # Project only the page's keys while ranking the entire portfolio in SQL.
+      def for_positions(changes)
+        keys = changes.map do |change|
+          [ change.id.to_s, change.cusip, change.put_call, change.share_type ]
+            .map { |value| "#{ApplicationRecord.connection.quote(value)}::text" }.join(", ")
+        end
+        requested = if keys.empty?
+          "SELECT NULL::text, NULL::text, NULL::text, NULL::text WHERE FALSE"
+        else
+          "VALUES #{keys.map { |key| "(#{key})" }.join(', ')}"
+        end
+        aggregate(<<~SQL)
+          SELECT COALESCE(jsonb_object_agg(k.id, #{position_json('p')}), '{}'::jsonb)
+          FROM (#{requested}) AS k(id, cusip, put_call, share_type)
+          INNER JOIN ranked p ON p.cusip = k.cusip AND p.put_call IS NOT DISTINCT FROM k.put_call
+            AND p.share_type = k.share_type
+        SQL
+      end
+
+      private
+
+      def position_json(name)
+        "jsonb_build_object('row_count', #{name}.row_count, 'value_usd', #{name}.value_usd::text, " \
+          "'weight_percent', #{name}.weight_percent::text, 'rank', #{name}.position_rank)"
+      end
+
+      def aggregate(projection)
         visible = @reports.visible_reports.where(institutional_filer_id: @fund.id, period_of_report: @period)
         effective = @reports.effective_reports.where(institutional_filer_id: @fund.id, period_of_report: @period)
-        ids = holdings.map(&:id)
         row = CursorPage.sql_rows(<<~SQL).first
           WITH visible AS (#{visible.to_sql}), effective AS (#{effective.to_sql}),
           checks AS (#{InstitutionalReportChecks.sql(max_holding_id: @page.bound('holdings'))}),
@@ -44,12 +79,7 @@ module Api
             COALESCE(c.incomplete_report_ids, '{}'::bigint[]) AS incomplete_report_ids, t.holding_row_count,
             (SELECT COUNT(*) FROM positions) AS position_count, t.known_value_usd,
             CASE WHEN c.complete THEN COALESCE(t.known_value_usd, 0) END AS total_value_usd,
-            (SELECT COALESCE(jsonb_object_agg(h.id::text, jsonb_build_object(
-              'row_count', p.row_count, 'value_usd', p.value_usd::text,
-              'weight_percent', p.weight_percent::text, 'rank', p.position_rank)), '{}'::jsonb)
-              FROM lines h INNER JOIN ranked p ON p.cusip = h.cusip AND p.put_call IS NOT DISTINCT FROM h.put_call
-                AND p.share_type = h.share_type
-              WHERE h.id IN (#{ids.empty? ? 'NULL' : ids.join(',')})) AS positions
+            (#{projection}) AS positions
           FROM coverage c CROSS JOIN totals t
         SQL
         Result.new(meta: row.except("positions"), positions: row.fetch("positions"))
