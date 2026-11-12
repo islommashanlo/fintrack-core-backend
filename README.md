@@ -5,7 +5,8 @@ and 13F institutional holdings, with JSON read APIs for a separate frontend.
 Data from public SEC filings. Not investment advice.
 
 - `docs/project-brief.md` is the product and architecture brief.
-- `docs/gap-analysis.md` is the audit that started this rebuild.
+- `docs/gap-analysis.md` is the historical audit that started this rebuild.
+- `docs/backend-build-audit.md` records current backend coverage, remaining gaps and next priorities.
 - `CLAUDE.md` has the invariants, conventions and commands.
 - `docs/api-v1.md` and `docs/openapi.yml` document the implemented JSON read APIs.
 - `docs/activity-methodology.md` explains the cluster definition and draft Activity Score proposal.
