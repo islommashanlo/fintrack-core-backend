@@ -4,10 +4,17 @@ class InAppNotification < ApplicationRecord
   belongs_to :alert_rule
   belongs_to :filing
   belongs_to :insider_transaction, optional: true
+  belongs_to :insider_cluster_snapshot, optional: true
   validates :event_type, inclusion: { in: AlertRule::IN_APP_EVENT_TYPES }
   validates :filing_id, uniqueness: { scope: :alert_rule_id, conditions: -> { where(event_type: "new_filing") } }, if: -> { event_type == "new_filing" }
   validates :txn_seq, uniqueness: { scope: [ :alert_rule_id, :filing_id, :security_table ], conditions: -> { where(event_type: "insider_transaction") } }, if: -> { event_type == "insider_transaction" }
+  validates :insider_cluster_snapshot_id, uniqueness: { scope: :alert_rule_id }, allow_nil: true
   validate do
+    if event_type == "cluster"
+      errors.add(:insider_cluster_snapshot, "must match the primary source filing") unless insider_cluster_snapshot && insider_cluster_snapshot.primary_filing_id == filing_id
+    elsif insider_cluster_snapshot_id
+      errors.add(:insider_cluster_snapshot, "requires the cluster trigger")
+    end
     if event_type == "insider_transaction"
       unless insider_transaction && insider_transaction.filing_id == filing_id && insider_transaction.security_table == security_table && insider_transaction.txn_seq == txn_seq
         errors.add(:insider_transaction, "must match the filing and transaction line")

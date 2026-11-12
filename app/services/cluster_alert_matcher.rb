@@ -5,14 +5,15 @@ class ClusterAlertMatcher
     insider_count transaction_count total_value known_value_subtotal transactions_without_usable_price
     transaction_ids insider_ciks filing_ids primary_filing_id insiders].freeze
 
-  def self.call(filing, as_of: Time.current)
+  def self.call(filing, as_of: Time.current, channel: "email")
+    raise ArgumentError, "Unsupported channel" unless AlertRule::CHANNELS.include?(channel)
     return [] unless filing.form_type.in?(Filing::FORM4_TYPES) && filing.filed_at && filing.filed_at <= as_of
-    return [] unless AlertRule.active.where(event_type: "cluster").exists?
-    new(filing:, as_of:).call
+    return [] unless AlertRule.active.where(event_type: "cluster", channel:).exists?
+    new(filing:, as_of:, channel:).call
   end
 
-  def initialize(filing:, as_of:)
-    @filing, @as_of = filing, as_of
+  def initialize(filing:, as_of:, channel:)
+    @filing, @as_of, @channel = filing, as_of, channel
     @max_filing = Filing.maximum(:id) || 0
     @max_transaction = InsiderTransaction.maximum(:id) || 0
   end
@@ -39,7 +40,7 @@ class ClusterAlertMatcher
       .where(issuer_cik: InsiderTransaction.where(filing_id: @filing.id).select(:issuer_cik))
       .where("filings.filed_at > ?", from - ActivityMethodology.window_days.days)
     windows = InsiderClusterWindows.sql(source:, from:, to:)
-    ApplicationRecord.sanitize_sql([ <<~SQL, filing_id: @filing.id, filed_at: from ])
+    ApplicationRecord.sanitize_sql([ <<~SQL, filing_id: @filing.id, filed_at: from, channel: @channel ])
       WITH windows AS (#{windows})
       SELECT rules.id, settings.frequency, settings.revision AS rule_revision, windows.*
       FROM windows INNER JOIN follows ON (
@@ -52,7 +53,7 @@ class ClusterAlertMatcher
       )
       INNER JOIN alert_rules rules ON rules.follow_id = follows.id
       INNER JOIN alert_rule_settings settings ON settings.alert_rule_id = rules.id
-      WHERE rules.active AND rules.event_type = 'cluster' AND rules.channel = 'email'
+      WHERE rules.active AND rules.event_type = 'cluster' AND rules.channel = :channel
         AND follows.removed_at IS NULL AND settings.archived_at IS NULL
         AND :filed_at >= follows.followed_at AND :filed_at >= settings.enabled_at
         AND windows.filing_ids @> ARRAY[:filing_id]::bigint[]

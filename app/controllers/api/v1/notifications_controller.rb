@@ -12,8 +12,9 @@ module Api
         scope = Current.user.in_app_notifications.visible_at(page.as_of, max_filing_id: page.bound("filings"))
           .where("in_app_notifications.id <= ? AND in_app_notifications.created_at <= ?", page.bound("notifications"), page.as_of)
         scope = scope.where("in_app_notifications.read_at IS #{values['unread'] == 'true' ? '' : 'NOT '}NULL") if values["unread"]
-        result = page.call(scope, preload: [ :filing, { insider_transaction: :filing }, { alert_rule: :follow } ])
-        render json: { data: result.records.map { |record| InAppNotificationSerializer.render(record, as_of: page.as_of) }, meta: result.meta }
+        result = page.call(scope, preload: [ :filing, :insider_cluster_snapshot, { insider_transaction: :filing }, { alert_rule: :follow } ])
+        serializer = InAppNotificationSerializer.new(records: result.records, as_of: page.as_of)
+        render json: { data: result.records.map { |record| serializer.render(record) }, meta: result.meta }
       end
 
       def summary
