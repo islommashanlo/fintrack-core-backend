@@ -1,0 +1,19 @@
+# Push subscriptions
+
+Authenticated browser clients can register, list and revoke their own device registrations under `/api/v1/push-subscriptions`. Registration is available; outbound delivery remains disabled and alert rules still accept email only.
+
+Send `POST /push-subscriptions` with the session cookie, `X-CSRF-Token`, and JSON `{ "consent": true, "subscription": pushSubscription.toJSON() }`. Consent must be the boolean true. Only `endpoint`, `keys` and optional `expirationTime` are accepted inside `subscription`; keys must contain exactly `p256dh` and `auth`. New records return 201; refreshing an existing registration returns 200. Identical registration is a timestamp-preserving no-op. Changed keys, expiry or same-account session refresh the existing record.
+
+Endpoints must use HTTPS on port 443 with a DNS hostname, without credentials or fragments. Local names and IP literals are rejected. Port 443 only is application policy. Keys use canonical unpadded base64url: a valid uncompressed P-256 public point (65 bytes) and a 16-byte authentication secret. Expiry is null/omitted or a future integer epoch millisecond timestamp no later than 253402300799999. Unknown fields and malformed values return 400. Validation performs no DNS or provider requests and does not establish endpoint ownership, browser permission or application-server-key binding.
+
+Endpoint credentials and browser keys are encrypted together with purpose-bound AES-GCM using keys derived from the existing Rails secret. A keyed endpoint digest enforces global uniqueness; only the HTTPS authority is canonicalized, preserving opaque path/query bytes. The plaintext origin contains no path or query. Key rotation requires registration recovery or re-registration. Logs filter the complete subscription and individual credential fields.
+
+Responses expose only id, endpoint origin, expiry, consent/creation/update timestamps, active and current_session. They never expose the full endpoint, keys, digest, ciphertext or session identifier. Metadata reports registration_enabled=true, delivery_enabled=false and maximum_subscriptions=20. This operational cap includes expired retained records and is independent of plan limits. Exceeding it returns 422 PUSH_SUBSCRIPTION_LIMIT; revoke an old record first. Another account's endpoint returns 409 PUSH_SUBSCRIPTION_CONFLICT without transferring ownership. Unreadable stored ciphertext returns 503 PUSH_SUBSCRIPTION_UNAVAILABLE on refresh; listing and revocation remain available.
+
+`GET /push-subscriptions` accepts limit (default 50, maximum 100), cursor and sort (created_at or -created_at). Signed cursors are bound to the account and current session, with a fixed snapshot and row ceiling. Active means the session and device have not expired at the snapshot; it does not mean delivery is available. Other accounts cannot list or revoke these records.
+
+`DELETE /push-subscriptions/:id` returns 204 and erases local credentials; absent or foreign records return 404. The browser must separately call its native unsubscribe method. No provider deletion is sent. Registrations belong to a login session: logout, bulk session revocation and account deletion remove them through database cascades. Register again after login. The frontend must explicitly obtain browser consent before registering; the backend records the supplied assertion.
+
+No sender, service worker, VAPID keys, provider adapter, notification preference or push entitlement is activated here. Future transport work must validate endpoint routing and application-server binding and enforce current consent and plan policy before delivery.
+
+Protocol references: [Push API JSON serialization](https://www.w3.org/TR/2026/WD-push-api-20261111/) and [RFC 8291 encryption inputs](https://www.rfc-editor.org/rfc/rfc8291.html). Tests use synthetic endpoints and ephemeral public keys, with WebMock blocking external requests.

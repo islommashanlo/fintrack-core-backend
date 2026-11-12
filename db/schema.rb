@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_233000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_11_234500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -627,6 +627,22 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_233000) do
     t.check_constraint "open > 0::numeric AND low > 0::numeric AND close > 0::numeric AND high >= open AND high >= close AND low <= open AND low <= close AND volume >= 0::numeric AND volume = trunc(volume) AND (open <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric])) AND (high <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric])) AND (low <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric])) AND (close <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric])) AND (volume <> ALL (ARRAY['NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric]))", name: "prices_daily_ohlcv"
   end
 
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "session_id", null: false
+    t.string "endpoint_digest", null: false
+    t.string "endpoint_origin", null: false
+    t.text "encrypted_payload", null: false
+    t.datetime "expires_at"
+    t.datetime "consented_at", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["endpoint_digest"], name: "index_push_subscriptions_on_endpoint_digest", unique: true
+    t.index ["session_id"], name: "index_push_subscriptions_on_session_id"
+    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
+    t.check_constraint "endpoint_digest::text ~ '^[0-9a-f]{64}$'::text", name: "push_subscription_digest"
+  end
+
   create_table "saved_screens", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "name", limit: 100, null: false
@@ -753,6 +769,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_233000) do
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"
   add_foreign_key "price_series", "securities"
   add_foreign_key "prices_daily", "price_series"
+  add_foreign_key "push_subscriptions", "sessions", on_delete: :cascade
+  add_foreign_key "push_subscriptions", "users", on_delete: :cascade
   add_foreign_key "saved_screens", "users"
   add_foreign_key "sessions", "users"
   add_foreign_key "subscriptions", "billing_customers"

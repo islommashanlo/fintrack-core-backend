@@ -21,6 +21,7 @@ Rails.application.routes.draw do
       get "dashboard" => "dashboard#show", as: :dashboard
       get "search" => "search#index", as: :search
       get "news" => "news#index", as: :news
+      resources :push_subscriptions, path: "push-subscriptions", only: %i[index create destroy]
       get "exports/:dataset" => "exports#show", as: :export
       post "webhooks/stripe", to: Billing::StripeWebhookEndpoint.new, as: :stripe_webhook
       get "billing/subscription" => "billing#show", as: :billing_subscription

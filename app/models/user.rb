@@ -6,6 +6,7 @@ class User < ApplicationRecord
     Digest::SHA256.hexdigest([ password_digest, email_address ].join("\0"))
   end
   has_many :sessions, dependent: :destroy
+  has_many :push_subscriptions, dependent: :delete_all
   has_many :follows, dependent: :destroy
   has_many :alert_rules, through: :follows, source: :alert_rules
   has_many :alert_deliveries, through: :alert_rules

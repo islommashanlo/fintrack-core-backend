@@ -154,3 +154,7 @@ enabled.
 evidence and shared instant/digest controls. Provider publication/language checks
 are repeated before delivery and history rendering. News events have no fabricated
 SEC filing provenance. Providers, refresh schedules and real delivery remain off.
+
+## Push subscription registration
+
+Private `GET/POST /api/v1/push-subscriptions` and `DELETE /api/v1/push-subscriptions/:id` manage encrypted, session-bound device registrations. Browser mutations require CSRF tokens; outbound delivery remains disabled. See [the lifecycle contract](docs/push-subscriptions.md).

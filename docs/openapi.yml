@@ -2,13 +2,157 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.29.0
+  version: 1.30.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
 - url: "/api/v1"
 paths:
+  "/push-subscriptions":
+    get:
+      operationId: listPushSubscriptions
+      summary: List private device metadata; delivery is disabled
+      security:
+      - CookieSession: []
+      parameters:
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - created_at
+          - "-created_at"
+          default: "-created_at"
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      responses:
+        '400': &1
+          "$ref": "#/components/responses/InvalidParameter"
+        '401': &2
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429': &3
+          "$ref": "#/components/responses/RateLimited"
+        '503': &4
+          "$ref": "#/components/responses/LimiterUnavailable"
+        '200':
+          description: Private session-bound snapshot page
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/PushSubscription"
+                  meta:
+                    allOf:
+                    - "$ref": "#/components/schemas/ReadPageMeta"
+                    - "$ref": "#/components/schemas/PushCapabilities"
+    post:
+      operationId: registerPushSubscription
+      summary: Register or refresh a consented device without sending push
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/PushSubscriptionInput"
+      responses:
+        '400': *1
+        '401': *2
+        '429': *3
+        '503':
+          description: 'Limiter unavailable or PUSH_SUBSCRIPTION_UNAVAILABLE: revoke
+            and register again'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '200':
+          description: Existing registration
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/PushSubscription"
+                  meta:
+                    "$ref": "#/components/schemas/PushCapabilities"
+        '201':
+          description: New registration
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/PushSubscription"
+                  meta:
+                    "$ref": "#/components/schemas/PushCapabilities"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '409':
+          description: 'PUSH_SUBSCRIPTION_CONFLICT: endpoint unavailable'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '422':
+          description: 'PUSH_SUBSCRIPTION_LIMIT: 20 retained records; error.limit is
+            20'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+  "/push-subscriptions/{id}":
+    delete:
+      operationId: revokePushSubscription
+      summary: Erase an owned local device registration
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: "^[1-9][0-9]{0,17}$"
+      responses:
+        '400': *1
+        '401': *2
+        '429': *3
+        '503': *4
+        '204':
+          description: Removed locally; browser unsubscribe is separate
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '404':
+          "$ref": "#/components/responses/NotFound"
   "/funds/compare":
     get:
       operationId: compareFunds
@@ -3365,6 +3509,99 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    PushSubscription:
+      type: object
+      required:
+      - id
+      - endpoint_origin
+      - active
+      - current_session
+      - expires_at
+      - consented_at
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: integer
+        endpoint_origin:
+          type: string
+          format: uri
+        active:
+          type: boolean
+        current_session:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        consented_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    PushCapabilities:
+      type: object
+      required:
+      - registration_enabled
+      - delivery_enabled
+      - maximum_subscriptions
+      properties:
+        registration_enabled:
+          type: boolean
+          enum:
+          - true
+        delivery_enabled:
+          type: boolean
+          enum:
+          - false
+        maximum_subscriptions:
+          type: integer
+          enum:
+          - 20
+    PushSubscriptionInput:
+      type: object
+      additionalProperties: false
+      required:
+      - consent
+      - subscription
+      properties:
+        consent:
+          type: boolean
+          enum:
+          - true
+        subscription:
+          type: object
+          additionalProperties: false
+          required:
+          - endpoint
+          - keys
+          properties:
+            endpoint:
+              type: string
+              format: uri
+              maxLength: 2048
+            expirationTime:
+              type: integer
+              nullable: true
+              minimum: 1
+              maximum: 253402300799999
+            keys:
+              type: object
+              additionalProperties: false
+              required:
+              - p256dh
+              - auth
+              properties:
+                p256dh:
+                  type: string
+                  pattern: "^[A-Za-z0-9_-]{87}$"
+                auth:
+                  type: string
+                  pattern: "^[A-Za-z0-9_-]{22}$"
     FundComparisonResponse:
       type: object
       required: [data, meta]

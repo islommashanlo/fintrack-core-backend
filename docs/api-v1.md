@@ -2043,3 +2043,7 @@ both headers as specified by [RFC 8058](https://www.rfc-editor.org/rfc/rfc8058.h
 production host/sender defaults are placeholders. Provider integration and
 production delivery have not been exercised. See
 [`plan-alert-digests.md`](plan-alert-digests.md) for storage and verification.
+
+## Push subscription registration
+
+Private `GET/POST /api/v1/push-subscriptions` and `DELETE /api/v1/push-subscriptions/:id` manage encrypted, session-bound device registrations. Browser mutations require CSRF tokens; outbound delivery remains disabled. See [the lifecycle contract](push-subscriptions.md).
