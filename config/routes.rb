@@ -30,6 +30,8 @@ Rails.application.routes.draw do
       get "me" => "accounts#show", as: :me
       patch "me" => "accounts#update"
       delete "me" => "accounts#destroy"
+      post "me/oauth-identities/google/start" => "oauth_linking#start", as: :oauth_link_start
+      post "me/oauth-identities/google/complete" => "oauth_linking#complete", as: :oauth_link_complete
       resources :oauth_identities, path: "me/oauth-identities", only: %i[index destroy]
       get "me/preferences" => "preferences#show", as: :preferences
       patch "me/preferences" => "preferences#update"

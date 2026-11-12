@@ -49,3 +49,6 @@ group :development do
 end
 
 gem "bcrypt", "~> 3.1"
+
+# Google ID-token verification; linking is disabled unless explicitly configured.
+gem "googleauth", "~> 1.17", require: false

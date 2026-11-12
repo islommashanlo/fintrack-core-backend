@@ -2058,4 +2058,4 @@ Use the existing `/alert-events?unread=true` list for inbox entries and the exis
 
 ## Linked external identities
 
-Private `GET /api/v1/me/oauth-identities` lists metadata; password- and CSRF-protected `DELETE /api/v1/me/oauth-identities/:id` unlinks an owned identity and rotates all sessions. External sign-in and linking remain unavailable. See [the identity lifecycle contract](oauth-identities.md).
+Private `GET /api/v1/me/oauth-identities` lists metadata; password- and CSRF-protected `DELETE /api/v1/me/oauth-identities/:id` unlinks an owned identity and rotates all sessions. Google linking uses password-confirmed `POST /api/v1/me/oauth-identities/google/start` and CSRF-protected `POST /api/v1/me/oauth-identities/google/complete` with state and id_token. Linking defaults off; standalone Google sign-in remains unavailable. See [the identity lifecycle contract](oauth-identities.md).
