@@ -49,6 +49,7 @@ Rails.application.routes.draw do
       post "alert-rules" => "alert_rules#create"
       patch "alert-rules/:id" => "alert_rules#update", as: :alert_rule
       delete "alert-rules/:id" => "alert_rules#destroy"
+      get "alert-events/summary" => "alert_events#summary", as: :alert_events_summary
       get "alert-events" => "alert_events#index", as: :alert_events
       post "alert-events/read-all" => "alert_events#read_all", as: :alert_events_read_all
       post "alert-events/:id/read" => "alert_events#read", as: :alert_event_read

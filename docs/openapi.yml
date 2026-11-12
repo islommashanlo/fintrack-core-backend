@@ -2,13 +2,62 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.31.0
+  version: 1.32.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
 - url: "/api/v1"
 paths:
+  "/alert-events/summary":
+    get:
+      operationId: getAlertInboxSummary
+      summary: Read private alert inbox badge counts
+      description: No-store. No filters. Counts all owned history including removed
+        watchlist items and pending/failed email deliveries. Excludes events created
+        after as_of. Does not create read state, preferences or delivery work. Counts
+        and read state are live at query time; as_of is not a historical replay token.
+      security:
+      - CookieSession: []
+      responses:
+        '200':
+          description: Live owned alert-history counts; read status is independent of
+            email status
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - total_count
+                    - unread_count
+                    - read_count
+                    - as_of
+                    properties:
+                      total_count:
+                        type: integer
+                        minimum: 0
+                      unread_count:
+                        type: integer
+                        minimum: 0
+                      read_count:
+                        type: integer
+                        minimum: 0
+                      as_of:
+                        type: string
+                        format: date-time
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/push-subscriptions":
     get:
       operationId: listPushSubscriptions

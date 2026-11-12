@@ -13,6 +13,11 @@ module Api
           meta: result.meta.merge(AlertCapabilities.for_user(Current.user)) }
       end
 
+      def summary
+        read_parameters(allowed: [])
+        render json: { data: AlertInboxSummary.call(user: Current.user, as_of:) }
+      end
+
       def read
         read_parameters(allowed: [], path_keys: [ :id ])
         state = AlertEventReads.mark(user: Current.user, id: AlertParameters.id!(params[:id]))
