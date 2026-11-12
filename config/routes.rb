@@ -69,6 +69,7 @@ Rails.application.routes.draw do
         get :news, on: :member
         get :holdings, on: :member
         get :history, on: :member
+        get "position-history", action: :position_history, on: :member, as: :position_history
         get :changes, on: :member
       end
       resources :companies, param: :ticker, only: :show, constraints: { ticker: /[A-Za-z0-9.-]+/ } do

@@ -3,7 +3,7 @@
 module Api
   module V1
     class FundsController < BaseController
-      prepend_before_action :private_response!, only: %i[holdings history changes news]
+      prepend_before_action :private_response!, only: %i[holdings history position_history changes news]
 
       def index
         values = read_parameters(allowed: %w[q sort limit cursor])
@@ -58,6 +58,21 @@ module Api
         scope = scope.where(period_of_report: period) if period
         result = history_window.preview(page:, scope:, allowed_scope: history_window.reports(scope, as_of: page.as_of), preload: [ :filing ])
         render_read_page(result, InstitutionalReportSerializer)
+      end
+
+      def position_history
+        fund = find_fund
+        values = read_parameters(allowed: %w[cusip put_call share_type period sort limit cursor], path_keys: [ :cik ])
+        raise InvalidParameter, "Missing cusip parameter" unless values["cusip"]
+        period_parameter(values["period"])
+        InstitutionalHoldingsQuery.validate_filters!(values)
+        page = report_page(values, "fund_position_history", sorts: FundPositionHistoryQuery::SORTS, default_sort: "-period")
+        result = FundPositionHistoryQuery.new(fund:, page:, filters: values, history: history_window).call
+        sources = FundPositionHistoryQuery.sources(result.records)
+        render json: {
+          data: result.records.map { |row| FundPositionHistorySerializer.render(row, sources:, as_of: page.as_of) },
+          meta: result.meta.merge(missing_periods_filled: false, disclaimer: FilingsIntel::DISCLAIMER)
+        }
       end
 
       def changes

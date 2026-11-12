@@ -555,6 +555,7 @@ parameters return 400 and invalid CSRF tokens return 403.
 | `GET /api/v1/funds/:cik/holdings` | Effective information-table rows for `period`, defaulting to the latest known report period |
 | `GET /api/v1/funds/:cik/changes` | Position changes from effective holdings for `period` versus the preceding available period |
 | `GET /api/v1/funds/:cik/history` | Parsed report history, including originals, notices and amendments; optional `period` filter |
+| `GET /api/v1/funds/:cik/position-history` | One security key across observed report periods, with reported shares, portfolio weights/ranks and coverage |
 
 CIKs retain all 10 digits. An unknown fund returns JSON 404. A stored fund with
 no reports has `latest_report: null` and empty lists. Fund profiles currently
@@ -652,6 +653,56 @@ The first available period has no prior period and its positions appear as `new`
 The response exposes `prior_period_of_report` so gaps between available quarters
 are explicit. Changes are computed on read without writing derived rows or
 depending on a materialization job being current.
+
+### Fund position history
+
+`GET /api/v1/funds/:cik/position-history?cusip=037833100` returns one row per
+observed parsed report period for a single reported-position key. It uses the
+same full-portfolio SQL and integrity checks as holdings and changes. The existing
+`/history` route remains an individual report-history list.
+
+| Parameter | Behavior |
+| --- | --- |
+| `cusip` | Required nine uppercase letters/digits; no mapping or ticker lookup |
+| `put_call` | Optional `PUT` or `CALL`; omitted means non-option rows only |
+| `share_type` | `SH` (default) or `PRN` |
+| `period` | Optional exact ISO quarter-end; older selections require Pro |
+| `sort` | `period` or `-period` (default) |
+| `limit`, `cursor` | Standard signed pagination; default 50, maximum 100 periods |
+
+Rows contain the selected key, `period_of_report`, `status`, nullable `position`,
+`portfolio` coverage and `sources`. Primary filing provenance (`accession`,
+`sec_url`, timestamps and data age) identifies the latest effective report for
+that period. `sources` lists every effective report in descending acceptance/
+accession order. When no effective base exists, primary provenance and sources
+instead retain the visible notice/unresolved-amendment evidence for that period.
+Neither filing history nor inferred transaction activity is merged into the key.
+
+| Status | Meaning |
+| --- | --- |
+| `reported` | The effective report set contains the key, even if integrity coverage is incomplete |
+| `not_reported` | A complete effective portfolio contains no row for the key |
+| `unknown` | No row for the key can be established and portfolio coverage is incomplete |
+
+For reported keys, `position` includes `issuer_name`, `row_count`,
+`shares_reported`, `value_usd`, `weight_percent` and `rank`. Repeated information
+rows with the key are summed; option and share-type keys remain separate. Share
+and normalized-value totals are null if a contributing value is missing or
+nonfinite; negative normalized values also make that value total null. Observed
+values remain visible when the portfolio is suspect, but every weight/rank for
+that period is withheld. Weights and competition ranks use all valid position
+keys in that period, independently of the selected key. A complete zero-value
+position can rank; a zero portfolio total has null weights. Absent summaries stay
+null, with status/coverage distinguishing known absence from unknown data.
+
+Free lists include periods from the last four completed quarters onward and
+return full/accessible period counts with truncation metadata; Pro can page all
+observed periods. Explicit older periods return the standard 402 response.
+Cursors bind the actor, plan, fund, filters, time and filing/report/holding ID
+ceilings. Future and failed sources are excluded. Missing quarters are omitted;
+`meta.missing_periods_filled` is false. No continuous ownership, market exposure,
+trading flow or performance is inferred. No enrichment, provider or derived write
+is required. Production latency for large historical portfolios is unbenchmarked.
 
 ### Portfolio context on fund changes
 

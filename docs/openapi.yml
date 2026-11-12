@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.43.0
+  version: 1.44.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -4137,8 +4137,177 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+  "/funds/{cik}/position-history":
+    get:
+      operationId: listFundPositionHistory
+      summary: List one reported position across observed fund report periods
+      parameters:
+      - name: cusip
+        in: query
+        required: true
+        schema:
+          type: string
+          pattern: "^[0-9A-Z]{9}$"
+      - name: put_call
+        in: query
+        description: Omitted selects non-option rows only.
+        schema:
+          type: string
+          enum:
+          - PUT
+          - CALL
+      - name: share_type
+        in: query
+        schema:
+          type: string
+          enum:
+          - SH
+          - PRN
+          default: SH
+      - "$ref": "#/components/parameters/Period"
+      - name: sort
+        in: query
+        schema:
+          type: string
+          enum:
+          - period
+          - "-period"
+          default: "-period"
+      - "$ref": "#/components/parameters/TransactionLimit"
+      - "$ref": "#/components/parameters/TransactionCursor"
+      responses:
+        '200':
+          description: No-store quarterly data with plan-aware history metadata. Free
+            has four completed quarters; older selected periods require Pro. Restart
+            cursors after account or plan changes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                - meta
+                properties:
+                  data:
+                    type: array
+                    maxItems: 100
+                    items:
+                      "$ref": "#/components/schemas/FundPositionHistory"
+                  meta:
+                    "$ref": "#/components/schemas/FundPositionHistoryMeta"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+      description: One CUSIP/put-call/share-type key per observed period. Weights and
+        ranks use full period portfolios; coverage distinguishes reported, complete
+        absence and unknown. Notices/unresolved additions retain source evidence. Missing
+        quarters stay gaps. Primary provenance is the latest effective filing, or latest
+        visible evidence when no effective base exists. No provider requests or writes.
+    parameters:
+    - "$ref": "#/components/parameters/FundCik"
 components:
   schemas:
+    FundPositionHistory:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required:
+        - period_of_report
+        - cusip
+        - put_call
+        - share_type
+        - status
+        - position
+        - portfolio
+        - sources
+        properties:
+          period_of_report:
+            type: string
+            format: date
+          cusip:
+            type: string
+            pattern: "^[0-9A-Z]{9}$"
+          put_call:
+            type: string
+            nullable: true
+            enum:
+            - PUT
+            - CALL
+            -
+          share_type:
+            type: string
+            enum:
+            - SH
+            - PRN
+          status:
+            type: string
+            enum:
+            - reported
+            - not_reported
+            - unknown
+            description: Reported means the key is observed, possibly with incomplete
+              coverage. Not reported requires complete portfolio coverage; unknown cannot
+              establish absence.
+          position:
+            "$ref": "#/components/schemas/FundPositionHistoryPosition"
+          portfolio:
+            "$ref": "#/components/schemas/FundPortfolio"
+          sources:
+            type: array
+            items:
+              "$ref": "#/components/schemas/FilingProvenance"
+            minItems: 1
+    FundPositionHistoryPosition:
+      type: object
+      nullable: true
+      required:
+      - issuer_name
+      - row_count
+      - shares_reported
+      - value_usd
+      - weight_percent
+      - rank
+      properties:
+        issuer_name:
+          type: string
+        row_count:
+          type: integer
+          minimum: 1
+        shares_reported:
+          "$ref": "#/components/schemas/NullableDecimal"
+        value_usd:
+          "$ref": "#/components/schemas/NullableDecimal"
+        weight_percent:
+          "$ref": "#/components/schemas/NullableDecimal"
+        rank:
+          type: integer
+          minimum: 1
+          nullable: true
+      description: Grouped reported rows for the selected key; null when absent. Missing/nonfinite
+        contributing shares or values remain unknown. Weights and competition ranks use
+        the full effective portfolio and are null unless complete. Zero-total weights
+        are null.
+    FundPositionHistoryMeta:
+      allOf:
+      - "$ref": "#/components/schemas/HistoryReadPageMeta"
+      - type: object
+        required:
+        - missing_periods_filled
+        - disclaimer
+        properties:
+          missing_periods_filled:
+            type: boolean
+            enum:
+            - false
+          disclaimer:
+            type: string
     FundPositionChange:
       allOf:
       - "$ref": "#/components/schemas/PositionChange"
