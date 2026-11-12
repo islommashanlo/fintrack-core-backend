@@ -14,7 +14,7 @@ class OpsMetrics
   def to_h
     last_poll = EdgarPoller.last_success_at
 
-    {
+    metrics = {
       generated_at: @now.utc.iso8601,
       last_successful_poll_at: last_poll&.utc&.iso8601,
       seconds_since_last_successful_poll: last_poll && (@now - last_poll).round,
@@ -27,6 +27,7 @@ class OpsMetrics
       archives: ArchiveInventory.new.coverage,
       billing: billing
     }
+    metrics.merge(health: OpsHealthSummary.new(metrics:).to_h)
   end
 
   private

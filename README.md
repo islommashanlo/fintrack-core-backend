@@ -185,3 +185,9 @@ The operator metrics `queues` section adds configured ready-queue sizes and tail
 ages, with bounded retry/scheduled/dead samples and explicit count coverage.
 It never starts workers, enumerates all jobs or cleans process registrations.
 Worker heartbeat coverage remains unchecked. See [queue metrics](docs/queue-metrics.md).
+
+Operator metrics also include a pure `health` summary with `ok`, `attention` and
+`unknown` checks, stable reasons and explicit thresholds. It reuses collected
+metrics without additional I/O. Unchecked workers/files and missing live samples
+remain unknown; review statuses do not activate alerts or alter readiness.
+See [operator health summary](docs/ops-health-summary.md) for the policy.

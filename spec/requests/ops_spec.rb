@@ -96,6 +96,8 @@ RSpec.describe "Operator endpoints" do
         expect(metrics.dig("queues", "ready", "sec_live_form4")).to include("size" => 0, "latency_status" => "empty", "tail_age_seconds" => nil)
         expect(metrics.dig("queues", "sets", "retry")).to include("total_count" => 0, "sampled_count" => 0, "counts_complete" => true)
         expect(metrics.dig("queues", "workers_checked")).to be(false)
+        expect(metrics.dig("health", "status")).to eq("attention")
+        expect(metrics.dig("health", "checks")).to include(include("id" => "archive_files", "status" => "unknown"))
         expect(metrics.dig("archives", "filesystem_checked")).to be(false)
         expect(metrics.dig("archives", "by_form", "4")).to include("parsed_filings" => 4, "expected_documents" => 4, "missing_paths" => 4)
       end
@@ -107,6 +109,7 @@ RSpec.describe "Operator endpoints" do
       expect(metrics).to include(last_successful_poll_at: nil, seconds_since_last_successful_poll: nil)
       expect(metrics[:poller_lag_seconds]).to eq(filings: 0, median: nil, p95: nil)
       expect(metrics[:parse_failures][:rate]).to eq(0.0)
+      expect(metrics.dig(:health, :status)).to eq("unknown")
     end
   end
 end
