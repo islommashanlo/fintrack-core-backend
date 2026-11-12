@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.40.0
+  version: 1.41.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -4139,6 +4139,65 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    CompanyInsiderSummary:
+      type: object
+      required:
+      - window_days
+      - purchase_count
+      - sale_count
+      - insider_count
+      - transactions_without_usable_price
+      - counts_by_code
+      - purchase_value
+      - sale_value
+      - net_open_market_value
+      properties:
+        window_days:
+          type: integer
+          enum:
+          - 30
+          - 90
+          - 365
+        purchase_count:
+          type: integer
+          minimum: 0
+        sale_count:
+          type: integer
+          minimum: 0
+        transactions_without_usable_price:
+          type: integer
+          minimum: 0
+          description: P/S rows without a calculated reported value, including missing
+            shares and missing or suspect prices.
+        counts_by_code:
+          type: object
+          additionalProperties:
+            type: integer
+            minimum: 0
+          description: Counts all canonical non-derivative rows, including administrative
+            codes; missing codes use unknown.
+        purchase_value:
+          allOf:
+          - "$ref": "#/components/schemas/NullableDecimal"
+          description: Known reported shares-times-price subtotal; null if no usable values.
+            May be incomplete.
+        sale_value:
+          allOf:
+          - "$ref": "#/components/schemas/NullableDecimal"
+          description: Known reported shares-times-price subtotal; null if no usable values.
+            May be incomplete.
+        net_open_market_value:
+          allOf:
+          - "$ref": "#/components/schemas/NullableDecimal"
+          description: Reported purchase value minus sale value. Null if any P/S value
+            is unavailable or there are no P/S rows; known zero remains zero.
+        insider_count:
+          type: integer
+          minimum: 0
+          description: Distinct first-listed insiders with P/S activity in this window.
+      description: Observed local, effective non-derivative Form 4 activity for first-listed
+        owners, windowed on filed_at with an exclusive start and inclusive request-time
+        end. Ordered windows are 30, 90 and 365 days.
     InAppNotification:
       allOf:
       - "$ref": "#/components/schemas/AlertEventProvenance"
@@ -5627,6 +5686,7 @@ components:
       - name
       - latest_filing
       - insider_summary
+      - insider_summaries
       properties:
         cik:
           type: string
@@ -5688,6 +5748,12 @@ components:
               "$ref": "#/components/schemas/NullableDecimal"
             sale_value:
               "$ref": "#/components/schemas/NullableDecimal"
+        insider_summaries:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            "$ref": "#/components/schemas/CompanyInsiderSummary"
     FilingSummary:
       type: object
       required:

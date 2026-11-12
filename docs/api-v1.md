@@ -823,7 +823,7 @@ No external provider/license behavior or p95 latency has been validated.
 
 | Route | Behavior |
 | --- | --- |
-| `GET /api/v1/companies/:ticker` | Identity, latest Form 4 provenance and a 90-day insider summary |
+| `GET /api/v1/companies/:ticker` | Identity, latest Form 4 provenance and 30/90/365-day insider summaries |
 | `GET /api/v1/companies/:ticker/insiders` | Transaction rows using the transaction-list filters, pagination and serializer |
 | `GET /api/v1/companies/:ticker/filings` | Paginated filing summaries, retaining originals and amendments |
 | `GET /api/v1/companies/:ticker/institutional` | Paginated effective holding rows across funds using existing CUSIP mappings |
@@ -836,10 +836,30 @@ security can supply a company name/ticker without a Form 4; its CIK and latest
 filing remain null. Unknown companies return JSON 404. No lookup makes an
 external request or guesses from issuer-name similarity.
 
-The summary counts open-market, non-derivative rows accepted in the last 90 days,
-with amendments resolved and only the first reporting owner's row counted.
-It reports purchase/sale counts and values plus distinct first-listed insiders;
-missing or suspect prices contribute to counts but not calculated value totals.
+`insider_summaries` contains three entries ordered by `window_days`: 30, 90 and
+365. The existing `insider_summary` retains its six-field 90-day shape and values.
+Both use one memoized SQL result. Windows use `filings.filed_at` (acceptance time),
+with an exclusive start and inclusive request-time end, rather than transaction
+date. Only parsed, effective Form 4/4/A rows count; amendments are resolved as of
+that request time. Exact ticker and, when known, current issuer CIK scope apply.
+
+Only non-derivative rows for the first reporting owner (`owner_seq = 1`) count,
+so joint-owner copies do not inflate totals. Each window returns `purchase_count`,
+`sale_count`, distinct open-market `insider_count`, `purchase_value`, `sale_value`,
+`net_open_market_value`, `transactions_without_usable_price`, and `counts_by_code`.
+Purchase/sale totals and insider counts use P/S rows. Code counts also include
+administrative rows; a missing code uses `unknown`.
+
+Values use reported shares times reported price, with exact decimal strings.
+Purchase/sale values are known subtotals: missing shares or missing/suspect prices
+remain in counts but contribute no value. `transactions_without_usable_price`
+counts P/S rows with an unavailable calculated value, including missing shares.
+Net value is purchase value minus sale value only when every P/S row has a usable
+value; otherwise it is null. Empty windows return zero counts, an empty code map,
+and null values. A reported zero price remains a known zero. No market prices are
+substituted. These summaries describe observed local filings, not complete EDGAR
+coverage or investment performance.
+
 The transaction endpoint retains all reporting owners and both security tables,
 and disallows overriding the company ticker/issuer scope through filters.
 

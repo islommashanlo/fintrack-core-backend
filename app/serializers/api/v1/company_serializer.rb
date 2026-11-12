@@ -7,7 +7,7 @@ module Api
         {
           cik: company.issuer_cik, ticker: company.ticker, name: company.name,
           latest_filing: company.filing && FilingProvenance.render(company.filing, as_of:),
-          insider_summary: company.summary
+          insider_summary: company.summary, insider_summaries: company.summaries
         }
       end
     end
