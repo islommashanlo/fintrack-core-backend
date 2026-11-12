@@ -89,8 +89,10 @@ not a new load-balancer, deployment, public API or automatic alert gate.
 
 Collector failures still propagate through the existing metrics path; the summary
 does not catch infrastructure exceptions and fabricate healthy observations.
-The metrics are not an atomic cross-store snapshot. Content verification, backup
-restoration, delivery timing, worker heartbeats, unknown queues, external
+The metrics are not an atomic cross-store snapshot. Notification observations
+are exposed separately in `notifications` and are not interpreted by health
+policy v1. Content verification, backup restoration,
+recipient receipt, worker heartbeats, unknown queues, external
 receivers, production latency and complete SEC coverage remain separate work.
 Specs cover the pure policy, threshold boundaries, unknown coverage, mixed
 observations, input preservation, operator JSON and readiness compatibility.

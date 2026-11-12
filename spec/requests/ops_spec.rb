@@ -96,6 +96,8 @@ RSpec.describe "Operator endpoints" do
         expect(metrics.dig("queues", "ready", "sec_live_form4")).to include("size" => 0, "latency_status" => "empty", "tail_age_seconds" => nil)
         expect(metrics.dig("queues", "sets", "retry")).to include("total_count" => 0, "sampled_count" => 0, "counts_complete" => true)
         expect(metrics.dig("queues", "workers_checked")).to be(false)
+        expect(metrics.dig("notifications", "channels", "email")).to include("receipt_observed" => false, "failure_timestamp_recorded" => false)
+        expect(metrics.dig("notifications", "channels", "in_app", "by_frequency", "instant", "completion_lag_seconds", "p95")).to be_nil
         expect(metrics.dig("health", "status")).to eq("attention")
         expect(metrics.dig("health", "checks")).to include(include("id" => "archive_files", "status" => "unknown"))
         expect(metrics.dig("archives", "filesystem_checked")).to be(false)

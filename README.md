@@ -191,3 +191,9 @@ Operator metrics also include a pure `health` summary with `ok`, `attention` and
 metrics without additional I/O. Unchecked workers/files and missing live samples
 remain unknown; review statuses do not activate alerts or alter readiness.
 See [operator health summary](docs/ops-health-summary.md) for the policy.
+
+The operator `notifications` section reports stored email and in-app outcomes,
+completion timing, eligible in-app due backlog and digest-batch states. Email
+completion means the recorded mailer return, not recipient receipt; push and
+receipt coverage remain unknown/unsupported. No sends or scheduling changes are
+performed. See [notification metrics](docs/notification-metrics.md).

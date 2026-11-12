@@ -25,6 +25,7 @@ class OpsMetrics
       queues: QueueMetrics.new(now: @now).to_h,
       ingestion: IngestionMetrics.new(now: @now).to_h,
       archives: ArchiveInventory.new.coverage,
+      notifications: NotificationMetrics.new(now: @now).to_h,
       billing: billing
     }
     metrics.merge(health: OpsHealthSummary.new(metrics:).to_h)
