@@ -26,9 +26,9 @@ class EdgarPoller
 
   # Returns the accession numbers that were new. Dates default to today and yesterday
   # in EDGAR's time zone.
-  def poll(dates = default_dates)
+  def poll(dates = default_dates, record_success: true)
     added = dates.flat_map { |date| poll_day(date) }
-    @redis.call("SET", @last_success_key, Time.current.utc.iso8601)
+    @redis.call("SET", @last_success_key, Time.current.utc.iso8601) if record_success
     added
   end
 

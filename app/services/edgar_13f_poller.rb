@@ -17,7 +17,7 @@ class Edgar13fPoller
     added = Filing::FORM13F_TYPES.flat_map do |form|
       EdgarPoller.new(
         search: @search, redis: @redis, form:, last_success_key: LAST_SUCCESS_KEY
-      ).poll(dates)
+      ).poll(dates, record_success: false)
     end
     @redis.call("SET", LAST_SUCCESS_KEY, Time.current.utc.iso8601)
     added.uniq

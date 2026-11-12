@@ -68,7 +68,8 @@ RSpec.describe "Operator endpoints" do
       travel_to now do
         FilingsIntel.redis.call("SET", EdgarPoller::LAST_SUCCESS_KEY, (now - 42.seconds).iso8601)
         [ 60, 120, 600 ].each do |lag|
-          create(:filing, source: "efts", filed_at: now - 1.hour, parsed_at: now - 1.hour + lag.seconds)
+          create(:filing, source: "efts", filed_at: now - 1.hour, parsed_at: now - 1.hour + lag.seconds,
+            ingested_at: now - 1.hour + lag.seconds)
         end
         create(:filing, source: "daily_index", filed_at: now - 30.days, parsed_at: now - 1.minute) # backfill: not counted
         create(:filing, :pending)
@@ -88,6 +89,9 @@ RSpec.describe "Operator endpoints" do
           "filings" => { "pending" => 1, "parsed_last_24h" => 4 },
           "queue_depth" => { "enqueued" => 0, "retries" => 0, "scheduled" => 0, "dead" => 0 }
         )
+        expect(metrics.dig("ingestion", "by_form", "4", "live_ingestion_lag_seconds")).to include("filings" => 3, "median" => 120, "p95" => 552)
+        expect(metrics.dig("ingestion", "by_form", "13F-HR", "parse_failures", "rate")).to be_nil
+        expect(metrics.dig("ingestion", "unclassified_parse_failures", "unresolved")).to eq(1)
       end
     end
 

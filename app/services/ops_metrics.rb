@@ -2,8 +2,8 @@
 
 require "sidekiq/api"
 
-# The operating numbers the brief asks for in Phase 2: poller lag, parse failure rate,
-# queue depth and the time of the last successful poll.
+# Legacy operating counters plus form-scoped ingestion observations and billing.
+# Consumers should use ingestion for attributed failures and first-ingest latency.
 class OpsMetrics
   WINDOW = 24.hours
 
@@ -22,6 +22,7 @@ class OpsMetrics
       parse_failures: parse_failures,
       filings: { pending: Filing.form4.pending.count, parsed_last_24h: recent.parsed.count },
       queue_depth: queue_depth,
+      ingestion: IngestionMetrics.new(now: @now).to_h,
       billing: billing
     }
   end

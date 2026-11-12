@@ -166,3 +166,10 @@ SEC filing provenance. Providers, refresh schedules and real delivery remain off
 ## Push subscription registration
 
 Private `GET/POST /api/v1/push-subscriptions` and `DELETE /api/v1/push-subscriptions/:id` manage encrypted, session-bound device registrations. Browser mutations require CSRF tokens; outbound delivery remains disabled. See [the lifecycle contract](docs/push-subscriptions.md).
+
+Operator-only `GET /ops/metrics` and `bundle exec rake ops:status` now include
+`ingestion.by_form` for Form 4 and 4/A and all three 13F forms: first-ingest latency,
+live pending age, attributed failures and skipped-report counts. Empty timing
+coverage remains unknown. See [ingestion metrics](docs/ingestion-metrics.md) for
+definitions and the legacy-field caveats. No external monitor or polling is
+activated by reading metrics.
