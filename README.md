@@ -173,3 +173,10 @@ live pending age, attributed failures and skipped-report counts. Empty timing
 coverage remains unknown. See [ingestion metrics](docs/ingestion-metrics.md) for
 definitions and the legacy-field caveats. No external monitor or polling is
 activated by reading metrics.
+
+Operator metrics also include SQL-only `archives` coverage by form. Physical
+metadata checks are a separate bounded, read-only task:
+`bundle exec rake 'archives:verify[100]'` checks at most 100 processed filings.
+Use the emitted `next_after_id` and `filing_ceiling` for another batch; see
+[archive health](docs/archive-health.md). The task never fetches, repairs or reads
+document contents, and path coverage alone does not establish file availability.

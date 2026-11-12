@@ -4,7 +4,8 @@
 # so the pipeline can always re-parse exactly what the SEC served.
 #
 # This is the local-disk implementation. Production needs object storage behind the
-# same three methods (store, read, exist?); see docs/plan-phase-2.md.
+# same core methods (store, read, exist?); see docs/plan-phase-2.md.
+# Operator verification additionally uses metadata-only probe.
 class FilingArchive
   class MissingError < StandardError; end
 
@@ -49,6 +50,29 @@ class FilingArchive
 
   def exist?(path)
     path.present? && @root.join(path).file?
+  end
+
+  # A local metadata check, not a content or checksum verification. Reject
+  # descendant symlinks before following stored path components.
+  def probe(path)
+    return "missing_path" if path.blank?
+    return "invalid_path" unless path.is_a?(String) && path.match?(%r{\A[A-Za-z0-9][A-Za-z0-9_.-]*(?:/[A-Za-z0-9][A-Za-z0-9_.-]*)*\z})
+
+    target = @root.realpath
+    stat = nil
+    path.split("/").each do |segment|
+      target = target.join(segment)
+      stat = target.lstat
+      return "invalid_path" if stat.symlink?
+    end
+    return "not_file" unless stat.file?
+    return "unreadable" unless File.readable?(target)
+
+    stat.zero? ? "empty" : "present"
+  rescue Errno::ENOENT, Errno::ENOTDIR
+    "missing"
+  rescue Errno::EACCES, Errno::EPERM
+    "unreadable"
   end
 
   # <filer agent prefix>/<two-digit year>/<accession>.txt

@@ -76,6 +76,7 @@ RSpec.describe "Operator endpoints" do
         ParseFailure.record!("0000000001-26-000001", "boom")
         ParseForm4Job.set(queue: "default").perform_later("0000000001-26-000002") # test adapter: not in Sidekiq
 
+        expect(FilingArchive).not_to receive(:default)
         metrics = with_credentials do
           get "/ops/metrics", headers: basic("ops", "correct horse")
           response.parsed_body
@@ -92,6 +93,8 @@ RSpec.describe "Operator endpoints" do
         expect(metrics.dig("ingestion", "by_form", "4", "live_ingestion_lag_seconds")).to include("filings" => 3, "median" => 120, "p95" => 552)
         expect(metrics.dig("ingestion", "by_form", "13F-HR", "parse_failures", "rate")).to be_nil
         expect(metrics.dig("ingestion", "unclassified_parse_failures", "unresolved")).to eq(1)
+        expect(metrics.dig("archives", "filesystem_checked")).to be(false)
+        expect(metrics.dig("archives", "by_form", "4")).to include("parsed_filings" => 4, "expected_documents" => 4, "missing_paths" => 4)
       end
     end
 
