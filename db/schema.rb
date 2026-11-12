@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_12_180000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_12_190000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -572,6 +572,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_12_180000) do
     t.check_constraint "provider::text = 'google'::text", name: "oauth_identity_provider"
   end
 
+  create_table "oauth_link_intents", force: :cascade do |t|
+    t.bigint "session_id", null: false
+    t.string "state_digest", null: false
+    t.string "nonce_digest", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "consumed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["session_id"], name: "index_oauth_link_intents_on_session_id", unique: true
+    t.index ["state_digest"], name: "index_oauth_link_intents_on_state_digest", unique: true
+    t.check_constraint "state_digest::text ~ '^[0-9a-f]{64}$'::text AND nonce_digest::text ~ '^[0-9a-f]{64}$'::text", name: "oauth_link_intent_digests"
+  end
+
   create_table "parse_failures", force: :cascade do |t|
     t.string "accession_no", null: false
     t.text "error", null: false
@@ -780,6 +793,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_12_180000) do
   add_foreign_key "news_mentions", "news_items"
   add_foreign_key "notification_preferences", "users"
   add_foreign_key "oauth_identities", "users", on_delete: :cascade
+  add_foreign_key "oauth_link_intents", "sessions", on_delete: :cascade
   add_foreign_key "position_diffs", "institutional_filers"
   add_foreign_key "position_diffs", "institutional_reports"
   add_foreign_key "position_diffs", "institutional_reports", column: "prior_institutional_report_id"
