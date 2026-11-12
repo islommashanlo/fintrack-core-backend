@@ -5,11 +5,18 @@ class InAppNotification < ApplicationRecord
   belongs_to :filing
   belongs_to :insider_transaction, optional: true
   belongs_to :insider_cluster_snapshot, optional: true
+  belongs_to :institutional_change_snapshot, optional: true
   validates :event_type, inclusion: { in: AlertRule::IN_APP_EVENT_TYPES }
   validates :filing_id, uniqueness: { scope: :alert_rule_id, conditions: -> { where(event_type: "new_filing") } }, if: -> { event_type == "new_filing" }
   validates :txn_seq, uniqueness: { scope: [ :alert_rule_id, :filing_id, :security_table ], conditions: -> { where(event_type: "insider_transaction") } }, if: -> { event_type == "insider_transaction" }
   validates :insider_cluster_snapshot_id, uniqueness: { scope: :alert_rule_id }, allow_nil: true
+  validates :institutional_change_snapshot_id, uniqueness: { scope: :alert_rule_id }, allow_nil: true
   validate do
+    if event_type == "13f_change"
+      errors.add(:institutional_change_snapshot, "must match the primary source filing") unless institutional_change_snapshot && institutional_change_snapshot.primary_filing_id == filing_id
+    elsif institutional_change_snapshot_id
+      errors.add(:institutional_change_snapshot, "requires the institutional trigger")
+    end
     if event_type == "cluster"
       errors.add(:insider_cluster_snapshot, "must match the primary source filing") unless insider_cluster_snapshot && insider_cluster_snapshot.primary_filing_id == filing_id
     elsif insider_cluster_snapshot_id
@@ -27,10 +34,10 @@ class InAppNotification < ApplicationRecord
   validates :rule_revision, numericality: { only_integer: true, greater_than: 0 }
   validates :available_at, presence: true
 
-  scope :visible_at, ->(time, max_filing_id: nil) {
+  scope :visible_at, ->(time, max_filing_id: nil, max_report_id: nil) {
     scope = joins(:filing).where("in_app_notifications.published_at <= ? AND filings.filed_at <= ?", time, time)
       .where(filings: { parse_status: "parsed", form_type: Filing::SEC_INGEST_TYPES })
     scope = scope.where("filings.id <= ?", max_filing_id) if max_filing_id
-    InAppNotificationSource.apply(scope, as_of: time, max_filing_id:)
+    InAppNotificationSource.apply(scope, as_of: time, max_filing_id:, max_report_id:)
   }
 end

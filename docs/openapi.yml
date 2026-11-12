@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.38.0
+  version: 1.39.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -12,10 +12,10 @@ paths:
   "/notifications":
     get:
       operationId: listInAppNotifications
-      summary: List private published in-app filing, transaction and cluster notices
+      summary: List private published in-app filing, transaction, cluster and position-change notices
       description: Only published, source-visible notices count. Pending rows are hidden.
         Publication and ID ceilings are pinned by the user-bound cursor; read state
-        remains live. New-filing notices retain original/amendment history; transaction notices require effective source filings; cluster notices require every snapshot constituent source to remain valid. Pre-extension notification cursors must restart; new cursors also pin source filing IDs. No email
+        remains live. New-filing notices retain original/amendment history; transaction notices require effective source filings; cluster notices require every constituent source to remain valid; institutional notices require exact effective current/prior report sets and visible evidence. Version-3 cursors also pin report IDs, and old cursors must restart. Pre-extension notification cursors must restart; new cursors also pin source filing IDs. No email
         consent, publishing or enqueueing on reads.
       security:
       - CookieSession: []
@@ -3650,7 +3650,7 @@ paths:
       security:
       - CookieSession: []
         CsrfToken: []
-      description: Implemented triggers and typed conditions are accepted; in_app supports new_filing, insider_transaction and cluster, and other triggers remain email-only.
+      description: Implemented triggers and typed conditions are accepted; in_app supports new_filing, insider_transaction, cluster and 13f_change, and other triggers remain email-only.
         Activation requires consent/time zone and quota; Free instant configuration
         returns PRO_REQUIRED/instant_alerts/0. Frequency/condition changes require
         pause, which can be included in the same PATCH. Old configuration versions
@@ -4155,6 +4155,7 @@ components:
         - historical_filing_notice
         - transaction
         - cluster
+        - position_change
         properties:
           id:
             type: integer
@@ -4166,6 +4167,7 @@ components:
             - new_filing
             - insider_transaction
             - cluster
+            - 13f_change
           channel:
             type: string
             enum:
@@ -4224,6 +4226,14 @@ components:
             description: Immutable observed cluster with every source filing, observation
               time and frozen definition minimum; null for other triggers. Invalid constituent
               sources exclude the notification.
+          position_change:
+            type: object
+            nullable: true
+            allOf:
+            - "$ref": "#/components/schemas/InstitutionalAlertPosition"
+            description: Immutable institutional comparison and current/prior/evidence
+              SEC sources; null for other triggers. Superseded or unavailable report sets
+              exclude the notification.
     PushChannelEligibility:
       type: object
       required:
@@ -8623,7 +8633,7 @@ components:
             - in_app
           minItems: 1
           maxItems: 1
-          description: Exactly one channel per record. in_app supports new_filing, insider_transaction and cluster.
+          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster and 13f_change.
             Channel changes require a separate record; same follow/trigger shares a logical
             quota slot.
         frequency:
@@ -8887,6 +8897,7 @@ components:
             - new_filing
             - insider_transaction
             - cluster
+            - 13f_change
         rule_quota:
           type: object
           required:
@@ -8933,7 +8944,7 @@ components:
             - in_app
           minItems: 1
           maxItems: 1
-          description: Exactly one channel per record. in_app supports new_filing, insider_transaction and cluster.
+          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster and 13f_change.
             Channel changes require a separate record; same follow/trigger shares a logical
             quota slot.
         conditions:
@@ -8967,7 +8978,7 @@ components:
             - in_app
           minItems: 1
           maxItems: 1
-          description: Exactly one channel per record. in_app supports new_filing, insider_transaction and cluster.
+          description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster and 13f_change.
             Channel changes require a separate record; same follow/trigger shares a logical
             quota slot.
         conditions:

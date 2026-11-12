@@ -2,7 +2,7 @@
 
 class AlertRule < ApplicationRecord
   EVENT_TYPES = %w[new_filing insider_transaction cluster 13f_change news].freeze
-  IN_APP_EVENT_TYPES = %w[new_filing insider_transaction cluster].freeze
+  IN_APP_EVENT_TYPES = %w[new_filing insider_transaction cluster 13f_change].freeze
   CHANNELS = %w[email in_app].freeze
 
   belongs_to :follow

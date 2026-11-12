@@ -8,8 +8,10 @@ class InAppNotificationMatcher
     transactions = TransactionAlertMatcher.sql(filing, as_of:, channel: "in_app")
     capture(filing:, as_of:, event_type: "insider_transaction", source_sql: transactions) if transactions
     clusters = ClusterAlertMatcher.call(filing, as_of:, channel: "in_app")
-    capture(filing:, as_of:, event_type: "cluster", source_sql: cluster_matches(clusters)) if clusters.any?
-    InAppNotificationPublisher.call(filing_id: [ filing.id, *clusters.map { |row| row.fetch("filing_id") } ].uniq, as_of:)
+    capture(filing:, as_of:, event_type: "cluster", source_sql: snapshot_matches(clusters, source_key: "insider_cluster_snapshot_id")) if clusters.any?
+    changes = InstitutionalAlertMatcher.call(filing, as_of:, channel: "in_app")
+    capture(filing:, as_of:, event_type: "13f_change", source_sql: snapshot_matches(changes, source_key: "institutional_change_snapshot_id")) if changes.any?
+    InAppNotificationPublisher.call(filing_id: [ filing.id, *(clusters + changes).map { |row| row.fetch("filing_id") } ].uniq, as_of:)
   end
 
   def self.filing_matches(filing)
@@ -22,13 +24,13 @@ class InAppNotificationMatcher
   end
   private_class_method :filing_matches
 
-  def self.cluster_matches(matches)
-    fields = %w[id frequency rule_revision filing_id insider_cluster_snapshot_id]
+  def self.snapshot_matches(matches, source_key:)
+    fields = %w[id frequency rule_revision filing_id] + [ source_key ]
     connection = ApplicationRecord.connection
     values = matches.map { |row| "(#{fields.map { |field| connection.quote(row.fetch(field)) }.join(', ')})" }.join(", ")
-    "SELECT * FROM (VALUES #{values}) AS cluster_matches(#{fields.join(', ')})"
+    "SELECT * FROM (VALUES #{values}) AS snapshot_matches(#{fields.join(', ')})"
   end
-  private_class_method :cluster_matches
+  private_class_method :snapshot_matches
 
   def self.capture(filing:, as_of:, event_type:, source_sql:)
     connection = ApplicationRecord.connection
@@ -38,18 +40,20 @@ class InAppNotificationMatcher
     next_cutoff = "(CASE WHEN #{local_time} >= #{cutoff} THEN #{cutoff} + interval '1 day' ELSE #{cutoff} END)"
     due = "(#{next_cutoff} AT TIME ZONE notification_preferences.time_zone AT TIME ZONE 'UTC')"
     key = { "new_filing" => "alert_rule_id, filing_id", "insider_transaction" => "alert_rule_id, filing_id, security_table, txn_seq",
-      "cluster" => "alert_rule_id, insider_cluster_snapshot_id" }.fetch(event_type)
-    source_filing = event_type == "cluster" ? "matched.filing_id" : connection.quote(filing.id)
-    transaction = event_type == "cluster" ? "NULL::bigint, NULL::varchar, NULL::integer" : "matched.insider_transaction_id, matched.security_table, matched.txn_seq"
+      "cluster" => "alert_rule_id, insider_cluster_snapshot_id", "13f_change" => "alert_rule_id, institutional_change_snapshot_id" }.fetch(event_type)
+    snapshot_event = %w[cluster 13f_change].include?(event_type)
+    source_filing = snapshot_event ? "matched.filing_id" : connection.quote(filing.id)
+    transaction = snapshot_event ? "NULL::bigint, NULL::varchar, NULL::integer" : "matched.insider_transaction_id, matched.security_table, matched.txn_seq"
     cluster = event_type == "cluster" ? "matched.insider_cluster_snapshot_id" : "NULL::bigint"
+    institutional = event_type == "13f_change" ? "matched.institutional_change_snapshot_id" : "NULL::bigint"
     connection.execute(<<~SQL)
       INSERT INTO in_app_notifications
         (alert_rule_id, filing_id, rule_revision, frequency, time_zone, available_at, created_at, updated_at,
-          event_type, insider_transaction_id, security_table, txn_seq, insider_cluster_snapshot_id)
+          event_type, insider_transaction_id, security_table, txn_seq, insider_cluster_snapshot_id, institutional_change_snapshot_id)
       SELECT matched.id, #{source_filing}, matched.rule_revision, matched.frequency,
         CASE WHEN matched.frequency = 'daily_digest' THEN notification_preferences.time_zone END,
         CASE WHEN matched.frequency = 'instant' THEN #{now}::timestamp ELSE #{due} END,
-        #{now}::timestamp, #{now}::timestamp, #{connection.quote(event_type)}, #{transaction}, #{cluster}
+        #{now}::timestamp, #{now}::timestamp, #{connection.quote(event_type)}, #{transaction}, #{cluster}, #{institutional}
       FROM (#{source_sql}) matched
       INNER JOIN alert_rules rules ON rules.id = matched.id
       INNER JOIN follows ON follows.id = rules.follow_id

@@ -96,7 +96,7 @@ RSpec.describe "Independent in-app filing notifications" do
     other = create(:follow, user:, target_key: "FOURTH", skip_default_alert_rule: true)
     post api_v1_alert_rules_path, params: { follow_id: other.id, channels: [ "in_app" ] }, headers: api_headers, as: :json
     expect(response).to have_http_status(:payment_required)
-    rule(trigger: "13f_change")
+    rule(trigger: "news")
     expect(response).to have_http_status(:bad_request)
     id = user.alert_rules.find_by!(channel: "in_app").id
     patch api_v1_alert_rule_path(id), params: { channels: [ "email" ] }, headers: api_headers, as: :json

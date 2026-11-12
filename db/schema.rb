@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_12_220000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_12_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -299,16 +299,19 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_12_220000) do
     t.string "security_table"
     t.integer "txn_seq"
     t.bigint "insider_cluster_snapshot_id"
+    t.bigint "institutional_change_snapshot_id"
     t.index ["alert_rule_id", "filing_id", "security_table", "txn_seq"], name: "in_app_notifications_unique_transaction", unique: true, where: "((event_type)::text = 'insider_transaction'::text)"
     t.index ["alert_rule_id", "filing_id"], name: "in_app_notifications_unique_filing", unique: true, where: "((event_type)::text = 'new_filing'::text)"
     t.index ["alert_rule_id", "insider_cluster_snapshot_id"], name: "in_app_notifications_unique_cluster", unique: true, where: "((event_type)::text = 'cluster'::text)"
+    t.index ["alert_rule_id", "institutional_change_snapshot_id"], name: "in_app_notifications_unique_institutional", unique: true, where: "((event_type)::text = '13f_change'::text)"
     t.index ["alert_rule_id"], name: "index_in_app_notifications_on_alert_rule_id"
     t.index ["available_at"], name: "in_app_notifications_pending", where: "(published_at IS NULL)"
     t.index ["filing_id"], name: "index_in_app_notifications_on_filing_id"
     t.index ["insider_cluster_snapshot_id"], name: "index_in_app_notifications_on_insider_cluster_snapshot_id"
     t.index ["insider_transaction_id"], name: "index_in_app_notifications_on_insider_transaction_id"
+    t.index ["institutional_change_snapshot_id"], name: "index_in_app_notifications_on_institutional_change_snapshot_id"
     t.index ["published_at", "id"], name: "index_in_app_notifications_on_published_at_and_id"
-    t.check_constraint "event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL AND security_table IS NULL AND txn_seq IS NULL AND insider_cluster_snapshot_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND security_table IS NOT NULL AND (security_table::text = ANY (ARRAY['non_derivative'::character varying, 'derivative'::character varying]::text[])) AND txn_seq IS NOT NULL AND txn_seq > 0 AND insider_cluster_snapshot_id IS NULL OR event_type::text = 'cluster'::text AND insider_cluster_snapshot_id IS NOT NULL AND insider_transaction_id IS NULL AND security_table IS NULL AND txn_seq IS NULL", name: "in_app_notification_source"
+    t.check_constraint "event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL AND security_table IS NULL AND txn_seq IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND security_table IS NOT NULL AND (security_table::text = ANY (ARRAY['non_derivative'::character varying, 'derivative'::character varying]::text[])) AND txn_seq IS NOT NULL AND txn_seq > 0 AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'cluster'::text AND insider_cluster_snapshot_id IS NOT NULL AND insider_transaction_id IS NULL AND security_table IS NULL AND txn_seq IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = '13f_change'::text AND institutional_change_snapshot_id IS NOT NULL AND insider_transaction_id IS NULL AND security_table IS NULL AND txn_seq IS NULL AND insider_cluster_snapshot_id IS NULL", name: "in_app_notification_source"
     t.check_constraint "read_at IS NULL OR published_at IS NOT NULL", name: "in_app_notification_read_state"
     t.check_constraint "rule_revision > 0 AND (frequency::text = ANY (ARRAY['instant'::character varying, 'daily_digest'::character varying]::text[]))", name: "in_app_notification_configuration"
   end
@@ -813,6 +816,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_12_220000) do
   add_foreign_key "in_app_notifications", "filings"
   add_foreign_key "in_app_notifications", "insider_cluster_snapshots"
   add_foreign_key "in_app_notifications", "insider_transactions"
+  add_foreign_key "in_app_notifications", "institutional_change_snapshots"
   add_foreign_key "insider_cluster_snapshots", "filings", column: "primary_filing_id"
   add_foreign_key "insider_transactions", "filings"
   add_foreign_key "institutional_change_snapshots", "filings", column: "primary_filing_id"

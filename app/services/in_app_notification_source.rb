@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 class InAppNotificationSource
-  def self.apply(scope, as_of:, max_filing_id: nil)
+  def self.apply(scope, as_of:, max_filing_id: nil, max_report_id: nil)
     effective = Form4ReadScope.new(as_of:, max_filing_id:).effective_filings.select(:id).to_sql
     now = ApplicationRecord.connection.quote(as_of)
+    reports = InstitutionalAlertValidity.report_sets_sql(as_of:, max_filing_id:, max_report_id:)
     scope.where(<<~SQL.squish)
       in_app_notifications.event_type = 'new_filing' OR (
         in_app_notifications.event_type = 'insider_transaction'
@@ -34,6 +35,14 @@ class InAppNotificationSource
                 OR source.transaction_code IS DISTINCT FROM snapshot.transaction_code
                 OR source.issuer_cik IS DISTINCT FROM snapshot.issuer_cik
             )
+        )
+      ) OR (
+        in_app_notifications.event_type = '13f_change' AND EXISTS (
+          SELECT 1 FROM institutional_change_snapshots snapshot
+          WHERE snapshot.id = in_app_notifications.institutional_change_snapshot_id
+            AND snapshot.primary_filing_id = in_app_notifications.filing_id
+            AND snapshot.observed_at <= #{now}
+            AND (#{reports})
         )
       )
     SQL
