@@ -2047,3 +2047,5 @@ production delivery have not been exercised. See
 ## Push subscription registration
 
 Private `GET/POST /api/v1/push-subscriptions` and `DELETE /api/v1/push-subscriptions/:id` manage encrypted, session-bound device registrations. Browser mutations require CSRF tokens; outbound delivery remains disabled. See [the lifecycle contract](push-subscriptions.md).
+
+Notification preferences also accept `push_enabled` and return private push eligibility metadata. Consent, current-session device readiness and Pro instant-alert entitlement are evaluated separately; `delivery_disabled` always blocks push. Email settings and unsubscribe links remain independent.

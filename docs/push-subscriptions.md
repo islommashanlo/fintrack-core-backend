@@ -17,3 +17,11 @@ Responses expose only id, endpoint origin, expiry, consent/creation/update times
 No sender, service worker, VAPID keys, provider adapter, notification preference or push entitlement is activated here. Future transport work must validate endpoint routing and application-server binding and enforce current consent and plan policy before delivery.
 
 Protocol references: [Push API JSON serialization](https://www.w3.org/TR/2026/WD-push-api-20261111/) and [RFC 8291 encryption inputs](https://www.rfc-editor.org/rfc/rfc8291.html). Tests use synthetic endpoints and ephemeral public keys, with WebMock blocking external requests.
+
+## Account consent and eligibility
+
+`GET/PATCH /api/v1/me/notification-preferences` now includes a separate `push_enabled` boolean (default false). PATCH accepts only a native boolean; registering a device never enables account-level consent. Enabling push does not require an email digest time zone. Email consent and email unsubscribe versions remain independent. The server records `push_enabled_at` on the first opt-in and every false-to-true transition; repeated true preserves that window. Disabling consent keeps device registrations available for later opt-in or explicit revocation.
+
+The private response adds `push` with `consent_enabled`, `current_session_device`, `plan_eligible`, `delivery_enabled`, `eligible` and `blockers`. Device readiness requires an unexpired registration attached to the requesting login session; another login's device does not qualify. The plan check reuses the server's verified Pro instant-alert entitlement. Consent may be stored on Free without granting that entitlement. Blockers are returned in order: consent_required, device_required, pro_required, delivery_disabled (omitting satisfied prerequisites). Delivery remains disabled for every account, so eligible is always false. This reports prerequisites only; push alert-rule channels still return 400 and no delivery jobs are queued. Existing configured and digest_local_time fields continue to describe email setup.
+
+Reads never create preferences or consent. All writes retain account authentication, CSRF protection, strict input validation and serialized per-account updates. These fields require the local default-off consent migration; existing accounts receive no opt-in.

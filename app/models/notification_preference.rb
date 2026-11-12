@@ -20,6 +20,7 @@ class NotificationPreference < ApplicationRecord
   end
 
   def record_consent
+    self.push_enabled_at = Time.current if push_enabled? && (will_save_change_to_push_enabled? || push_enabled_at.nil?)
     self.email_enabled_at = Time.current if email_enabled? && (will_save_change_to_email_enabled? || email_enabled_at.nil?)
   end
 end

@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.30.0
+  version: 1.31.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -3379,10 +3379,10 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
     patch:
       operationId: updateNotificationPreferences
-      summary: Set explicit notification time zone and email consent
-      description: Only time_zone and email_enabled are writable. A valid IANA zone
-        is required before enabling email. Consent changes revoke prior unsubscribe
-        versions; re-opt-in starts a new email window without replaying the old backlog.
+      summary: Set independent email and push consent preferences
+      description: Only time_zone, email_enabled and push_enabled are writable.
+        A valid IANA zone is required before enabling email. Push consent is independent
+        and does not alter email unsubscribe versions. Push delivery remains disabled.
       security:
       - CookieSession: []
         CsrfToken: []
@@ -3400,6 +3400,8 @@ paths:
                   nullable: true
                   maxLength: 100
                 email_enabled:
+                  type: boolean
+                push_enabled:
                   type: boolean
       responses:
         '200':
@@ -3509,6 +3511,39 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
 components:
   schemas:
+    PushChannelEligibility:
+      type: object
+      required:
+      - consent_enabled
+      - current_session_device
+      - plan_eligible
+      - delivery_enabled
+      - eligible
+      - blockers
+      properties:
+        consent_enabled:
+          type: boolean
+        current_session_device:
+          type: boolean
+        plan_eligible:
+          type: boolean
+        delivery_enabled:
+          type: boolean
+          enum:
+          - false
+        eligible:
+          type: boolean
+          enum:
+          - false
+        blockers:
+          type: array
+          items:
+            type: string
+            enum:
+            - consent_required
+            - device_required
+            - pro_required
+            - delivery_disabled
     PushSubscription:
       type: object
       required:
@@ -8182,12 +8217,18 @@ components:
       - email_enabled
       - digest_local_time
       - configured
+      - push_enabled
+      - push
       properties:
         time_zone:
           type: string
           nullable: true
         email_enabled:
           type: boolean
+        push_enabled:
+          type: boolean
+        push:
+          "$ref": "#/components/schemas/PushChannelEligibility"
         digest_local_time:
           type: string
           enum:

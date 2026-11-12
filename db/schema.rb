@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_11_234500) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_12_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -553,6 +553,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_11_234500) do
     t.integer "unsubscribe_version", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "push_enabled", default: false, null: false
+    t.datetime "push_enabled_at"
     t.index ["user_id"], name: "index_notification_preferences_on_user_id", unique: true
     t.check_constraint "unsubscribe_version >= 0", name: "notification_unsubscribe_version"
   end
