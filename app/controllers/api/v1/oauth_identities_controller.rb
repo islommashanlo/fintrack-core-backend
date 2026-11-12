@@ -7,7 +7,7 @@ module Api
         read_parameters(allowed: [])
         records = Current.user.oauth_identities.order(:id).pluck(:id, :provider, :created_at)
         render json: { data: records.map { |id, provider, created_at| { id:, provider:, linked_at: created_at } },
-          meta: { linking_enabled: Oauth::GoogleLinking.enabled?, sign_in_enabled: false, unlinking_enabled: true } }
+          meta: { linking_enabled: Oauth::GoogleLinking.enabled?, sign_in_enabled: Oauth::GoogleSignIn.enabled?, unlinking_enabled: true } }
       end
 
       def destroy

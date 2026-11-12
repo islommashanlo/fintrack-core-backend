@@ -2,13 +2,141 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.34.0
+  version: 1.35.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
 servers:
 - url: "/api/v1"
 paths:
+  "/auth/google/start":
+    post:
+      operationId: startGoogleSignIn
+      summary: Start a browser-bound sign-in for an already-linked Google account
+      description: Signed-out browsers only. Private/no-store. Seed the anonymous browser
+        session via /auth/csrf and include cookies plus X-CSRF-Token. Accepts no parameters.
+        Separate sign-in flag defaults off; a configured Google client ID is required.
+        Return nonce to the frontend Google flow and retain state. No redirect or provider
+        request on start. Replaces the prior browser challenge.
+      security:
+      - CsrfToken: []
+      responses:
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '409':
+          description: 'ALREADY_SIGNED_IN: explicitly sign out before another sign-in'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          description: 'OAUTH_UNAVAILABLE: disabled/incomplete configuration, unavailable
+            keys or Redis; also shared limiter outage'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '200':
+          description: Five-minute challenge; no local user or identity created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - state
+                    - nonce
+                    - expires_at
+                    - client_id
+                    properties:
+                      state:
+                        type: string
+                        pattern: "^[A-Za-z0-9_-]{43}$"
+                      nonce:
+                        type: string
+                        pattern: "^[A-Za-z0-9_-]{43}$"
+                      expires_at:
+                        type: string
+                        format: date-time
+                      client_id:
+                        type: string
+  "/auth/google/complete":
+    post:
+      operationId: completeGoogleSignIn
+      summary: Verify a browser-bound Google token and sign in an already-linked subject
+      description: 'Private/no-store, original anonymous browser session and CSRF required.
+        No automatic account creation or email matching. At most one completion via
+        Redis GETDEL. Redis loss fails closed. Success rotates browser session/CSRF
+        and preserves other active sessions. Session-creation failure burns the challenge:
+        start again. This is a JavaScript JSON flow, not a provider redirect/form-post
+        receiver.'
+      security:
+      - CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - state
+              - id_token
+              properties:
+                state:
+                  type: string
+                  pattern: "^[A-Za-z0-9_-]{43}$"
+                id_token:
+                  type: string
+                  writeOnly: true
+                  minLength: 1
+                  maxLength: 16384
+      responses:
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          description: 'OAUTH_INVALID: invalid/replayed challenge, failed token checks
+            or unlinked subject'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '409':
+          description: 'ALREADY_SIGNED_IN: explicitly sign out before another sign-in'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          description: 'OAUTH_UNAVAILABLE: disabled/incomplete configuration, unavailable
+            keys or Redis; also shared limiter outage'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/AccountSession"
   "/me/oauth-identities/google/start":
     post:
       operationId: startGoogleAccountLink
@@ -207,8 +335,6 @@ paths:
                         type: boolean
                       sign_in_enabled:
                         type: boolean
-                        enum:
-                        - false
                       unlinking_enabled:
                         type: boolean
                         enum:

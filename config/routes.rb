@@ -11,6 +11,8 @@ Rails.application.routes.draw do
   post "email/unsubscribe/:token" => "api/v1/email_subscriptions#destroy"
   namespace :api do
     namespace :v1 do
+      post "auth/google/start" => "google_sign_in#start", as: :google_sign_in_start
+      post "auth/google/complete" => "google_sign_in#complete", as: :google_sign_in_complete
       get "auth/csrf" => "auth#csrf"
       post "auth/signup" => "auth#signup"
       post "auth/login" => "auth#login"
