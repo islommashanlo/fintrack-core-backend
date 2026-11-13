@@ -98,6 +98,9 @@ RSpec.describe "Operator endpoints" do
         expect(metrics.dig("queues", "workers_checked")).to be(false)
         expect(metrics.dig("notifications", "channels", "email")).to include("receipt_observed" => false, "failure_timestamp_recorded" => false)
         expect(metrics.dig("notifications", "channels", "in_app", "by_frequency", "instant", "completion_lag_seconds", "p95")).to be_nil
+        expect(metrics.dig("health", "policy_version")).to eq("ops-health-v2")
+        expect(metrics.dig("health", "checks")).to include(include("id" => "notifications.email.receipt", "status" => "unknown"))
+        expect(metrics.dig("health", "thresholds", "notification_instant_seconds")).to eq(120)
         expect(metrics.dig("health", "status")).to eq("attention")
         expect(metrics.dig("health", "checks")).to include(include("id" => "archive_files", "status" => "unknown"))
         expect(metrics.dig("archives", "filesystem_checked")).to be(false)

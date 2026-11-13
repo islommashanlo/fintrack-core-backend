@@ -31,9 +31,9 @@ RSpec.describe OpsHealthSummary do
     expect(Sidekiq).not_to receive(:redis)
     expect(FilingArchive).not_to receive(:default)
     result = summary
-    expect(result).to include("status" => "unknown", "policy_version" => "ops-health-v1")
+    expect(result).to include("status" => "unknown", "policy_version" => "ops-health-v2")
     expect(result.dig("counts", "attention")).to eq(0)
-    expect(result.dig("counts", "unknown")).to eq(3)
+    expect(result.dig("counts", "unknown")).to eq(4)
     expect(Marshal.dump(snapshot)).to eq(original)
     expect(checks.fetch("set.scheduled")).to include("status" => "ok", "reason" => "counts_attributed")
     expect(WebMock).not_to have_requested(:any, /./)
@@ -47,7 +47,7 @@ RSpec.describe OpsHealthSummary do
     snapshot[:ingestion][:pollers][:form4][:seconds_since_last_successful_poll] = 301
     expect(checks.fetch("poll.form4")).to include("status" => "attention", "threshold" => 300)
     expect(summary.fetch("status")).to eq("attention")
-    expect(summary.dig("counts", "unknown")).to eq(3)
+    expect(summary.dig("counts", "unknown")).to eq(4)
     snapshot[:ingestion][:by_form]["13F-HR"][:live_ingestion_lag_seconds][:p95] = 601
     snapshot[:queues][:ready]["alerts"][:tail_age_seconds] = 601
     expect(checks.fetch("form.13F-HR.latency").fetch("status")).to eq("attention")
@@ -115,5 +115,16 @@ RSpec.describe OpsHealthSummary do
     expect(checks.fetch("set.dead").fetch("status")).to eq("attention")
     data[:malformed_payloads] = 1
     expect(checks.fetch("set.scheduled")).to include("status" => "attention", "reason" => "malformed_payloads")
+  end
+
+  it "rolls up a known notification failure while preserving unknown recipient coverage" do
+    snapshot[:notifications] = { channels: {}, digest_batches: { total: 1, failed: 1, sending: 0, pending: 0,
+      sending_missing_start_timestamp: 0, sending_future_start_timestamp: 0, sent_missing_completion_timestamp: 0, sent_future_completion_timestamp: 0 } }
+    result = summary
+    expect(result.fetch("status")).to eq("attention")
+    expect(result.dig("counts", "attention")).to eq(1)
+    expect(checks.fetch("notifications.digest_batches.failures").fetch("status")).to eq("attention")
+    expect(checks.fetch("notifications.email").fetch("status")).to eq("unknown")
+    expect(checks.fetch("workers").fetch("status")).to eq("unknown")
   end
 end

@@ -6,12 +6,13 @@ result: no new SQL, Redis, filesystem, provider or job operation is performed.
 Input observations are copied, not modified. No state is stored and no worker,
 scheduler, delivery, monitor, repair or retry is activated.
 
-The summary uses the form-scoped ingestion section, archive-reference coverage
-and bounded queue metrics. It does not use the legacy mixed-form ratios.
+The summary uses the form-scoped ingestion section, archive-reference coverage,
+bounded queue metrics and stored notification observations. It does not use the
+legacy mixed-form ratios.
 
 ## Shape and rollup
 
-`health` has `policy_version: ops-health-v1`, `status`, `thresholds`, `counts`
+`health` has `policy_version: ops-health-v2`, `status`, `thresholds`, `counts`
 and `checks`. Each check has a stable `id`, `status`, machine-readable `reason`,
 `observed` evidence and nullable `threshold`. IDs use form, poll family or queue
 names, for example `form.13F-HR.latency` and `queue.sec_live_form4`.
@@ -42,6 +43,9 @@ settings. Equality is within the limit; only strictly greater values trigger
 | `ingestion_lag_seconds` | 600 | Per-form p95 acceptance-to-first-ingest latency |
 | `pending_age_seconds` | 600 | Oldest detected live pending filing |
 | `queue_tail_age_seconds` | 600 | Known tail-job age in each configured ready queue |
+| `notification_instant_seconds` | 120 | Instant creation-to-completion and direct live SEC acceptance-to-completion p95 |
+| `notification_due_seconds` | 120 | Eligible in-app pending age measured after availability |
+| `digest_sending_seconds` | 600 | Age of an observed digest batch still sending |
 
 The five-minute poll-age watch follows the historical Phase 2 operating
 recommendation. The ten-minute latency watch follows the backend ingestion-lag
@@ -90,9 +94,59 @@ not a new load-balancer, deployment, public API or automatic alert gate.
 Collector failures still propagate through the existing metrics path; the summary
 does not catch infrastructure exceptions and fabricate healthy observations.
 The metrics are not an atomic cross-store snapshot. Notification observations
-are exposed separately in `notifications` and are not interpreted by health
-policy v1. Content verification, backup restoration,
-recipient receipt, worker heartbeats, unknown queues, external
+are exposed separately in `notifications`; policy v2 interprets only the
+supported application outcome observations described below. Content verification,
+backup restoration, recipient receipt, worker heartbeats, unknown queues, external
 receivers, production latency and complete SEC coverage remain separate work.
 Specs cover the pure policy, threshold boundaries, unknown coverage, mixed
 observations, input preservation, operator JSON and readiness compatibility.
+
+## Notification checks in policy v2
+
+Policy v2 keeps existing check IDs and statuses, adds notification checks and
+publishes the additional thresholds above. The two-minute watches are review
+limits based on the instant-alert requirement, not proof of recipient delivery.
+The ten-minute digest sending watch is an operator review default, not a retry
+permission. No external alert or readiness gate is activated.
+
+| ID suffix under `notifications.<channel>.<frequency>` | Policy |
+| --- | --- |
+| `.failures` | Email failed rows require review; no rows is unknown. In-app failure tracking is unrecorded and stays unknown even with a zero counter |
+| `.timestamps` | Missing/future completion, negative completion or SEC lag, and early in-app publication require review; no recorded completion is unknown |
+| `.backlog` | Email eligibility is unchecked, so raw pending age stays unknown. In-app compares only eligible due rows against 120 seconds; none is ok for this observation |
+| `.completion_lag` | Instant groups only: sample p95 above 120 seconds requires review; no usable sample is unknown |
+| `.sec_lag` | Instant direct live filing events only: sample p95 above 120 seconds requires review; no usable sample is unknown |
+| `.sec_timing_coverage` | Instant groups only: no cohort or missing acceptance stamps is unknown; recorded stamp presence is distinct from timestamp consistency |
+
+Daily digest creation-to-completion waits are intentionally not thresholded as
+instant latency. Future daily availability and policy-suppressed pending rows do
+not become eligible backlog. Missing first/last stamps and invalid timing pairs
+are retained as observations; the policy never fills or corrects them.
+
+`notifications.email.receipt` and `notifications.in_app.receipt` are always
+unknown in this policy. Their evidence distinguishes recorded mailer return from
+row publication; neither demonstrates provider acknowledgment or recipient
+receipt. `notifications.push` remains unmeasured. Email failure timestamps are
+not recorded, so no recent failure rate or attempt-level probability is inferred.
+
+Digest batch checks use `notifications.digest_batches`:
+
+- `.failures`: current failed batches require review; no batches is unknown.
+- `.timestamps`: missing/future sending starts or sent completion stamps require
+  review; an empty batch history is unknown.
+- `.sending_age`: no sending batch is ok for this observation; known start age
+  above 600 seconds requires review; missing start age stays unknown.
+- `.pending_eligibility`: unknown because raw pending batch age does not establish
+  current send eligibility.
+
+A `sending` outcome may be unresolved after mailer return and a database failure.
+Neither an old start nor an attention status makes a resend safe. Batch and
+outbox-row counts remain separate; no duplicate attempt count is constructed.
+
+When the entire notification section or a channel is absent from an older
+metrics result, it produces an unknown observation rather than fabricated zero
+outcomes. Supported channel fields otherwise follow the collector's contract;
+missing required counters fail visibly rather than silently becoming healthy.
+The existing rollup prioritizes known attention conditions and preserves all
+unknown receipt, worker and filesystem checks. The summary remains pure, does
+not modify its input, and performs no new I/O or state changes.

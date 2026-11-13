@@ -26,8 +26,8 @@ claim without a corresponding attempt/failure timestamp history.
 Raw outcomes include retained rows from subsequently disabled rules, removed
 follows, revoked consent or superseded sources. They describe recorded processing,
 not current eligibility, current inbox visibility or a valid outgoing message.
-The health summary policy v1 remains scoped to its existing observations; it does
-not yet interpret this new section.
+Health policy v2 now interprets supported observations while preserving unknown
+receipt and eligibility coverage; see `ops-health-summary.md`.
 
 ## Frequency groups and completion timing
 

@@ -2,6 +2,7 @@
 
 # Pure interpretation of one operator metrics result; performs no additional I/O.
 class OpsHealthSummary
+  include OpsHealthChecks
   THRESHOLDS = { poll_age_seconds: 300, ingestion_lag_seconds: 600, pending_age_seconds: 600, queue_tail_age_seconds: 600 }.freeze
 
   def initialize(metrics:)
@@ -9,29 +10,21 @@ class OpsHealthSummary
   end
 
   def to_h
-    checks = poll_checks + form_checks + queue_checks + coverage_checks
+    checks = poll_checks + form_checks + queue_checks + coverage_checks + notification_checks
     failures = @metrics.fetch("ingestion").fetch("unclassified_parse_failures")
     checks << count_check("unclassified_parse_failures", failures.fetch("unresolved"), failures)
     counts = %w[ok attention unknown].to_h { |status| [ status, checks.count { |check| check.fetch(:status) == status } ] }
     status = counts["attention"].positive? ? "attention" : (counts["unknown"].positive? ? "unknown" : "ok")
-    { policy_version: "ops-health-v1", status:, thresholds: THRESHOLDS, counts:, checks: }
+    { policy_version: "ops-health-v2", status:, thresholds: THRESHOLDS.merge(OpsNotificationHealth::THRESHOLDS), counts:, checks: }
   end
 
   private
 
-  def check(id, status, reason, observed, threshold = nil)
-    { id:, status:, reason:, observed:, threshold: }
-  end
+  def notification_checks
+    observations = @metrics["notifications"]
+    return [ check("notifications", "unknown", "notifications_not_observed", {}) ] unless observations
 
-  def count_check(id, count, observed)
-    check(id, count.positive? ? "attention" : "ok", count.positive? ? "records_require_review" : "none_observed", observed, 0)
-  end
-
-  def threshold_check(id, value, threshold, observed)
-    return check(id, "unknown", "missing_timing_coverage", observed, threshold) if value.nil?
-
-    exceeded = value > threshold
-    check(id, exceeded ? "attention" : "ok", exceeded ? "threshold_exceeded" : "within_threshold", observed, threshold)
+    OpsNotificationHealth.new(notifications: observations).checks
   end
 
   def poll_checks

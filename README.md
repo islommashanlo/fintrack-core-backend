@@ -197,3 +197,9 @@ completion timing, eligible in-app due backlog and digest-batch states. Email
 completion means the recorded mailer return, not recipient receipt; push and
 receipt coverage remain unknown/unsupported. No sends or scheduling changes are
 performed. See [notification metrics](docs/notification-metrics.md).
+
+Health policy `ops-health-v2` now includes notification failures, timestamp
+anomalies, eligible in-app due age and digest sending age. Instant completion
+watches use 120 seconds; long daily waiting periods are not treated as instant
+latency. Unknown receipt, email eligibility and in-app failure tracking remain
+explicit. The policy performs no additional I/O, retries or sends.
