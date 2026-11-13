@@ -153,16 +153,16 @@ RSpec.describe "Watchlist filing email" do
     end.to raise_error(ActiveRecord::StatementInvalid)
   end
 
-  it "does not send a Free instant rule or activate a different watchlist trigger" do
+  it "rejects Free instant delivery and unadvertised watchlist triggers" do
     follow
     consent_email(user)
     api_login(user)
     post api_v1_alert_rules_path, params: { scope: "watchlist", channels: [ "email" ], frequency: "instant", active: true },
       headers: api_headers, as: :json
     expect(response).to have_http_status(:payment_required)
-    post api_v1_alert_rules_path, params: { scope: "watchlist", trigger: "news", channels: [ "email" ], active: true },
+    post api_v1_alert_rules_path, params: { scope: "watchlist", trigger: "unsupported", channels: [ "email" ], active: true },
       headers: api_headers, as: :json
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:bad_request)
   end
   it "isolates same-entity accounts in history, read-all and deletion" do
     follow

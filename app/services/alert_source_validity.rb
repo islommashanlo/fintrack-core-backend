@@ -7,12 +7,16 @@ class AlertSourceValidity
     scope = scope.where(<<~SQL.squish)
       EXISTS (SELECT 1 FROM alert_rules source_rule WHERE source_rule.id = alert_deliveries.alert_rule_id
         AND (source_rule.scope = 'follow' OR (
-          source_rule.scope = 'watchlist' AND alert_deliveries.event_type IN ('new_filing', 'insider_transaction', 'cluster', '13f_change')
+          source_rule.scope = 'watchlist' AND ((alert_deliveries.event_type = 'news' AND EXISTS (
+            SELECT 1 FROM watchlist_news_memberships witness
+            WHERE witness.alert_delivery_id = alert_deliveries.id AND witness.alert_rule_id = source_rule.id
+              AND witness.user_id = source_rule.user_id AND witness.news_item_id = alert_deliveries.news_item_id
+          )) OR (alert_deliveries.event_type IN ('new_filing', 'insider_transaction', 'cluster', '13f_change')
           AND EXISTS (SELECT 1 FROM filings source WHERE source.id = alert_deliveries.filing_id
             AND source.parse_status = 'parsed' AND source.form_type IN (#{types}) AND source.filed_at <= #{now})
           AND EXISTS (SELECT 1 FROM watchlist_filing_memberships witness
             WHERE witness.alert_delivery_id = alert_deliveries.id AND witness.user_id = source_rule.user_id
-              AND witness.alert_rule_id = source_rule.id AND witness.filing_id = alert_deliveries.filing_id)
+              AND witness.alert_rule_id = source_rule.id AND witness.filing_id = alert_deliveries.filing_id)))
         )))
     SQL
     effective = Form4ReadScope.new(as_of:).effective_filings.select(:id)

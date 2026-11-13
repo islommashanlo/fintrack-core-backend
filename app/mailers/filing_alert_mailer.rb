@@ -3,10 +3,13 @@
 class FilingAlertMailer < ApplicationMailer
   def news_item(delivery)
     @news = delivery.news_alert_snapshot
+    @watchlist_evidence = if delivery.alert_rule.scope == "watchlist"
+      Api::V1::WatchlistFilingEvidenceSerializer.new(ids: [ delivery.id ], channel: "email").render(delivery.id)
+    end
     user = delivery.alert_rule.user
     headers["List-Unsubscribe"] = "<#{EmailUnsubscribe.url(user)}>"
     headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
-    mail to: user.email_address, subject: NewsAlertText.subject(delivery.alert_rule.follow.target_key)
+    mail to: user.email_address, subject: NewsAlertText.subject(@watchlist_evidence ? "your watchlist" : delivery.alert_rule.follow.target_key)
   end
 
   def new_filing(delivery)

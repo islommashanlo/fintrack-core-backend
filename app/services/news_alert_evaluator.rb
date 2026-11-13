@@ -3,6 +3,7 @@
 class NewsAlertEvaluator
   def self.call(item, as_of: Time.current)
     InAppNotificationMatcher.news(item, as_of:)
+    WatchlistNewsMatcher.call(item, channel: "email", as_of:)
     inserted_ids, instant_ids = NewsAlertSnapshot.transaction do
       rows = NewsAlertMatcher.call(item, as_of:).map do |row|
         { alert_rule_id: row.fetch("rule_id"), news_item_id: row.fetch("news_item_id"),

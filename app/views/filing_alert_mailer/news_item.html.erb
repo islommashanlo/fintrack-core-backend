@@ -4,3 +4,7 @@ First observed: <%= @news.item_observed_at.iso8601 %>.<br>
 Matched entity: <%= @news.role %> <%= @news.cik %>.</p>
 <p><%= link_to "View the headline source", @news.url %></p>
 <p><%= FilingsIntel::DISCLAIMER %></p>
+
+<% if @watchlist_evidence %><p>Matched your watchlist.</p>
+<ul><% @watchlist_evidence.fetch(:matched_entities).each do |entity| %><li><%= entity.fetch(:type).humanize %> <%= entity.fetch(:key) %></li><% end %></ul>
+<% if @watchlist_evidence.fetch(:matched_entities_truncated) %><p>Additional captured matches are recorded in your alert history.</p><% end %><% end %>

@@ -4,7 +4,7 @@ module Api
   module V1
     class WatchlistFilingEvidenceSerializer
       def initialize(ids:, channel:)
-        @summaries = WatchlistFilingMembership.summaries(ids, channel:)
+        @summaries = WatchlistFilingMembership.summaries(ids, channel:).merge(WatchlistNewsMembership.summaries(ids, channel:))
       end
 
       def render(id)

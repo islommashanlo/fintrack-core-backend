@@ -6,8 +6,8 @@ This design covers the existing five triggers and email/in-app channels. It does
 not add global rules, push delivery, unsupported filing forms or scoring. The
 ownership foundation, reader refactor and paused watchlist draft API are implemented.
 Watchlist new_filing matching is implemented for email and in_app with independent
-destinations and shared logical quotas. Watchlist insider_transaction, cluster and 13f_change are also implemented in both channels.
-News remains draft-only.
+destinations and shared logical quotas. Watchlist insider_transaction, cluster, 13f_change and news are also implemented in both channels.
+All five existing triggers now support both channels.
 
 Rules now store user_id, inferred from the follow on normal creation. A user FK,
 not-null constraint and composite (follow_id, user_id) FK enforce ownership even
@@ -228,7 +228,7 @@ insider_transaction is implemented in both channels, with shared predicate SQL,
 line-level deduplication, eligible-owner evidence and captured membership epochs.
 Email adds sparse private line identity without changing old follow-specific keys.
 See docs/watchlist-transaction-alerts.md for source/amendment behavior, migration
-costs and regression evidence. Clusters and 13F changes are now supported; news is the next unsupported watchlist trigger.
+costs and regression evidence. Clusters and 13F changes are now supported; news is supported by the subsequent extension.
 
 ## Cluster query prerequisite
 
@@ -251,7 +251,7 @@ Both channels use shared constituent-source validity, and delayed windows enqueu
 and publish by their primary filing. No cluster definition, source identity or
 cursor version changes. The activation-constraint migration ran only in the test
 database. See docs/watchlist-cluster-alerts.md for behavior, migration costs and
-verification. Watchlist 13f_change is supported by the subsequent increment; news remains inactive.
+verification. Watchlist 13f_change is supported by the subsequent increment; news is supported by the subsequent extension.
 
 
 ## Watchlist institutional extension
@@ -264,4 +264,17 @@ epochs, delayed primary filings, amendments, pending consent/plan/revision check
 digests and enqueue recovery retain the existing semantics. Email also verifies
 snapshot primary identity and observation time. The activation-constraint migration
 ran only in the test database. See docs/watchlist-institutional-alerts.md for
-behavior, migration costs and verification. Watchlist news remains inactive.
+behavior, migration costs and verification. Watchlist news is supported by the subsequent extension.
+
+
+## Watchlist news extension
+
+All five advertised triggers now activate in email/in_app. News has its own
+immutable membership table with composite owner/story/snapshot/destination FKs.
+The matcher deduplicates per story while atomically capturing all matching
+canonical witnesses. Pending eligibility requires live membership and canonical
+validity on the same original witness; publication time, representative evidence,
+provider revocation, cursor ceilings and published-history behavior remain enforced.
+Shared bounded summary SQL covers both evidence tables. The migration ran only
+in the test database. See docs/watchlist-news-alerts.md for behavior, migration
+costs and verification. Push, global scope and live provider activation are separate.

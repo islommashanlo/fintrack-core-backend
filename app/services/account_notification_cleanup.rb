@@ -2,6 +2,7 @@
 
 class AccountNotificationCleanup
   def self.call(user)
+    WatchlistNewsMembership.where(user_id: user.id).delete_all
     WatchlistFilingMembership.where(user_id: user.id).delete_all
     InAppNotification.where(alert_rule_id: user.alert_rules.select(:id)).delete_all
     batches = user.alert_digest_batches.select(:id)

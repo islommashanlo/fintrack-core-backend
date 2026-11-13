@@ -23,7 +23,7 @@ class AlertRule < ApplicationRecord
   end
 
   def watchlist_activation_supported?
-    %w[new_filing insider_transaction cluster 13f_change].include?(event_type) && CHANNELS.include?(channel)
+    %w[new_filing insider_transaction cluster 13f_change news].include?(event_type) && CHANNELS.include?(channel)
   end
 
   validates :scope, inclusion: { in: SCOPES }

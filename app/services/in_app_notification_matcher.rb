@@ -21,8 +21,12 @@ class InAppNotificationMatcher
   def self.news(item, as_of: Time.current)
     return unless item
 
+    WatchlistNewsMatcher.call(item, channel: "in_app", as_of:)
     matches = NewsAlertMatcher.call(item, as_of:, channel: "in_app")
-    return if matches.empty?
+    if matches.empty?
+      InAppNotificationPublisher.call(news_item_id: item.id, as_of:)
+      return
+    end
 
     fields = %w[rule_id frequency rule_revision news_item_id news_alert_snapshot_id]
     connection = ApplicationRecord.connection

@@ -41,18 +41,15 @@ RSpec.describe "Watchlist alert drafts" do
     expect(response).to have_http_status(:ok)
   end
 
-  it "keeps unsupported watchlist trigger activation blocked through create, update, model and direct writes" do
-    expect { create_draft(trigger: "news", active: true) }.not_to change(AlertRule, :count)
-    expect(response).to have_http_status(:unprocessable_entity)
+  it "rejects unadvertised triggers through the API, model and direct activation writes" do
+    expect { create_draft(trigger: "unsupported", active: true) }.not_to change(AlertRule, :count)
+    expect(response).to have_http_status(:bad_request)
     create_draft(trigger: "news")
     rule = AlertRule.sole
-    patch api_v1_alert_rule_path(rule), params: { active: true }, headers: api_headers, as: :json
-    expect(response).to have_http_status(:unprocessable_entity)
-    expect(rule.reload).not_to be_active
-    rule.active = true
+    rule.assign_attributes(event_type: "unsupported", active: true)
     expect(rule).not_to be_valid
     expect do
-      ApplicationRecord.transaction(requires_new: true) { rule.update_columns(active: true) }
+      ApplicationRecord.transaction(requires_new: true) { rule.update_columns(event_type: "unsupported", active: true) }
     end.to raise_error(ActiveRecord::StatementInvalid)
     expect(rule.reload).not_to be_active
   end

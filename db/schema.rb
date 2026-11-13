@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_13_160000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_13_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -42,6 +42,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_160000) do
     t.index ["alert_rule_id"], name: "index_alert_deliveries_on_alert_rule_id"
     t.index ["filing_id"], name: "index_alert_deliveries_on_filing_id"
     t.index ["id", "alert_rule_id", "filing_id"], name: "index_deliveries_on_id_rule_filing", unique: true
+    t.index ["id", "alert_rule_id", "news_item_id"], name: "index_deliveries_on_id_rule_news", unique: true
     t.index ["insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_insider_cluster_snapshot_id"
     t.index ["insider_transaction_id"], name: "index_alert_deliveries_on_insider_transaction_id"
     t.index ["institutional_change_snapshot_id"], name: "index_alert_deliveries_on_institutional_change_snapshot_id"
@@ -121,7 +122,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_160000) do
     t.index ["id", "user_id"], name: "index_alert_rules_on_id_and_owner", unique: true
     t.index ["user_id", "event_type", "channel"], name: "index_watchlist_alert_rules_on_owner_trigger_channel", unique: true, where: "((scope)::text = 'watchlist'::text)"
     t.index ["user_id"], name: "index_alert_rules_on_user_id"
-    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active OR (event_type::text = ANY (ARRAY['new_filing'::character varying, 'insider_transaction'::character varying, 'cluster'::character varying, '13f_change'::character varying]::text[])) AND (channel::text = ANY (ARRAY['email'::character varying, 'in_app'::character varying]::text[]))", name: "alert_rule_watchlist_supported_activation"
+    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active OR (event_type::text = ANY (ARRAY['new_filing'::character varying, 'insider_transaction'::character varying, 'cluster'::character varying, '13f_change'::character varying, 'news'::character varying]::text[])) AND (channel::text = ANY (ARRAY['email'::character varying, 'in_app'::character varying]::text[]))", name: "alert_rule_watchlist_supported_activation"
     t.check_constraint "scope::text = 'follow'::text AND follow_id IS NOT NULL OR scope::text = 'watchlist'::text AND follow_id IS NULL", name: "alert_rule_scope_target"
   end
 
@@ -324,6 +325,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_160000) do
     t.index ["available_at"], name: "in_app_notifications_pending", where: "(published_at IS NULL)"
     t.index ["filing_id"], name: "index_in_app_notifications_on_filing_id"
     t.index ["id", "alert_rule_id", "filing_id"], name: "index_notifications_on_id_rule_filing", unique: true
+    t.index ["id", "alert_rule_id", "news_item_id"], name: "index_notifications_on_id_rule_news", unique: true
     t.index ["insider_cluster_snapshot_id"], name: "index_in_app_notifications_on_insider_cluster_snapshot_id"
     t.index ["insider_transaction_id"], name: "index_in_app_notifications_on_insider_transaction_id"
     t.index ["institutional_change_snapshot_id"], name: "index_in_app_notifications_on_institutional_change_snapshot_id"
@@ -559,6 +561,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_160000) do
     t.datetime "observed_at", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["id", "news_item_id"], name: "index_news_snapshots_on_id_item", unique: true
     t.index ["news_item_id"], name: "index_news_alert_snapshots_on_news_item_id"
     t.index ["news_mention_id"], name: "index_news_alert_snapshots_on_news_mention_id", unique: true
     t.check_constraint "(kind::text = ANY (ARRAY['news'::character varying, 'press_release'::character varying, 'other'::character varying]::text[])) AND cik::text ~ '^[0-9]{10}$'::text AND entity_id > 0 AND (entity_type::text = 'Filer'::text AND (role::text = ANY (ARRAY['issuer'::character varying, 'person'::character varying]::text[])) OR entity_type::text = 'InstitutionalFiler'::text AND role::text = 'fund'::text)", name: "news_snapshot_identity"
@@ -836,6 +839,32 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_160000) do
     t.check_constraint "target_type::text = ANY (ARRAY['Ticker'::character varying, 'Insider'::character varying, 'InstitutionalFiler'::character varying]::text[])", name: "watchlist_membership_target_type"
   end
 
+  create_table "watchlist_news_memberships", force: :cascade do |t|
+    t.bigint "in_app_notification_id"
+    t.bigint "alert_delivery_id"
+    t.bigint "alert_rule_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "follow_id", null: false
+    t.bigint "news_item_id", null: false
+    t.bigint "news_alert_snapshot_id", null: false
+    t.datetime "followed_at", null: false
+    t.string "target_type", null: false
+    t.string "target_key", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["alert_delivery_id", "follow_id", "followed_at"], name: "watchlist_news_unique_delivery_witness", unique: true
+    t.index ["alert_delivery_id"], name: "index_watchlist_news_memberships_on_alert_delivery_id"
+    t.index ["alert_rule_id"], name: "index_watchlist_news_memberships_on_alert_rule_id"
+    t.index ["follow_id"], name: "index_watchlist_news_memberships_on_follow_id"
+    t.index ["in_app_notification_id", "follow_id", "followed_at"], name: "watchlist_news_unique_notification_witness", unique: true
+    t.index ["in_app_notification_id"], name: "index_watchlist_news_memberships_on_in_app_notification_id"
+    t.index ["news_alert_snapshot_id"], name: "index_watchlist_news_memberships_on_news_alert_snapshot_id"
+    t.index ["news_item_id"], name: "index_watchlist_news_memberships_on_news_item_id"
+    t.index ["user_id"], name: "index_watchlist_news_memberships_on_user_id"
+    t.check_constraint "(in_app_notification_id IS NULL) <> (alert_delivery_id IS NULL)", name: "watchlist_news_destination"
+    t.check_constraint "target_type::text = ANY (ARRAY['Ticker'::character varying, 'Insider'::character varying, 'InstitutionalFiler'::character varying]::text[])", name: "watchlist_news_target_type"
+  end
+
   add_foreign_key "alert_deliveries", "alert_rules"
   add_foreign_key "alert_deliveries", "filings"
   add_foreign_key "alert_deliveries", "insider_cluster_snapshots"
@@ -903,4 +932,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_160000) do
   add_foreign_key "watchlist_filing_memberships", "in_app_notifications"
   add_foreign_key "watchlist_filing_memberships", "in_app_notifications", column: ["in_app_notification_id", "alert_rule_id", "filing_id"], primary_key: ["id", "alert_rule_id", "filing_id"], name: "fk_watchlist_membership_notification_source"
   add_foreign_key "watchlist_filing_memberships", "users"
+  add_foreign_key "watchlist_news_memberships", "alert_deliveries"
+  add_foreign_key "watchlist_news_memberships", "alert_deliveries", column: ["alert_delivery_id", "alert_rule_id", "news_item_id"], primary_key: ["id", "alert_rule_id", "news_item_id"], name: "fk_watchlist_news_delivery_source"
+  add_foreign_key "watchlist_news_memberships", "alert_rules"
+  add_foreign_key "watchlist_news_memberships", "alert_rules", column: ["alert_rule_id", "user_id"], primary_key: ["id", "user_id"], name: "fk_watchlist_news_rule_owner"
+  add_foreign_key "watchlist_news_memberships", "follows"
+  add_foreign_key "watchlist_news_memberships", "follows", column: ["follow_id", "user_id"], primary_key: ["id", "user_id"], name: "fk_watchlist_news_follow_owner"
+  add_foreign_key "watchlist_news_memberships", "in_app_notifications"
+  add_foreign_key "watchlist_news_memberships", "in_app_notifications", column: ["in_app_notification_id", "alert_rule_id", "news_item_id"], primary_key: ["id", "alert_rule_id", "news_item_id"], name: "fk_watchlist_news_notification_source"
+  add_foreign_key "watchlist_news_memberships", "news_alert_snapshots"
+  add_foreign_key "watchlist_news_memberships", "news_alert_snapshots", column: ["news_alert_snapshot_id", "news_item_id"], primary_key: ["id", "news_item_id"], name: "fk_watchlist_news_snapshot_source"
+  add_foreign_key "watchlist_news_memberships", "news_items"
+  add_foreign_key "watchlist_news_memberships", "users"
 end

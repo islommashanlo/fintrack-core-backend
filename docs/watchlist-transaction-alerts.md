@@ -1,7 +1,7 @@
 # Watchlist insider transaction alerts
 
 Watchlist scope now supports insider_transaction in email and in_app, in addition
-to new_filing. Cluster support is documented in watchlist-cluster-alerts.md; 13F changes are supported as documented in watchlist-institutional-alerts.md; news remains draft-only for watchlist scope.
+to new_filing. Cluster support is documented in watchlist-cluster-alerts.md; 13F changes are supported as documented in watchlist-institutional-alerts.md; news is now supported as documented in watchlist-news-alerts.md.
 Existing specific-follow rules keep their existing behavior.
 
 ## API and identity

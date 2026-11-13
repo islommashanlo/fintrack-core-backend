@@ -14,7 +14,7 @@ class AlertDigestPlanner
       eligible = user.alert_deliveries.joins(alert_rule: :setting).left_joins(alert_rule: :follow)
         .where(frequency: "daily_digest", status: %w[pending failed])
         .where(alert_rules: { active: true }, alert_rule_settings: { archived_at: nil, frequency: "daily_digest" })
-        .where("(alert_rules.scope = 'follow' AND follows.removed_at IS NULL) OR (alert_rules.scope = 'watchlist' AND #{WatchlistFilingMembership.pending_sql(channel: 'email')})")
+        .where("(alert_rules.scope = 'follow' AND follows.removed_at IS NULL) OR (alert_rules.scope = 'watchlist' AND (#{WatchlistFilingMembership.pending_sql(channel: 'email')} OR #{WatchlistNewsMembership.pending_sql(channel: 'email', as_of: as_of)}))")
         .where("alert_deliveries.rule_revision = alert_rule_settings.revision")
         .where("alert_deliveries.created_at < ? AND alert_deliveries.created_at >= ? AND alert_deliveries.created_at >= alert_rule_settings.enabled_at",
           cutoff, preference.email_enabled_at)

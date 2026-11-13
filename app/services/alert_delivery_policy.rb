@@ -15,7 +15,7 @@ class AlertDeliveryPolicy
     scope = AlertDelivery.joins(alert_rule: :setting).left_joins(alert_rule: :follow)
       .where(frequency:, alert_rules: { active: true, user_id: user.id },
         alert_rule_settings: { archived_at: nil, frequency: })
-      .where("(alert_rules.scope = 'follow' AND follows.removed_at IS NULL) OR (alert_rules.scope = 'watchlist' AND #{WatchlistFilingMembership.pending_sql(channel: 'email')})")
+      .where("(alert_rules.scope = 'follow' AND follows.removed_at IS NULL) OR (alert_rules.scope = 'watchlist' AND (#{WatchlistFilingMembership.pending_sql(channel: 'email')} OR #{WatchlistNewsMembership.pending_sql(channel: 'email', as_of: Time.current)}))")
       .where("alert_deliveries.created_at >= alert_rule_settings.enabled_at AND alert_deliveries.created_at >= ?", preference.email_enabled_at)
       .where("alert_deliveries.rule_revision = alert_rule_settings.revision")
     AlertSourceValidity.apply(scope, as_of: Time.current)

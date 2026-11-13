@@ -109,15 +109,15 @@ RSpec.describe "Watchlist filing notifications" do
     expect(WatchlistFilingMembership.sole.target_key).to eq(fund.cik)
   end
 
-  it "keeps other watchlist triggers inactive even when database validations are bypassed" do
+  it "rejects unadvertised trigger activation even when database validations are bypassed" do
     activate
     %w[email in_app].each do |channel|
       trigger = "news"
       rule = user.alert_rules.create!(scope: "watchlist", channel:, event_type: trigger)
-      patch api_v1_alert_rule_path(rule), params: { active: true }, headers: api_headers, as: :json
-      expect(response).to have_http_status(:unprocessable_entity)
+      patch api_v1_alert_rule_path(rule), params: { trigger: "unsupported", active: true }, headers: api_headers, as: :json
+      expect(response).to have_http_status(:bad_request)
       expect do
-        ApplicationRecord.transaction(requires_new: true) { rule.update_columns(active: true) }
+        ApplicationRecord.transaction(requires_new: true) { rule.update_columns(event_type: "unsupported", active: true) }
       end.to raise_error(ActiveRecord::StatementInvalid)
     end
   end

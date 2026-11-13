@@ -1,6 +1,6 @@
 # Watchlist 13F position-change alerts
 
-Watchlist 13f_change supports email and in_app. Watchlist news remains draft-only.
+Watchlist 13f_change supports email and in_app. Watchlist news is now supported as documented in watchlist-news-alerts.md.
 Create a rule through POST /api/v1/alert-rules with scope=watchlist,
 trigger=13f_change, one channel and active=true. Free is daily-only; instant
 requires verified Pro. Email requires explicit consent and a time zone. Channels

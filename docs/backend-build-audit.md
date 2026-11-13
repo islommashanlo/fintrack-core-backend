@@ -31,7 +31,7 @@ adapters and draft calculators do not count as activated product features.
 | Dashboard/activity/scoring | Partial: dashboard summaries, deadlines, watchlist activity and supported-source feed exist. Draft point-in-time assessments live in activity_scoring; config/activity_methodology.yml keeps scoring unavailable. | Scale/liquidity inputs, complete factor coverage, reviewed activation, active levels/reasons, price movers and /activity/unusual remain missing. Unsupported source tokens do not implement 13D/G or 144 events. Never fill missing factors with zero to activate a score. |
 | Accounts/preferences/OAuth | Password sessions/recovery, CSRF/origin controls, private preferences, Google linking and already-linked sign-in exist; Google flags default off. | No automatic Google account creation, authorization-code exchange or redirect receiver. Live provider interoperability is unverified. |
 | Watchlist/search/screener | Typed watchlists, ranked SQL search, whitelist compilation and Pro saved screens exist. Fund filters share coverage/history gates. ScreenerCapabilities exposes fields/operators/enums/sorts/windows and shared precision-safe input constraints. | Sector/AUM/scoring filters remain unsupported. Metadata does not grant access or activate absent data. Address a larger functional gap before adding more screener metadata. |
-| Alerts/inboxes | Five triggers (new_filing, insider_transaction, cluster, 13f_change, news) support separate email/in-app rules, dedupe, revisions, source invalidation, logical quotas, plan timing and read APIs. See docs/in-app-notifications.md. | Specific-follow rules support all five existing triggers; watchlist scope now supports new_filing, insider_transaction, cluster and 13f_change. Remaining watchlist triggers, arbitrary global scope and unusual/13D-G/144 triggers are absent. In-app publication is persistent and API-readable; authenticated Action Cable refresh hints now exist behind the default-off IN_APP_REALTIME flag (docs/realtime-inbox.md). Browser/cross-process activation remains unverified. Delivery within two minutes is unmeasured. |
+| Alerts/inboxes | Five triggers (new_filing, insider_transaction, cluster, 13f_change, news) support separate email/in-app rules, dedupe, revisions, source invalidation, logical quotas, plan timing and read APIs. See docs/in-app-notifications.md. | Specific-follow rules support all five existing triggers; watchlist scope now supports all five existing triggers. Arbitrary global scope and unusual/13D-G/144 triggers are absent. In-app publication is persistent and API-readable; authenticated Action Cable refresh hints now exist behind the default-off IN_APP_REALTIME flag (docs/realtime-inbox.md). Browser/cross-process activation remains unverified. Delivery within two minutes is unmeasured. |
 | Web push | Registration, consent and encrypted storage exist. PushChannelEligibility always includes delivery_disabled. | VAPID sender and service-worker integration are missing. Registration is not functioning delivery. |
 | Explain Filing | Cached normalized facts, factual templates, validation and provider-selection/fallback tests exist. | No external model adapter. The interface selects validated fact IDs rather than publishing arbitrary model prose. |
 | News/prices | Immutable headline/link storage, mentions, local feeds/news alerts, OHLCV ingestion, gap planning and company price reads exist. | News::Provider::Disabled and MarketData::Provider::Disabled are defaults. Vendor adapters/rights, authoritative calendars/identity and scheduled refresh/gap-fill orchestration are incomplete. |
@@ -78,8 +78,10 @@ Watchlist cluster now supports both channels with shared immutable snapshots,
 atomic membership capture, constituent validity and delayed primary-source handling.
 Watchlist 13f_change now supports both channels with atomic fund membership
 capture, immutable comparison evidence, report-set validity and delayed-baseline
-handling. News remains blocked. Next, extend watchlist news matching while
-preserving canonical mention evidence, provider revocation and publication timing.
+handling. Watchlist news now supports both channels with immutable
+mention/membership evidence, same-witness pending validity, provider revocation,
+publication timing and null SEC provenance. The five-trigger
+watchlist scope extension is complete; external delivery/provider activation is separate.
 Preserve account ownership, source checks, daily Free timing, Pro instant timing and deduplication when watchlist membership changes.
 The current transport must not be described as activated browser/push delivery.
 
@@ -87,7 +89,7 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Watchlist news rules | Preserve canonical mentions, captured memberships, provider revocation and publication timing before activation. |
+| Next | Google OAuth callback and code exchange | Keep provider activation disabled; preserve existing account-linking policy, state/nonce/PKCE and session boundaries in mocked flows. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Dependency/security CI checks | Select tools and confirm new gems before adding them. No scanner/database was fetched in this audit. |
 | High | Score input storage and point-in-time coverage | Reviewed factor applicability and supported scale/liquidity inputs before activation. |

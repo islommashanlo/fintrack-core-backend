@@ -1,7 +1,7 @@
 # Watchlist cluster alerts
 
 Watchlist cluster rules support email and in_app alongside new_filing and
-insider_transaction. Watchlist 13f_change is supported as documented in watchlist-institutional-alerts.md; news remains draft-only.
+insider_transaction. Watchlist 13f_change is supported as documented in watchlist-institutional-alerts.md; news is now supported as documented in watchlist-news-alerts.md.
 
 ## API and cluster definition
 

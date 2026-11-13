@@ -2736,8 +2736,8 @@ For example:
 Responses include scope. Watchlist drafts have follow_id=null and
 entity={type:"watchlist",key:null}; specific rules preserve their entity and follow
 ID. Metadata adds supported_scopes=[follow,watchlist], watchlist_activation=true,
-watchlist_in_app_supported_triggers=[new_filing,insider_transaction,cluster,13f_change] and
-watchlist_email_supported_triggers=[new_filing,insider_transaction,cluster,13f_change]. Only those channel/trigger pairs are activatable.
+watchlist_in_app_supported_triggers=[new_filing,insider_transaction,cluster,13f_change,news] and
+watchlist_email_supported_triggers=[new_filing,insider_transaction,cluster,13f_change,news]. Only those channel/trigger pairs are activatable.
 
 One owner/scope/trigger counts as one logical watchlist rule, shared across channels,
 irrespective of watchlist size. Specific-follow rules remain separate slots.
@@ -2759,7 +2759,7 @@ and alert-event cursor versions are unchanged.
 
 The legacy HTML page hides resume controls for unsupported watchlist pairs.
 Email and in-app filing notices capture membership evidence and deduplicate by
-rule/filing/channel; transaction and cluster support is described below. Watchlist news remains a draft. No migration replays historical events.
+rule/filing/channel; transaction and cluster support is described below. All five advertised triggers now support both channels. No migration replays historical events.
 
 ### Watchlist filing notice evidence
 
@@ -2816,7 +2816,7 @@ plan/consent timing and every constituent source. Delayed ingestion uses the
 snapshot primary filing for accession, membership evidence, enqueue and instant
 publication. Responses reuse cluster and matched_entities DTOs, bounded at 20
 identities with totals. Email history remains a delivery audit; in-app visibility
-requires valid sources. Watchlist news remains draft-only; 13F change support is described below. See
+requires valid sources. 13F change and news support are described below. See
 [cluster behavior and migration notes](watchlist-cluster-alerts.md).
 
 
@@ -2833,5 +2833,24 @@ Pending delivery/publication rechecks original membership epochs, consent, plan,
 revision and effective report sets. Amendments invalidate older comparisons;
 delayed baselines and baseline amendments use the actual snapshot primary filing.
 Responses reuse position_change, SEC sources and bounded matched_entities evidence.
-Free remains daily-only; verified Pro supports instant. Watchlist news remains
-draft-only. See [institutional alert behavior and migration notes](watchlist-institutional-alerts.md).
+Free remains daily-only; verified Pro supports instant. Watchlist news support is described below. See [institutional alert behavior and migration notes](watchlist-institutional-alerts.md).
+
+
+### Watchlist news rules
+
+Watchlist news rules support email and in_app with existing kind/provider/exact
+source conditions. Canonical issuer/person/fund mentions match current watched
+entities only when publication is at or after activation and membership. Delayed
+observation does not make an old headline newly eligible.
+
+Each rule/story captures one immutable representative snapshot plus all matching
+membership/mention witnesses atomically. Retries never extend evidence. Pending
+publication/send requires a still-current epoch and valid canonical mention on
+the same captured witness, as well as valid representative evidence. Provider
+revocation, changed content and ticker remapping retain existing source checks.
+Published history survives unfollow while sources remain valid; cursor source
+ceilings are preserved. Responses reuse news and bounded matched_entities DTOs;
+SEC provenance remains null. Free remains daily-only and verified Pro supports
+instant. All five advertised watchlist triggers now support both channels; push
+and arbitrary global scope remain unsupported. See [news behavior and migration
+notes](watchlist-news-alerts.md).

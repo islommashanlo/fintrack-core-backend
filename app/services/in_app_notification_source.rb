@@ -10,12 +10,16 @@ class InAppNotificationSource
         SELECT 1 FROM alert_rules source_rule WHERE source_rule.id = in_app_notifications.alert_rule_id
           AND (source_rule.scope = 'follow' OR (
             source_rule.scope = 'watchlist' AND source_rule.channel = 'in_app'
-            AND in_app_notifications.event_type IN ('new_filing', 'insider_transaction', 'cluster', '13f_change') AND EXISTS (
+            AND ((in_app_notifications.event_type = 'news' AND EXISTS (
+              SELECT 1 FROM watchlist_news_memberships witness
+              WHERE witness.in_app_notification_id = in_app_notifications.id AND witness.alert_rule_id = source_rule.id
+                AND witness.user_id = source_rule.user_id AND witness.news_item_id = in_app_notifications.news_item_id
+            )) OR (in_app_notifications.event_type IN ('new_filing', 'insider_transaction', 'cluster', '13f_change') AND EXISTS (
               SELECT 1 FROM watchlist_filing_memberships witness
               WHERE witness.in_app_notification_id = in_app_notifications.id
                 AND witness.user_id = source_rule.user_id AND witness.alert_rule_id = source_rule.id
                 AND witness.filing_id = in_app_notifications.filing_id
-            )
+            )))
           ))
       )
     SQL
