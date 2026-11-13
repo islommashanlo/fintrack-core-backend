@@ -5,6 +5,11 @@ module Api
     class ScreenerController < BaseController
       before_action :private_response!
 
+      def capabilities
+        read_parameters(allowed: [])
+        render json: { data: ScreenerCapabilities.call }
+      end
+
       def run
         values = ScreenerParameters.normalize(params.except(:controller, :action, :format).to_unsafe_h)
         maximum = PlanCatalog.limit_for(Current.user, :screener_results)

@@ -2650,3 +2650,30 @@ Pro saved screens preserve these typed conditions unchanged. Existing fund curso
 policy remains version 3; unchanged definitions retain compatibility, while changing
 a condition or sort requires restarting pagination. No migration or provider call
 is required.
+
+
+### Screener capabilities
+
+`GET /api/v1/screener/capabilities` is public, throttled and `no-store`.
+It accepts no parameters and returns `{ data: [...] }`, one definition for
+`companies`, `funds` and `insiders`. Each definition contains:
+
+- `entity` and `fields`: field names, semantic `type`, supported `operators`
+  and `enum_values` (allowed request tokens for enums; null otherwise).
+- `sorts`: all accepted sort tokens, including descending `-` prefixes, and
+  `default_sort` (`name`). SQL expressions are never returned.
+- `window_days` and `default_window_days`: transaction windows 30/90/365 with
+  default 90 for companies and insiders; an empty list and null for funds.
+
+Types are `text`, `cik`, `ticker`, `count`, `decimal`, `percentage`, `date`,
+`boolean` and `enum`. Enum report types represent membership in contributing
+cover labels. Array-valued report type is filterable but not sortable.
+The endpoint shares execution whitelists and does not advertise unsupported
+metrics or SQL. Scalar bounds, input formats and list limits still follow the
+screener request contract; capabilities are not a replacement for server validation.
+
+The same metadata is returned for anonymous and signed-in callers. Result limits,
+saved-screen access and history remain enforced separately by the server; use
+`/plans` for plan limits. Unknown parameters return 400, throttling returns 429,
+and an unavailable limiter returns 503. This endpoint performs no provider calls
+or filing queries.

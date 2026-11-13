@@ -191,3 +191,7 @@ Comparison coverage remains in `fund_comparisons_spec.rb` and
 Fund screener label request tests validate actual response bodies for contributing
 cover evidence, amendments, notices, unknown stored labels, restricted history and
 coverage-sorted pagination. Saved-screen tests preserve the typed conditions.
+
+Screener capabilities request tests validate actual success/error bodies and
+exercise each advertised field/operator, enum token, sort and transaction window
+against execution validation. Metadata is public and contains no SQL or user data.

@@ -3,6 +3,8 @@
 module Api
   module V1
     class ScreenerDefinition
+      WINDOW_DAYS = [ 30, 90, 365 ].freeze
+      DEFAULT_WINDOW_DAYS = 90
       COMMON = { "name" => :text, "cik" => :cik, "last_filed_on" => :date }.freeze
       TRANSACTIONS = {
         "purchase_count" => :count, "sale_count" => :count, "open_market_count" => :count,

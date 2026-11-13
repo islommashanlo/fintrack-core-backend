@@ -153,6 +153,8 @@ Saved-screen CRUD is available at `/api/v1/saved-screens` and
 `/api/v1/saved-screens/:id`. These private routes require the server's Pro
 entitlement; accounts remain Free unless configured billing verifies an eligible subscription.
 Returned query definitions can be sent directly to `/api/v1/screener/run`.
+Public `GET /api/v1/screener/capabilities` exposes supported fields, operators,
+enum values, sorts and transaction windows from the execution whitelist.
 
 Billing is disabled by default. `/api/v1/webhooks/stripe` accepts authenticated
 Stripe snapshot events and queues current-subscription refresh; `/api/v1/billing/subscription`

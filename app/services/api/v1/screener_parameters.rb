@@ -24,8 +24,8 @@ module Api
         values["sort"] = @parameters.fetch("sort", "name")
         invalid! unless values["sort"].is_a?(String) && ScreenerDefinition.sorts(entity).key?(values["sort"].delete_prefix("-"))
         unless entity == "funds"
-          window = @parameters.fetch("window_days", 90).to_s
-          invalid! unless %w[30 90 365].include?(window)
+          window = @parameters.fetch("window_days", ScreenerDefinition::DEFAULT_WINDOW_DAYS).to_s
+          invalid! unless ScreenerDefinition::WINDOW_DAYS.map(&:to_s).include?(window)
           values["window_days"] = window
         end
         invalid! if entity == "funds" && @parameters.key?("window_days")

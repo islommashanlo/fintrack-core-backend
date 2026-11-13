@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.55.0
+  version: 1.56.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -3375,6 +3375,33 @@ paths:
                 properties:
                   data:
                     "$ref": "#/components/schemas/ActivityMethodology"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/screener/capabilities":
+    get:
+      operationId: getScreenerCapabilities
+      summary: Discover supported screener fields, operators and sorts
+      description: Public, throttled and no-store. No parameters are accepted.
+        Uses the execution whitelist; exposes no SQL or account-specific data.
+        Capabilities do not grant access to gated results or historical evidence.
+      security: []
+      responses:
+        '200':
+          description: Supported entity definitions.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/ScreenerEntityCapabilities"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
         '429':
@@ -8923,6 +8950,55 @@ components:
       properties:
         data:
           "$ref": "#/components/schemas/SavedScreen"
+    ScreenerEntityCapabilities:
+      type: object
+      required: [entity, fields, sorts, default_sort, window_days, default_window_days]
+      additionalProperties: false
+      properties:
+        entity:
+          type: string
+          enum: [companies, funds, insiders]
+        fields:
+          type: array
+          items:
+            type: object
+            required: [field, type, operators, enum_values]
+            additionalProperties: false
+            properties:
+              field:
+                type: string
+              type:
+                type: string
+                enum: [text, cik, ticker, count, decimal, percentage, date, boolean, enum]
+              operators:
+                type: array
+                items:
+                  type: string
+                  enum: [eq, not_eq, contains, starts_with, in, is_null, not_null, gt, gte, lt, lte, between]
+              enum_values:
+                type: array
+                nullable: true
+                items:
+                  type: string
+                description: Allowed request tokens for enum fields; null otherwise.
+        sorts:
+          type: array
+          items:
+            type: string
+          description: Complete accepted sort tokens including descending prefixes.
+        default_sort:
+          type: string
+        window_days:
+          type: array
+          items:
+            type: integer
+            enum: [30, 90, 365]
+          description: Supported transaction windows; empty for funds.
+        default_window_days:
+          type: integer
+          nullable: true
+          enum: [30, 90, 365]
+          description: Null for funds, which reject transaction windows.
     ScreenerCondition:
       type: object
       required:
