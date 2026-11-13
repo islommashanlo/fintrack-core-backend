@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_13_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_13_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -108,9 +108,11 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_000000) do
     t.boolean "active", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["event_type", "follow_id"], name: "index_active_alert_rules_on_trigger_and_follow", where: "active"
     t.index ["follow_id", "event_type", "channel"], name: "index_alert_rules_on_follow_id_and_event_type_and_channel", unique: true
     t.index ["follow_id"], name: "index_alert_rules_on_follow_id"
+    t.index ["user_id"], name: "index_alert_rules_on_user_id"
   end
 
   create_table "backfill_runs", force: :cascade do |t|
@@ -278,6 +280,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_000000) do
     t.datetime "updated_at", null: false
     t.datetime "removed_at"
     t.datetime "followed_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.index ["id", "user_id"], name: "index_follows_on_id_and_owner", unique: true
     t.index ["user_id", "removed_at"], name: "index_follows_on_user_id_and_removed_at"
     t.index ["user_id", "target_type", "target_key"], name: "index_follows_on_user_id_and_target_type_and_target_key", unique: true
     t.index ["user_id"], name: "index_follows_on_user_id"
@@ -811,6 +814,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_000000) do
   add_foreign_key "alert_event_states", "users"
   add_foreign_key "alert_rule_settings", "alert_rules"
   add_foreign_key "alert_rules", "follows"
+  add_foreign_key "alert_rules", "follows", column: ["follow_id", "user_id"], primary_key: ["id", "user_id"], name: "fk_alert_rules_follow_owner"
+  add_foreign_key "alert_rules", "users"
   add_foreign_key "billing_checkouts", "billing_customers"
   add_foreign_key "billing_checkouts", "users"
   add_foreign_key "billing_customers", "users", on_delete: :nullify

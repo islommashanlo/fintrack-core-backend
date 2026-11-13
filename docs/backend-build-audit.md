@@ -66,16 +66,18 @@ private stream selection, per-hint/periodic revocation checks and after-commit
 publication/read hints have local regressions. Transport defaults off. See
 docs/realtime-inbox.md for recovery, visibility and deployment limitations.
 
-Next, design watchlist-wide alert rules against the existing follow-scoped matcher,
-logical quota and revision model. Preserve account ownership, source checks, daily
-Free timing, Pro instant timing and deduplication when watchlist membership changes.
+The watchlist-wide design is recorded in docs/plan-watchlist-alert-rules.md.
+Its first increment persists direct rule ownership with database integrity;
+watchlist creation/matching is not yet available. Next, refactor ownership readers
+and policies to explicit joins while preserving existing follow-only behavior.
+Preserve account ownership, source checks, daily Free timing, Pro instant timing and deduplication when watchlist membership changes.
 The current transport must not be described as activated browser/push delivery.
 
 ## Follow-on priorities and dependencies
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Watchlist-wide alert scope | Review schema/matching boundaries and preserve quotas, revisions, source checks and membership semantics. |
+| Next | Watchlist-scope ownership reader refactor | Follow docs/plan-watchlist-alert-rules.md; preserve current quotas, source checks and API behavior before enabling scope. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Dependency/security CI checks | Select tools and confirm new gems before adding them. No scanner/database was fetched in this audit. |
 | High | Score input storage and point-in-time coverage | Reviewed factor applicability and supported scale/liquidity inputs before activation. |
