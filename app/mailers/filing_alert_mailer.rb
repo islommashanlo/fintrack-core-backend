@@ -13,6 +13,10 @@ class FilingAlertMailer < ApplicationMailer
     @delivery = delivery
     @filing = delivery.filing
     @follow = delivery.alert_rule.follow
+    @watchlist_evidence = if delivery.alert_rule.scope == "watchlist"
+      Api::V1::WatchlistFilingEvidenceSerializer.new(ids: [ delivery.id ], channel: "email").render(delivery.id)
+    end
+    profile = @watchlist_evidence ? "your watchlist" : @follow.target_key
     user = delivery.alert_rule.user
     @transaction = delivery.insider_transaction
     @cluster = delivery.insider_cluster_snapshot
@@ -21,9 +25,9 @@ class FilingAlertMailer < ApplicationMailer
     @cluster_sources = @cluster ? Filing.where(id: @cluster.filing_ids.first(20)).order(:id).to_a : []
     headers["List-Unsubscribe"] = "<#{EmailUnsubscribe.url(user)}>"
     headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
-    subject = @transaction ? "Reported insider transaction for #{@follow.target_key}" : "New SEC filing for #{@follow.target_key}"
-    subject = "Reported insider cluster for #{@follow.target_key}" if @cluster
-    subject = "Reported 13F position change for #{@follow.target_key}" if @position_change
+    subject = @transaction ? "Reported insider transaction for #{profile}" : "New SEC filing for #{profile}"
+    subject = "Reported insider cluster for #{profile}" if @cluster
+    subject = "Reported 13F position change for #{profile}" if @position_change
     mail to: user.email_address, subject:
   end
 end

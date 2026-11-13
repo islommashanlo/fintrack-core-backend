@@ -2,7 +2,11 @@
 <% else %><%= @transaction ? TransactionAlertText.render(@transaction) : "A new SEC filing matches your FilingsIntel alert." %>
 <% end %>
 
-Followed <%= @follow.target_type.humanize %> <%= @follow.target_key %>
+<% if @watchlist_evidence %>
+Matched your watchlist:
+<% @watchlist_evidence.fetch(:matched_entities).each do |entity| %><%= entity.fetch(:type).humanize %> <%= entity.fetch(:key) %>
+<% end %><% if @watchlist_evidence.fetch(:matched_entities_truncated) %>Additional captured matches are recorded in your alert history.<% end %>
+<% else %>Followed <%= @follow.target_type.humanize %> <%= @follow.target_key %><% end %>
 Form: <%= @filing.form_type %>
 Filed: <%= @filing.filed_at&.strftime("%B %-d, %Y") || "Unknown" %>
 

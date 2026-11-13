@@ -6,7 +6,7 @@ module Api
       def initialize(records:, as_of:)
         @as_of = as_of
         ids = records.select { |record| record.alert_rule.scope == "watchlist" }.map(&:id)
-        @memberships = WatchlistFilingMembership.summaries(ids)
+        @membership_evidence = WatchlistFilingEvidenceSerializer.new(ids:, channel: "in_app")
         @news = NewsAlertSerializer.new(snapshots: records.filter_map(&:news_alert_snapshot), as_of:)
         @institutional = InstitutionalAlertSerializer.new(snapshots: records.filter_map(&:institutional_change_snapshot), as_of:)
         @clusters = InsiderClusterSerializer.new(rows: records.filter_map(&:insider_cluster_snapshot).map(&:attributes), as_of:)
@@ -30,15 +30,7 @@ module Api
           cluster: snapshot && @clusters.render(snapshot.attributes).merge(observed_at: snapshot.observed_at,
             definition_minimum_insiders: snapshot.definition_minimum_insiders)
         )
-        if rule.scope == "watchlist"
-          evidence = @memberships.fetch(record.id)
-          result[:matched_entities] = evidence.fetch("entities").map do |entity|
-            { follow_id: entity.fetch("follow_id"), type: WatchlistTarget::API_TYPES.fetch(entity.fetch("target_type")),
-              key: entity.fetch("key"), followed_at: entity.fetch("followed_at") }
-          end
-          result[:matched_entities_total_count] = evidence.fetch("total_count")
-          result[:matched_entities_truncated] = evidence.fetch("total_count") > result[:matched_entities].length
-        end
+        result.merge!(@membership_evidence.render(record.id)) if rule.scope == "watchlist"
         result
       end
     end

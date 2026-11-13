@@ -68,8 +68,8 @@
               <% @deliveries.each do |delivery| %>
                 <tr>
                   <td>
-                    <strong class="table-primary"><%= delivery.alert_rule.follow.target_key %></strong>
-                    <span class="table-secondary"><%= delivery.alert_rule.follow.target_type.humanize %></span>
+                    <strong class="table-primary"><%= delivery.alert_rule.scope == "watchlist" ? "All watched entities" : delivery.alert_rule.follow.target_key %></strong>
+                    <span class="table-secondary"><%= delivery.alert_rule.scope == "watchlist" ? "Watchlist" : delivery.alert_rule.follow.target_type.humanize %></span>
                   </td>
                   <td><%= delivery.filing&.form_type || "News" %></td>
                   <td>

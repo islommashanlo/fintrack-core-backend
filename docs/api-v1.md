@@ -2723,7 +2723,7 @@ schemas and notification cursor version 4 are unchanged.
 
 POST /api/v1/alert-rules now accepts scope=watchlist without follow_id. Existing
 follow_id requests default to scope=follow. Both channels and all five existing
-triggers support creating/editing paused watchlist drafts. Watchlist activation is supported only for in_app/new_filing; other watchlist
+triggers support creating/editing paused watchlist drafts. Watchlist activation is supported for new_filing in email and in_app; other watchlist
 channel/trigger pairs return 422 ALERT_CONFIGURATION_REQUIRED and remain blocked
 by model/database constraints. See docs/watchlist-filing-notifications.md.
 
@@ -2737,7 +2737,7 @@ Responses include scope. Watchlist drafts have follow_id=null and
 entity={type:"watchlist",key:null}; specific rules preserve their entity and follow
 ID. Metadata adds supported_scopes=[follow,watchlist], watchlist_activation=true,
 watchlist_in_app_supported_triggers=[new_filing] and
-watchlist_email_supported_triggers=[]. Only that channel/trigger pair is activatable.
+watchlist_email_supported_triggers=[new_filing]. Only those channel/trigger pairs are activatable.
 
 One owner/scope/trigger counts as one logical watchlist rule, shared across channels,
 irrespective of watchlist size. Specific-follow rules remain separate slots.
@@ -2758,8 +2758,8 @@ is version 2; older rule-list tokens must restart with a fresh request. Notifica
 and alert-event cursor versions are unchanged.
 
 The legacy HTML page hides resume controls for unsupported watchlist pairs.
-In-app filing notices capture membership evidence and deduplicate by rule/filing;
-other watchlist pairs remain drafts. No migration replays historical events.
+Email and in-app filing notices capture membership evidence and deduplicate by
+rule/filing/channel; other watchlist triggers remain drafts. No migration replays historical events.
 
 ### Watchlist filing notice evidence
 
@@ -2768,3 +2768,22 @@ matched_entities, matched_entities_total_count and matched_entities_truncated.
 The first 20 captured identities are exposed; all witnesses are retained. Pending
 publication rechecks captured membership epochs. Published history survives
 unfollow while its source remains valid. See [the behavior and migration notes](watchlist-filing-notifications.md).
+
+### Watchlist filing email
+
+Email scope=watchlist now supports new_filing, with explicit consent and a time
+zone. Free remains daily-only; verified Pro can use instant. Captured membership
+epochs are rechecked during digest claim and immediately before send. Revoked
+consent, stale rule revisions, removed/re-added membership or invalid sources do
+not authorize sending an old pending delivery.
+
+GET /api/v1/alert-events accepts scope=follow|watchlist and returns watchlist entity
+identity plus bounded matched_entities evidence, counts and truncation flags.
+Entity-type filters select follow rules only. History is a private delivery audit;
+pending, failed and sent rows remain readable after membership changes. One-click
+unsubscribe, read state, source links and existing cursor versions are preserved.
+
+Instant jobs enqueue after commit. Capture retries may requeue a committed pending
+delivery following a queue outage; they never append witnesses. The existing
+send locks/status guards remain authoritative. See
+[the complete behavior](watchlist-filing-notifications.md) for limitations.

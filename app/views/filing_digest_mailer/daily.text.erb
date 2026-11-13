@@ -8,7 +8,7 @@
 Published: <%= delivery.news_alert_snapshot.published_at.iso8601 %>
 Headline source: <%= delivery.news_alert_snapshot.url %>
 <% else %>
-<% if position %><%= InstitutionalAlertText.render(position) %><% elsif cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{delivery.alert_rule.follow.target_key}" %><% end %>
+<% if position %><%= InstitutionalAlertText.render(position) %><% elsif cluster %><%= ClusterAlertText.render(cluster) %><% else %><%= delivery.insider_transaction ? TransactionAlertText.render(delivery.insider_transaction) : "#{delivery.filing.form_type} reported for #{@profile_labels.fetch(delivery.id)}" %><% end %>
 Accession: <%= delivery.filing.accession_no %>
 SEC source: <%= delivery.filing.sec_url %>
 <% if position %><% position.evidence_report_ids.first(20).each do |id| %>Comparison source: <%= @institutional_sources.fetch(id).filing.sec_url %>
@@ -17,7 +17,10 @@ SEC source: <%= delivery.filing.sec_url %>
 Cluster source: <%= @cluster_sources.fetch(id).sec_url %>
 <% end %><% if cluster.filing_ids.length > 20 %>Additional cluster source filings are available in your alert history.<% end %><% end %>
 <% end %>
-
+<% if delivery.alert_rule.scope == "watchlist" %><% evidence = @membership_evidence.render(delivery.id) %>
+<% evidence.fetch(:matched_entities).each do |entity| %><%= entity.fetch(:type).humanize %> <%= entity.fetch(:key) %>
+<% end %><% if evidence.fetch(:matched_entities_truncated) %>Additional captured matches are recorded in your alert history.<% end %>
+<% end %>
 <% end %>
 Manage email: <%= @unsubscribe_url %>
 <%= FilingsIntel::DISCLAIMER %>

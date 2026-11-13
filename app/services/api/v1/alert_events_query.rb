@@ -7,9 +7,10 @@ module Api
       BOUNDS = { "deliveries" => AlertDelivery, "rules" => AlertRule, "follows" => Follow }.freeze
 
       def self.call(user:, page:, filters:)
-        scope = user.alert_deliveries.joins(alert_rule: :follow).where(<<~SQL.squish, page.bound("deliveries"), page.bound("rules"), page.bound("follows"), page.as_of)
-          alert_deliveries.id <= ? AND alert_rules.id <= ? AND follows.id <= ? AND alert_deliveries.created_at <= ?
+        scope = user.alert_deliveries.left_joins(alert_rule: :follow).where(<<~SQL.squish, page.bound("deliveries"), page.bound("rules"), page.bound("follows"), page.as_of)
+          alert_deliveries.id <= ? AND alert_rules.id <= ? AND (alert_rules.follow_id IS NULL OR follows.id <= ?) AND alert_deliveries.created_at <= ?
         SQL
+        scope = scope.where(alert_rules: { scope: filters["scope"] }) if filters["scope"]
         scope = scope.where(status: filters["status"]) if filters["status"]
         scope = scope.where(event_type: filters["trigger"]) if filters["trigger"]
         scope = scope.where(alert_rule_id: filters["rule_id"]) if filters["rule_id"]

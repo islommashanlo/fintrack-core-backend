@@ -4,7 +4,7 @@ module Api
   module V1
     class AlertParameters
       RULES = %w[scope active trigger entity_type sort limit cursor].freeze
-      EVENTS = %w[status trigger rule_id entity_type date_from date_to unread sort limit cursor].freeze
+      EVENTS = %w[scope status trigger rule_id entity_type date_from date_to unread sort limit cursor].freeze
 
       def self.normalize(values, kind:)
         allowed = kind == :rules ? RULES : EVENTS

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_13_120000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_13_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -38,6 +38,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_120000) do
     t.index ["alert_rule_id", "news_item_id"], name: "index_alert_deliveries_on_rule_and_news_item", unique: true, where: "(news_item_id IS NOT NULL)"
     t.index ["alert_rule_id"], name: "index_alert_deliveries_on_alert_rule_id"
     t.index ["filing_id"], name: "index_alert_deliveries_on_filing_id"
+    t.index ["id", "alert_rule_id", "filing_id"], name: "index_deliveries_on_id_rule_filing", unique: true
     t.index ["insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_insider_cluster_snapshot_id"
     t.index ["insider_transaction_id"], name: "index_alert_deliveries_on_insider_transaction_id"
     t.index ["institutional_change_snapshot_id"], name: "index_alert_deliveries_on_institutional_change_snapshot_id"
@@ -116,7 +117,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_120000) do
     t.index ["id", "user_id"], name: "index_alert_rules_on_id_and_owner", unique: true
     t.index ["user_id", "event_type", "channel"], name: "index_watchlist_alert_rules_on_owner_trigger_channel", unique: true, where: "((scope)::text = 'watchlist'::text)"
     t.index ["user_id"], name: "index_alert_rules_on_user_id"
-    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active OR event_type::text = 'new_filing'::text AND channel::text = 'in_app'::text", name: "alert_rule_watchlist_supported_activation"
+    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active OR event_type::text = 'new_filing'::text AND (channel::text = ANY (ARRAY['email'::character varying, 'in_app'::character varying]::text[]))", name: "alert_rule_watchlist_supported_activation"
     t.check_constraint "scope::text = 'follow'::text AND follow_id IS NOT NULL OR scope::text = 'watchlist'::text AND follow_id IS NULL", name: "alert_rule_scope_target"
   end
 
@@ -807,7 +808,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_120000) do
   end
 
   create_table "watchlist_filing_memberships", force: :cascade do |t|
-    t.bigint "in_app_notification_id", null: false
+    t.bigint "in_app_notification_id"
     t.bigint "alert_rule_id", null: false
     t.bigint "user_id", null: false
     t.bigint "filing_id", null: false
@@ -817,12 +818,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_120000) do
     t.string "target_key", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "alert_delivery_id"
+    t.index ["alert_delivery_id", "follow_id", "followed_at"], name: "index_watchlist_email_membership_witness", unique: true
+    t.index ["alert_delivery_id"], name: "index_watchlist_filing_memberships_on_alert_delivery_id"
     t.index ["alert_rule_id"], name: "index_watchlist_filing_memberships_on_alert_rule_id"
     t.index ["filing_id"], name: "index_watchlist_filing_memberships_on_filing_id"
     t.index ["follow_id"], name: "index_watchlist_filing_memberships_on_follow_id"
     t.index ["in_app_notification_id", "follow_id", "followed_at"], name: "index_watchlist_membership_witness", unique: true
     t.index ["in_app_notification_id"], name: "index_watchlist_filing_memberships_on_in_app_notification_id"
     t.index ["user_id"], name: "index_watchlist_filing_memberships_on_user_id"
+    t.check_constraint "(in_app_notification_id IS NULL) <> (alert_delivery_id IS NULL)", name: "watchlist_membership_destination"
     t.check_constraint "target_type::text = ANY (ARRAY['Ticker'::character varying, 'Insider'::character varying, 'InstitutionalFiler'::character varying]::text[])", name: "watchlist_membership_target_type"
   end
 
@@ -882,6 +887,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_120000) do
   add_foreign_key "subscriptions", "billing_customers"
   add_foreign_key "subscriptions", "billing_events"
   add_foreign_key "user_preferences", "users"
+  add_foreign_key "watchlist_filing_memberships", "alert_deliveries"
+  add_foreign_key "watchlist_filing_memberships", "alert_deliveries", column: ["alert_delivery_id", "alert_rule_id", "filing_id"], primary_key: ["id", "alert_rule_id", "filing_id"], name: "fk_watchlist_membership_delivery_source"
   add_foreign_key "watchlist_filing_memberships", "alert_rules"
   add_foreign_key "watchlist_filing_memberships", "alert_rules", column: ["alert_rule_id", "user_id"], primary_key: ["id", "user_id"], name: "fk_watchlist_membership_rule_owner"
   add_foreign_key "watchlist_filing_memberships", "filings"

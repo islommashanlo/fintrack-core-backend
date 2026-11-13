@@ -5,6 +5,11 @@ class FilingDigestMailer < ApplicationMailer
     @batch = batch
     @deliveries = batch.user.alert_deliveries.where(id: delivery_ids).includes(:filing, :insider_transaction, :insider_cluster_snapshot, :news_alert_snapshot,
       institutional_change_snapshot: :institutional_filer, alert_rule: :follow).order(:id).to_a
+    watchlist_ids = @deliveries.select { |delivery| delivery.alert_rule.scope == "watchlist" }.map(&:id)
+    @membership_evidence = Api::V1::WatchlistFilingEvidenceSerializer.new(ids: watchlist_ids, channel: "email")
+    @profile_labels = @deliveries.to_h do |delivery|
+      [ delivery.id, delivery.alert_rule.scope == "watchlist" ? "your watchlist" : delivery.alert_rule.follow.target_key ]
+    end
     ids = @deliveries.filter_map(&:insider_cluster_snapshot).flat_map { |snapshot| snapshot.filing_ids.first(20) }
     @cluster_sources = Filing.where(id: ids).index_by(&:id)
     reports = @deliveries.filter_map(&:institutional_change_snapshot).flat_map { |snapshot| snapshot.evidence_report_ids.first(20) }

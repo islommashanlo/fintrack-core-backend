@@ -11,9 +11,10 @@ class AlertDigestPlanner
 
       existing = user.alert_digest_batches.find_by(local_date: local.to_date)
       return existing if existing
-      eligible = user.alert_deliveries.joins(alert_rule: [ :setting, :follow ])
+      eligible = user.alert_deliveries.joins(alert_rule: :setting).left_joins(alert_rule: :follow)
         .where(frequency: "daily_digest", status: %w[pending failed])
-        .where(alert_rules: { active: true }, alert_rule_settings: { archived_at: nil, frequency: "daily_digest" }, follows: { removed_at: nil })
+        .where(alert_rules: { active: true }, alert_rule_settings: { archived_at: nil, frequency: "daily_digest" })
+        .where("(alert_rules.scope = 'follow' AND follows.removed_at IS NULL) OR (alert_rules.scope = 'watchlist' AND #{WatchlistFilingMembership.pending_sql(channel: 'email')})")
         .where("alert_deliveries.rule_revision = alert_rule_settings.revision")
         .where("alert_deliveries.created_at < ? AND alert_deliveries.created_at >= ? AND alert_deliveries.created_at >= alert_rule_settings.enabled_at",
           cutoff, preference.email_enabled_at)

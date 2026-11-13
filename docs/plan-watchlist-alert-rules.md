@@ -5,8 +5,8 @@
 This design covers the existing five triggers and email/in-app channels. It does
 not add global rules, push delivery, unsupported filing forms or scoring. The
 ownership foundation, reader refactor and paused watchlist draft API are implemented.
-Watchlist new_filing matching/publication is now implemented for in_app only;
-email and other watchlist triggers remain draft-only.
+Watchlist new_filing matching is implemented for email and in_app with independent
+destinations and shared logical quotas. Other watchlist triggers remain draft-only.
 
 Rules now store user_id, inferred from the follow on normal creation. A user FK,
 not-null constraint and composite (follow_id, user_id) FK enforce ownership even
@@ -180,7 +180,7 @@ reader-only increment.
 
 The initial scope migration permitted watchlist drafts without a follow, enforced
 owner/trigger/channel uniqueness and rejected active watchlist rows. The later
-filing-notice migration allows only new_filing/in_app activation; unsupported
+filing-notice migration allows new_filing in email/in_app activation; unsupported
 pairs remain blocked even when validation is bypassed. Existing rules default to follow; their settings/history
 are unchanged. Automatic rollback is intentionally blocked because null-follow
 drafts cannot satisfy the old schema; use a reviewed data-preserving forward
@@ -200,3 +200,23 @@ rather than introducing unused email destination fields. Future email evidence
 needs its own explicit destination integrity before email activation. See
 docs/watchlist-filing-notifications.md for deduplication, immutable first-capture
 witnesses, pending/live membership checks, bounded serialization and verification.
+
+## Email filing-notice extension
+
+Email new_filing is now supported. Memberships have exactly one destination:
+in_app_notification_id or alert_delivery_id, with independent unique keys and
+composite destination/rule/filing FKs. Existing evidence is retained. The common
+candidate query and bounded evidence serializer are reused rather than duplicating
+matching semantics.
+
+Email capture/witnesses are atomic, instant jobs defer until commit, and pending
+delivery retries can recover enqueue outages without altering first-capture
+witnesses. Digest claim and send recheck membership; send also rechecks current
+consent, plan, quota, source, revision and batch time zone. Mailers, private history,
+read state, summaries, legacy HTML and cleanup support nullable-follow email rules.
+Other watchlist triggers remain inactive until their own snapshots/matching paths
+are implemented.
+
+Email history retains its established delivery-audit semantics after source or
+membership changes; pending-send validity and in-app visibility are independent.
+No provider receipt or exactly-once delivery guarantee is introduced.

@@ -70,8 +70,10 @@ The watchlist-wide design is recorded in docs/plan-watchlist-alert-rules.md.
 Direct ownership and the reader refactor are implemented with database integrity;
 paused watchlist draft CRUD, scope filters and shared quotas are implemented.
 new_filing/in_app activation now captures membership witnesses and deduplicates
-notices transactionally. Other watchlist pairs remain blocked. Next, extend filing
-notices to email with explicit witness ownership, pending checks and digest/read support.
+notices transactionally. Email filing notices now share the candidate/evidence path with explicit
+consent, destination integrity, pending checks, digests and private audit history.
+Other watchlist triggers remain blocked. Next, extend insider_transaction with
+transaction-key deduplication and captured membership checks.
 Preserve account ownership, source checks, daily Free timing, Pro instant timing and deduplication when watchlist membership changes.
 The current transport must not be described as activated browser/push delivery.
 
@@ -79,7 +81,7 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Watchlist filing notices by email | Add destination integrity, pending witness checks, digest and entity evidence before enabling email. |
+| Next | Watchlist insider transaction rules | Preserve transaction/owner keys, membership epochs, source invalidation and channel consent before activation. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Dependency/security CI checks | Select tools and confirm new gems before adding them. No scanner/database was fetched in this audit. |
 | High | Score input storage and point-in-time coverage | Reviewed factor applicability and supported scale/liquidity inputs before activation. |

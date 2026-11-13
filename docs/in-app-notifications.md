@@ -116,5 +116,5 @@ frontend integration was activated.
 ## Watchlist-wide filing notices
 
 Watchlist scope now supports new_filing in-app only, with captured membership
-witnesses, per-rule/filing deduplication and pending epoch checks. Email and other
-watchlist triggers remain drafts. See [the behavior and evidence contract](watchlist-filing-notifications.md).
+witnesses, per-rule/filing deduplication and pending epoch checks. Email new_filing is also supported with separate consent, pending checks and
+delivery evidence; other watchlist triggers remain drafts. See [the behavior and evidence contract](watchlist-filing-notifications.md).

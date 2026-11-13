@@ -252,3 +252,7 @@ cover visibility is preserved. See the [fund profile contract](docs/api-v1.md#re
 Authenticated real-time inbox refresh hints are implemented behind the default-off
 IN_APP_REALTIME flag. See [the protocol](docs/realtime-inbox.md) for authentication,
 missed-hint recovery, the PostgreSQL adapter and activation boundaries.
+
+Watchlist-wide new-filing rules support email and in-app with captured membership
+checks, shared quotas and private history. Email requires explicit consent; no
+live delivery is activated here. See [the contract](docs/watchlist-filing-notifications.md).

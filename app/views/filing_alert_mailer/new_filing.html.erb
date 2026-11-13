@@ -1,7 +1,15 @@
 <p><% if @position_change %><%= InstitutionalAlertText.render(@position_change) %><% elsif @cluster %><%= ClusterAlertText.render(@cluster) %><% else %><%= @transaction ? TransactionAlertText.render(@transaction) : "A new SEC filing matches your FilingsIntel alert." %><% end %></p>
 
 <p>
-  Followed <strong><%= @follow.target_type.humanize %> <%= @follow.target_key %></strong><br>
+  <% if @watchlist_evidence %>
+    Matched your watchlist.
+    <ul><% @watchlist_evidence.fetch(:matched_entities).each do |entity| %>
+      <li><%= entity.fetch(:type).humanize %> <%= entity.fetch(:key) %></li>
+    <% end %></ul>
+    <% if @watchlist_evidence.fetch(:matched_entities_truncated) %><span>Additional captured matches are recorded in your alert history.</span><% end %>
+  <% else %>
+    Followed <strong><%= @follow.target_type.humanize %> <%= @follow.target_key %></strong>
+  <% end %><br>
   Form: <%= @filing.form_type %><br>
   Filed: <%= @filing.filed_at&.strftime("%B %-d, %Y") || "Unknown" %>
 </p>

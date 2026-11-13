@@ -15,6 +15,7 @@ class AlertEvaluator
     return [] unless @filing&.parse_status == "parsed"
 
     InAppNotificationMatcher.call(@filing)
+    WatchlistFilingEmailMatcher.call(@filing)
     enqueue(matching_rules, event_type: "new_filing", unique_by: :index_alert_deliveries_on_alert_rule_id_and_filing_id) +
       enqueue(TransactionAlertMatcher.call(@filing), event_type: "insider_transaction", unique_by: :index_alert_deliveries_on_rule_and_transaction) +
       enqueue(ClusterAlertMatcher.call(@filing), event_type: "cluster", unique_by: :index_alert_deliveries_on_rule_and_cluster) +

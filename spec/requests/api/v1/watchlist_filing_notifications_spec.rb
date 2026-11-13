@@ -109,10 +109,10 @@ RSpec.describe "Watchlist filing notifications" do
     expect(WatchlistFilingMembership.sole.target_key).to eq(fund.cik)
   end
 
-  it "keeps other watchlist triggers and email inactive even when database validations are bypassed" do
+  it "keeps other watchlist triggers inactive even when database validations are bypassed" do
     activate
     %w[email in_app].each do |channel|
-      trigger = channel == "email" ? "new_filing" : "insider_transaction"
+      trigger = "insider_transaction"
       rule = user.alert_rules.create!(scope: "watchlist", channel:, event_type: trigger)
       patch api_v1_alert_rule_path(rule), params: { active: true }, headers: api_headers, as: :json
       expect(response).to have_http_status(:unprocessable_entity)
