@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API v1 company institutional history" do
+  include OpenapiResponses
   include ApiAccounts
   include InstitutionalReadHelpers
   around { |example| travel_to(Time.utc(2026, 11, 11, 12)) { example.run } }
@@ -20,6 +21,7 @@ RSpec.describe "API v1 company institutional history" do
   def meta = response.parsed_body.fetch("meta")
   def history(**values)
     get history_api_v1_company_path("acme"), params: values
+    expect_documented_response(path: "/companies/{ticker}/history")
   end
 
   def report(quarter = period, manager: fund, **values)
@@ -263,6 +265,7 @@ RSpec.describe "API v1 company institutional history" do
       expect(response.headers["Cache-Control"]).to eq("no-store")
     end
     get history_api_v1_company_path("UNKNOWN")
+    expect_documented_response(path: "/companies/{ticker}/history")
     expect(response).to have_http_status(:not_found)
     expect(response.headers["Cache-Control"]).to eq("no-store")
   end

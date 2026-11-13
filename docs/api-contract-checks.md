@@ -95,6 +95,19 @@ The global transaction list has a successful empty page rather than a missing
 resource response. Counts, ordering, source visibility and history gates remain
 separate behavioral assertions, not conclusions drawn from schema validation.
 
+Additional coverage includes `/funds`, `/funds/{cik}/history`,
+`/companies/{ticker}/institutional` and `/companies/{ticker}/history`.
+Directory tests check reported-value/position ranges, report-type/coverage filters,
+null or restricted metrics and cursor boundaries. Fund report history checks
+retained amendments and plan-aware pagination. Company ownership/history checks
+security-key separation, missing versus empty cohorts, incomplete values, capped
+position/source previews and adjacent-quarter evidence. Shared history tests check
+Free clipping, 402 gates, Pro visibility, actor changes, downgrade invalidation and
+malformed cursors against these routes' schemas. Each route also has 429/503
+checks; the three scoped routes have missing-resource 404 checks. Behavioral tests
+continue to establish ordering/counts, source bounds and query batching separately.
+No production API or schema change was needed to add this coverage.
+
 Existing request specs retain their behavioral, history-gate and account-isolation
 checks. A mutation regression proves that deleting a required comparison rank or
 encoding a decimal as a JSON number fails against the committed schema. This does
@@ -144,7 +157,10 @@ bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
   spec/requests/api/v1/fund_portfolios_spec.rb \
   spec/requests/api/v1/fund_change_portfolios_spec.rb \
   spec/requests/api/v1/insider_transactions_spec.rb \
-  spec/requests/api/v1/history_limits_spec.rb
+  spec/requests/api/v1/history_limits_spec.rb \
+  spec/requests/api/v1/fund_directory_spec.rb \
+  spec/requests/api/v1/fund_directory_filters_spec.rb \
+  spec/requests/api/v1/company_history_spec.rb
 ```
 
 Comparison coverage remains in `fund_comparisons_spec.rb` and

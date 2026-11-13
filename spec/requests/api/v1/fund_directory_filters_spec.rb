@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "Fund directory report facts and coverage filters" do
+  include OpenapiResponses
   include InstitutionalReadHelpers
   include ApiAccounts
   around { |example| travel_to(Time.utc(2026, 11, 12, 12)) { example.run } }
@@ -19,6 +20,7 @@ RSpec.describe "Fund directory report facts and coverage filters" do
 
   def fetch(**parameters)
     get api_v1_funds_path, params: parameters
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:ok)
     expect(response.headers["Cache-Control"]).to eq("no-store")
     response.parsed_body
@@ -83,6 +85,7 @@ RSpec.describe "Fund directory report facts and coverage filters" do
     expect(fetch(report_type: "combination").fetch("data")).to eq([])
     expect(fetch(report_type: "combination", coverage: "history_restricted").fetch("data")).to eq([])
     get api_v1_funds_path, params: { period: "2025-09-30", report_type: "combination", coverage: "complete" }
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:payment_required)
     with_billing_config do
       user = create(:user, password: "password123")
@@ -106,6 +109,7 @@ RSpec.describe "Fund directory report facts and coverage filters" do
     expect(next_body.dig("data", 0, "reported_portfolio", "report_types")).to eq([ "13F HOLDINGS REPORT" ])
     [ { report_type: "combination", coverage: "complete" }, { report_type: "holdings", coverage: "incomplete_report_set" } ].each do |filters|
       get api_v1_funds_path, params: { **filters, sort: "cik", limit: 1, cursor: }
+      expect_documented_response(path: "/funds")
       expect(response).to have_http_status(:bad_request)
     end
   end
@@ -122,6 +126,7 @@ RSpec.describe "Fund directory report facts and coverage filters" do
     [ { report_type: "hedge_fund" }, { report_type: "holdings' OR 1=1--" }, { coverage: "unknown" },
       { coverage: "COMPLETE" }, { report_type: [ "holdings", "notice" ] }, { coverage: { status: "complete" } } ].each do |parameters|
       get api_v1_funds_path, params: parameters
+      expect_documented_response(path: "/funds")
       expect(response).to have_http_status(:bad_request), parameters.inspect
     end
     expect([ Filing.count, InstitutionalReport.count, InstitutionalHolding.count ]).to eq(before)

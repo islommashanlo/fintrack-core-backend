@@ -33,8 +33,10 @@ parameters without provider requests. See [API contract checks](docs/api-contrac
 for scope and diagnostics. Separate comparison and company/fund/insider profile
 request specs check actual JSON response bodies against the documented schema.
 Paginated fund holdings/changes and global/company/insider transaction lists also
-check cursor pages, history gates and documented errors. This conformance coverage
-does not yet extend to every API response.
+check cursor pages, history gates and documented errors. Fund directory/report
+history and company institutional ownership/history now have the same checks,
+including incomplete coverage and capped previews. This conformance coverage does
+not yet extend to every API response.
 
 Put your contact address in `.env` as `SEC_USER_AGENT_EMAIL`; the SEC requires one on every
 request. The EDGAR poller only runs when `EDGAR_POLLING=on`.

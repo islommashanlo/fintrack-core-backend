@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "Reported fund directory metrics" do
+  include OpenapiResponses
   include InstitutionalReadHelpers
   include ApiAccounts
   around { |example| travel_to(Time.utc(2026, 11, 12, 12)) { example.run } }
@@ -19,6 +20,7 @@ RSpec.describe "Reported fund directory metrics" do
 
   def fetch(**parameters)
     get api_v1_funds_path, params: parameters
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:ok)
     expect(response.headers["Cache-Control"]).to eq("no-store")
     response.parsed_body
@@ -103,6 +105,7 @@ RSpec.describe "Reported fund directory metrics" do
     expect(row).to include("cik" => fund.cik, "reported_portfolio" => nil, "portfolio_unavailable_reason" => "history_restricted")
     expect(fetch(min_portfolio_value_usd: "0").fetch("data")).to eq([])
     get api_v1_funds_path, params: { period: "2025-09-30" }
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:payment_required)
   end
 
@@ -119,6 +122,7 @@ RSpec.describe "Reported fund directory metrics" do
       expect(body.dig("data", 0, "reported_portfolio", "value_usd")).to eq("100.0")
       apply_billing_event(id: "evt_fund_directory_canceled", snapshot: billing_snapshot(status: "canceled"), type: "customer.subscription.deleted")
       get api_v1_funds_path, params: { period: "2025-09-30", sort: "-portfolio_value_usd", limit: 1, cursor: body.dig("meta", "next_cursor") }
+      expect_documented_response(path: "/funds")
       expect(response).to have_http_status(:bad_request)
     end
   end
@@ -144,14 +148,17 @@ RSpec.describe "Reported fund directory metrics" do
       { min_position_count: "-1" }, { min_portfolio_value_usd: "2", max_portfolio_value_usd: "1" },
       { min_position_count: "2", max_position_count: "1" }, { aum: "100" }, { period: "2026-06-01" }, { sort: "aum" } ].each do |parameters|
       get api_v1_funds_path, params: parameters
+      expect_documented_response(path: "/funds")
       expect(response).to have_http_status(:bad_request), parameters.inspect
     end
     2.times { create(:institutional_filer) }
     body = fetch(limit: 1)
     get api_v1_funds_path, params: { limit: 1, min_position_count: "0", cursor: body.dig("meta", "next_cursor") }
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:bad_request)
     api_login(create(:user, password: "password123"))
     get api_v1_funds_path, params: { limit: 1, cursor: body.dig("meta", "next_cursor") }
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:bad_request)
     expect(WebMock).not_to have_requested(:any, /./)
   end

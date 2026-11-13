@@ -21,17 +21,21 @@ RSpec.describe "API v1 funds" do
     second = create(:institutional_filer, name: "Example Capital")
     create(:institutional_filer, name: "Other Fund")
     get api_v1_funds_path, params: { q: "example", limit: 1 }
+    expect_documented_response(path: "/funds")
     expect(data).to eq([ { "cik" => first.cik, "name" => first.name, "reported_portfolio" => nil, "portfolio_unavailable_reason" => "no_report" } ])
     cursor = meta.fetch("next_cursor")
     create(:institutional_filer, name: first.name)
 
     get api_v1_funds_path, params: { q: "example", limit: 1, cursor: }
+    expect_documented_response(path: "/funds")
     expect(data.pluck("cik")).to eq([ second.cik ])
     expect(meta).to include("total_count" => 2, "has_more" => false)
 
     get api_v1_funds_path, params: { q: "other", cursor: }
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:bad_request)
     get api_v1_funds_path, params: { q: "%" }
+    expect_documented_response(path: "/funds")
     expect(data).to eq([])
   end
 
@@ -151,9 +155,11 @@ RSpec.describe "API v1 funds" do
     create_13f(fund:, filed_at: 1.day.from_now)
 
     get history_api_v1_fund_path(fund.cik), params: { sort: "-filed_at", limit: 1 }
+    expect_documented_response(path: "/funds/{cik}/history")
     expect(data.pluck("id")).to eq([ amendment.id ])
     cursor = meta.fetch("next_cursor")
     get history_api_v1_fund_path(fund.cik), params: { sort: "-filed_at", limit: 1, cursor: }
+    expect_documented_response(path: "/funds/{cik}/history")
     expect(data.pluck("id")).to eq([ original.id ])
     expect(meta).to include("total_count" => 2, "has_more" => false)
     expect(data.pluck("id")).not_to include(failed.id)
@@ -167,6 +173,7 @@ RSpec.describe "API v1 funds" do
     expect_documented_response(path: "/funds/{cik}/holdings")
     cursor = meta.fetch("next_cursor")
     get history_api_v1_fund_path(fund.cik), params: { cursor: }
+    expect_documented_response(path: "/funds/{cik}/history")
     expect(response).to have_http_status(:bad_request)
     [ { period: "2026-09-29" }, { period: "2026-02-30" }, { cusip: "invalid" }, { put_call: "OTHER" },
       { share_type: "invalid" }, { sort: "price; SELECT 1" }, { limit: "101" }, { period: [] } ].each do |values|
@@ -233,11 +240,14 @@ RSpec.describe "API v1 funds" do
   it "rejects modified and expired shared cursors" do
     create_list(:institutional_filer, 2)
     get api_v1_funds_path, params: { limit: 1 }
+    expect_documented_response(path: "/funds")
     cursor = meta.fetch("next_cursor")
     get api_v1_funds_path, params: { cursor: "#{cursor}x" }
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:bad_request)
     travel 25.hours
     get api_v1_funds_path, params: { cursor: }
+    expect_documented_response(path: "/funds")
     expect(response).to have_http_status(:bad_request)
   end
 end

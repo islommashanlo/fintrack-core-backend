@@ -117,10 +117,12 @@ RSpec.describe "API v1 companies" do
     create(:institutional_holding, institutional_report: later_period)
 
     get institutional_api_v1_company_path("ACME")
+    expect_documented_response(path: "/companies/{ticker}/institutional")
     expect(data.pluck("id")).to eq([ wanted.id ])
     expect(data.first).to include("accession" => current.filing.accession_no, "sec_url" => current.filing.sec_url)
 
     get institutional_api_v1_company_path("ACME"), params: { period: "2026-03-31" }
+    expect_documented_response(path: "/companies/{ticker}/institutional")
     expect(data.pluck("id")).to eq(prior.institutional_holdings.pluck(:id))
   end
 
@@ -134,12 +136,15 @@ RSpec.describe "API v1 companies" do
     c = create(:institutional_holding, institutional_report: second, value_usd: 100)
 
     get institutional_api_v1_company_path("ACME"), params: { limit: 1 }
+    expect_documented_response(path: "/companies/{ticker}/institutional")
     expect(data.pluck("id")).to eq([ c.id ])
     cursor = meta.fetch("next_cursor")
     get institutional_api_v1_company_path("ACME"), params: { limit: 2, cursor: }
+    expect_documented_response(path: "/companies/{ticker}/institutional")
     expect(data.pluck("id")).to eq([ b.id, a.id ])
     expect(meta).to include("total_count" => 3, "has_more" => false)
     get institutional_api_v1_company_path("ACME"), params: { put_call: "PUT" }
+    expect_documented_response(path: "/companies/{ticker}/institutional")
     expect(data.pluck("id")).to eq([ b.id ])
   end
 
@@ -150,6 +155,7 @@ RSpec.describe "API v1 companies" do
     create(:institutional_holding, institutional_report: report, name_of_issuer: "ACME")
 
     get institutional_api_v1_company_path("ACME")
+    expect_documented_response(path: "/companies/{ticker}/institutional")
     expect(data).to eq([])
   end
 
@@ -161,6 +167,7 @@ RSpec.describe "API v1 companies" do
     get filings_api_v1_company_path("ACME"), params: { form_type: "13F-HR" }
     expect(response).to have_http_status(:bad_request)
     get institutional_api_v1_company_path("ACME"), params: { period: "2026-09-29" }
+    expect_documented_response(path: "/companies/{ticker}/institutional")
     expect(response).to have_http_status(:bad_request)
     get api_v1_company_path("ACME"), params: { q: "ignored" }
     expect_documented_response(path: "/companies/{ticker}")
