@@ -5,6 +5,8 @@ module Api
     class InAppNotificationSerializer
       def initialize(records:, as_of:)
         @as_of = as_of
+        ids = records.select { |record| record.alert_rule.scope == "watchlist" }.map(&:id)
+        @memberships = WatchlistFilingMembership.summaries(ids)
         @news = NewsAlertSerializer.new(snapshots: records.filter_map(&:news_alert_snapshot), as_of:)
         @institutional = InstitutionalAlertSerializer.new(snapshots: records.filter_map(&:institutional_change_snapshot), as_of:)
         @clusters = InsiderClusterSerializer.new(rows: records.filter_map(&:insider_cluster_snapshot).map(&:attributes), as_of:)
@@ -17,9 +19,10 @@ module Api
         provenance = record.filing ? FilingProvenance.render(record.filing, as_of:) :
           { accession: nil, sec_url: nil, form_type: nil, filed_at: nil, accepted_at: nil, ingested_at: nil, data_age_days: nil }
         news = @news.render(record.news_alert_snapshot)
-        provenance.merge(
+        result = provenance.merge(
           id: record.id, rule_id: rule.id, trigger: record.event_type, channel: "in_app",
-          entity: { type: WatchlistTarget::API_TYPES.fetch(rule.follow.target_type), key: rule.follow.target_key },
+          entity: rule.scope == "watchlist" ? { type: "watchlist", key: nil } :
+            { type: WatchlistTarget::API_TYPES.fetch(rule.follow.target_type), key: rule.follow.target_key },
           published_at: record.published_at, read_at: record.read_at, created_at: record.created_at,
           historical_filing_notice: record.event_type != "news", news:, news_available: record.event_type == "news" ? news.present? : nil,
           transaction: record.insider_transaction && InsiderTransactionSerializer.render(record.insider_transaction, as_of:),
@@ -27,6 +30,16 @@ module Api
           cluster: snapshot && @clusters.render(snapshot.attributes).merge(observed_at: snapshot.observed_at,
             definition_minimum_insiders: snapshot.definition_minimum_insiders)
         )
+        if rule.scope == "watchlist"
+          evidence = @memberships.fetch(record.id)
+          result[:matched_entities] = evidence.fetch("entities").map do |entity|
+            { follow_id: entity.fetch("follow_id"), type: WatchlistTarget::API_TYPES.fetch(entity.fetch("target_type")),
+              key: entity.fetch("key"), followed_at: entity.fetch("followed_at") }
+          end
+          result[:matched_entities_total_count] = evidence.fetch("total_count")
+          result[:matched_entities_truncated] = evidence.fetch("total_count") > result[:matched_entities].length
+        end
+        result
       end
     end
   end

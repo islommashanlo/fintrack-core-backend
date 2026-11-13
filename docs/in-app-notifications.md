@@ -112,3 +112,9 @@ for committed publication/read-state changes. Transport defaults off; persistent
 REST reads retain source validation and recover missed hints. See
 [the protocol and activation boundary](realtime-inbox.md). No live delivery or
 frontend integration was activated.
+
+## Watchlist-wide filing notices
+
+Watchlist scope now supports new_filing in-app only, with captured membership
+witnesses, per-rule/filing deduplication and pending epoch checks. Email and other
+watchlist triggers remain drafts. See [the behavior and evidence contract](watchlist-filing-notifications.md).

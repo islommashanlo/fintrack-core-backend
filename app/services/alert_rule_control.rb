@@ -46,8 +46,8 @@ class AlertRuleControl
   end
 
   def self.apply(user:, rule:, attributes:)
-    if rule.scope == "watchlist" && attributes[:active]
-      raise InvalidConfiguration, "Watchlist-wide alerts cannot be activated yet"
+    if rule.scope == "watchlist" && attributes[:active] && !rule.watchlist_activation_supported?
+      raise InvalidConfiguration, "This watchlist trigger/channel cannot be activated yet"
     end
     if attributes[:scope] && attributes[:scope] != rule.scope
       raise InvalidConfiguration, "Create a separate rule for another scope"
@@ -69,7 +69,7 @@ class AlertRuleControl
       rule.setting.update!(**configuration, revision: rule.setting.revision + 1, enabled_at: Time.current)
     end
     if attributes[:active]
-      raise InvalidConfiguration, "This watchlist item has been removed" if rule.follow.removed_at
+      raise InvalidConfiguration, "This watchlist item has been removed" if rule.scope == "follow" && rule.follow.removed_at
       if rule.setting&.frequency == "instant" && !PlanCatalog.limit_for(user, :instant_alerts)
         raise PlanCatalog::Required.new(feature: "instant_alerts", limit: 0)
       end

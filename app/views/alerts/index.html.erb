@@ -30,7 +30,7 @@
             </div>
             <div class="alert-rule-card__actions">
               <span class="alert-status alert-status--<%= rule.active? ? "active" : "paused" %>"><%= rule.active? ? "Active" : "Paused" %></span>
-              <% unless rule.scope == "watchlist" %>
+              <% if rule.scope == "follow" || rule.watchlist_activation_supported? %>
                 <%= button_to rule.active? ? "Pause" : "Resume", alert_rule_path(rule), method: :patch,
                               params: { alert_rule: { active: !rule.active? } }, class: "follow-button follow-button--active" %>
               <% end %>

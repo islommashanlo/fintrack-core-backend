@@ -2723,9 +2723,9 @@ schemas and notification cursor version 4 are unchanged.
 
 POST /api/v1/alert-rules now accepts scope=watchlist without follow_id. Existing
 follow_id requests default to scope=follow. Both channels and all five existing
-triggers support creating/editing paused watchlist drafts. Watchlist matching and
-delivery are not implemented yet: active=true returns 422
-ALERT_CONFIGURATION_REQUIRED, and database/model constraints also prohibit it.
+triggers support creating/editing paused watchlist drafts. Watchlist activation is supported only for in_app/new_filing; other watchlist
+channel/trigger pairs return 422 ALERT_CONFIGURATION_REQUIRED and remain blocked
+by model/database constraints. See docs/watchlist-filing-notifications.md.
 
 For example:
 
@@ -2735,8 +2735,9 @@ For example:
 
 Responses include scope. Watchlist drafts have follow_id=null and
 entity={type:"watchlist",key:null}; specific rules preserve their entity and follow
-ID. Metadata adds supported_scopes=[follow,watchlist] and watchlist_activation=false.
-These fields describe draft support, not an active delivery capability.
+ID. Metadata adds supported_scopes=[follow,watchlist], watchlist_activation=true,
+watchlist_in_app_supported_triggers=[new_filing] and
+watchlist_email_supported_triggers=[]. Only that channel/trigger pair is activatable.
 
 One owner/scope/trigger counts as one logical watchlist rule, shared across channels,
 irrespective of watchlist size. Specific-follow rules remain separate slots.
@@ -2756,6 +2757,14 @@ empty list. entity_key sorting keeps null watchlist keys last. Rule cursor conte
 is version 2; older rule-list tokens must restart with a fresh request. Notification
 and alert-event cursor versions are unchanged.
 
-The legacy HTML alerts page displays watchlist drafts without a resume control.
-Current pipelines cannot activate or match them, and this migration does not
-replay filings, materialize historical events or send any notification.
+The legacy HTML page hides resume controls for unsupported watchlist pairs.
+In-app filing notices capture membership evidence and deduplicate by rule/filing;
+other watchlist pairs remain drafts. No migration replays historical events.
+
+### Watchlist filing notice evidence
+
+In-app watchlist new_filing notices return entity={type:"watchlist",key:null} and
+matched_entities, matched_entities_total_count and matched_entities_truncated.
+The first 20 captured identities are exposed; all witnesses are retained. Pending
+publication rechecks captured membership epochs. Published history survives
+unfollow while its source remains valid. See [the behavior and migration notes](watchlist-filing-notifications.md).

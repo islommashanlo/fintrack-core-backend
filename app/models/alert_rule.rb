@@ -22,6 +22,10 @@ class AlertRule < ApplicationRecord
     setting&.update!(enabled_at: Time.current) if active? && saved_change_to_active?
   end
 
+  def watchlist_activation_supported?
+    event_type == "new_filing" && channel == "in_app"
+  end
+
   validates :scope, inclusion: { in: SCOPES }
   validates :follow, presence: true, if: -> { scope == "follow" }
   validates :event_type, inclusion: { in: EVENT_TYPES }
@@ -31,7 +35,7 @@ class AlertRule < ApplicationRecord
   validate do
     if scope == "watchlist"
       errors.add(:follow, "must be absent for a watchlist rule") if follow_id
-      errors.add(:active, "is unavailable for watchlist rules") if active?
+      errors.add(:active, "is unavailable for this watchlist trigger/channel") if active? && !watchlist_activation_supported?
     end
     errors.add(:user, "must own the watchlist item") if follow && user_id != follow.user_id
     errors.add(:channel, "does not support this trigger") if channel == "in_app" && !IN_APP_EVENT_TYPES.include?(event_type)

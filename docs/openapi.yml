@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.58.0
+  version: 1.59.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -5059,8 +5059,33 @@ components:
                 - issuer
                 - fund
                 - person
+                - watchlist
               key:
                 type: string
+                nullable: true
+          matched_entities:
+            type: array
+            maxItems: 20
+            description: Watchlist notices only; captured membership identities, not current watchlist contents.
+            items:
+              type: object
+              required: [follow_id, type, key, followed_at]
+              properties:
+                follow_id:
+                  type: integer
+                type:
+                  type: string
+                  enum: [issuer, person, fund]
+                key:
+                  type: string
+                followed_at:
+                  type: string
+                  format: date-time
+          matched_entities_total_count:
+            type: integer
+            minimum: 1
+          matched_entities_truncated:
+            type: boolean
           published_at:
             type: string
             format: date-time
@@ -9933,6 +9958,8 @@ components:
       - capabilities
       - supported_scopes
       - watchlist_activation
+      - watchlist_in_app_supported_triggers
+      - watchlist_email_supported_triggers
       - limits
       - supported_triggers
       - supported_channels
@@ -9951,8 +9978,18 @@ components:
             enum: [follow, watchlist]
         watchlist_activation:
           type: boolean
-          enum: [false]
-          description: Watchlist scope supports paused drafts only.
+          enum: [true]
+          description: Activation is supported only for the advertised watchlist channel/trigger pairs.
+        watchlist_in_app_supported_triggers:
+          type: array
+          items:
+            type: string
+            enum: [new_filing]
+        watchlist_email_supported_triggers:
+          type: array
+          maxItems: 0
+          items:
+            type: string
         capabilities:
           type: object
           required:
@@ -10120,8 +10157,9 @@ components:
     FilingAlertRuleCreate:
       type: object
       description: Legacy follow_id requests default to follow scope. Watchlist
-        drafts require scope=watchlist and no follow_id. active=true is rejected
-        for watchlist scope. Scope cannot be changed by PATCH.
+        rules require scope=watchlist and no follow_id. Only in_app new_filing
+        supports watchlist activation; other channel/trigger pairs remain draft-only.
+        Scope cannot be changed by PATCH.
       oneOf:
       - required: [follow_id]
         properties:

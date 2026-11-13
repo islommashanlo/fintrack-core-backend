@@ -5,7 +5,8 @@
 This design covers the existing five triggers and email/in-app channels. It does
 not add global rules, push delivery, unsupported filing forms or scoring. The
 ownership foundation, reader refactor and paused watchlist draft API are implemented.
-Watchlist-wide matching/publication remains proposed and unavailable.
+Watchlist new_filing matching/publication is now implemented for in_app only;
+email and other watchlist triggers remain draft-only.
 
 Rules now store user_id, inferred from the follow on normal creation. A user FK,
 not-null constraint and composite (follow_id, user_id) FK enforce ownership even
@@ -19,7 +20,7 @@ still need them. Inbox ownership/read state, quota owner correlation, mail
 recipients, publication preferences, realtime audiences and legacy rule controls
 use the persisted rule owner. Cleanup/deletion retains existing account isolation.
 The scope increment makes follow_id nullable only for watchlist drafts. It creates
-no fake follows and database/model/API guards prohibit watchlist activation.
+no fake follows and database/model/API guards permit activation only for new_filing/in_app.
 
 ## Findings and alternatives
 
@@ -123,8 +124,8 @@ records in dependency order without deleting public filing/source data.
    follow-only behavior and API contracts.
 2. **Done:** direct user association and explicit ownership readers/policy joins,
    with unchanged follow-only responses, quotas, cursor context and source checks.
-3. **Done:** explicit scope, draft CRUD, list filters/serialization, logical quotas
-   and model/database/API activation guards. Rule-list cursor version is now 2.
+3. **Done:** explicit scope, CRUD, list filters/serialization, logical quotas
+   and channel/trigger activation guards. Rule-list cursor version is 2.
 4. Implement membership evidence and deduplicated matching/publication, one trigger
    at a time. Advertise only completed trigger/scope combinations in capabilities.
 5. Finish every existing trigger/channel, pending delivery, digests, inbox/read state,
@@ -175,11 +176,12 @@ the other user's history. Existing digest, delivery, trigger, notification and
 realtime suites remain applicable. No migration or data replay is needed by this
 reader-only increment.
 
-## Draft scope migration
+## Initial draft scope migration
 
-The local test database now permits watchlist drafts without a follow, enforces
-owner/trigger/channel uniqueness, and rejects active watchlist rows even when
-validation is bypassed. Existing rules default to follow; their settings/history
+The initial scope migration permitted watchlist drafts without a follow, enforced
+owner/trigger/channel uniqueness and rejected active watchlist rows. The later
+filing-notice migration allows only new_filing/in_app activation; unsupported
+pairs remain blocked even when validation is bypassed. Existing rules default to follow; their settings/history
 are unchanged. Automatic rollback is intentionally blocked because null-follow
 drafts cannot satisfy the old schema; use a reviewed data-preserving forward
 migration. No production migration was run.
@@ -189,3 +191,12 @@ ownership, typed conditions/revisions, Free instant gating, scope filtering,
 nullable sort pagination, old-cursor rejection, unfollow independence, legacy HTML
 and database shape/uniqueness/activation constraints. The complete runtime contract
 is documented in docs/api-v1.md.
+
+## First supported watchlist channel/trigger
+
+new_filing/in_app is implemented using WatchlistFilingNotificationMatcher and the
+watchlist_filing_memberships table. This first path uses a non-null notification FK
+rather than introducing unused email destination fields. Future email evidence
+needs its own explicit destination integrity before email activation. See
+docs/watchlist-filing-notifications.md for deduplication, immutable first-capture
+witnesses, pending/live membership checks, bounded serialization and verification.

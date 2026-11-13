@@ -20,7 +20,7 @@ RSpec.describe "Watchlist alert drafts" do
     expect(response.parsed_body.fetch("data")).to include("scope" => "watchlist", "follow_id" => nil,
       "entity" => { "type" => "watchlist", "key" => nil }, "active" => false, "frequency" => "daily_digest")
     expect(AlertRule.sole.user_id).to eq(user.id)
-    expect(response.parsed_body.fetch("meta")).to include("supported_scopes" => %w[follow watchlist], "watchlist_activation" => false)
+    expect(response.parsed_body.fetch("meta")).to include("supported_scopes" => %w[follow watchlist], "watchlist_activation" => true)
     create_draft(channels: [ "in_app" ])
     expect(response).to have_http_status(:ok)
     expect(AlertRule.count).to eq(1)
@@ -41,7 +41,7 @@ RSpec.describe "Watchlist alert drafts" do
     expect(response).to have_http_status(:ok)
   end
 
-  it "rejects activation through create, update, model and direct database writes" do
+  it "keeps watchlist email activation blocked through create, update, model and direct writes" do
     expect { create_draft(active: true) }.not_to change(AlertRule, :count)
     expect(response).to have_http_status(:unprocessable_entity)
     create_draft

@@ -5,6 +5,20 @@ class InAppNotificationSource
     news = NewsAlertValidity.notification_sources(as_of:, max_filing_id:, max_news_item_id:, max_news_mention_id:)
     types = Filing::SEC_INGEST_TYPES.map { |type| ApplicationRecord.connection.quote(type) }.join(", ")
     now = ApplicationRecord.connection.quote(as_of)
+    scope = scope.where(<<~SQL.squish)
+      EXISTS (
+        SELECT 1 FROM alert_rules source_rule WHERE source_rule.id = in_app_notifications.alert_rule_id
+          AND (source_rule.scope = 'follow' OR (
+            source_rule.scope = 'watchlist' AND source_rule.channel = 'in_app'
+            AND in_app_notifications.event_type = 'new_filing' AND EXISTS (
+              SELECT 1 FROM watchlist_filing_memberships witness
+              WHERE witness.in_app_notification_id = in_app_notifications.id
+                AND witness.user_id = source_rule.user_id AND witness.alert_rule_id = source_rule.id
+                AND witness.filing_id = in_app_notifications.filing_id
+            )
+          ))
+      )
+    SQL
     scope.where(<<~SQL.squish)
       (in_app_notifications.event_type = 'news' AND in_app_notifications.filing_id IS NULL AND EXISTS (#{news})) OR (
         filings.parse_status = 'parsed' AND filings.form_type IN (#{types}) AND filings.filed_at <= #{now}

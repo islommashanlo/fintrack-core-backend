@@ -4,10 +4,11 @@ class InAppNotificationPolicy
   def self.pending(as_of:)
     pro_users = Billing::Entitlements.pro_user_ids.to_sql
     free_limit = PlanCatalog::PLANS.fetch("free").fetch(:alert_rules)
-    scope = InAppNotification.left_joins(:filing).joins(alert_rule: [ :follow, :setting ])
+    scope = InAppNotification.left_joins(:filing).joins(alert_rule: :setting).left_joins(alert_rule: :follow)
       .joins("LEFT JOIN notification_preferences ON notification_preferences.user_id = alert_rules.user_id")
       .where(published_at: nil, alert_rules: { channel: "in_app", event_type: AlertRule::IN_APP_EVENT_TYPES, active: true },
-        follows: { removed_at: nil }, alert_rule_settings: { archived_at: nil })
+        alert_rule_settings: { archived_at: nil })
+      .where("(alert_rules.scope = 'follow' AND follows.removed_at IS NULL) OR (alert_rules.scope = 'watchlist' AND #{WatchlistFilingMembership.pending_sql})")
       .where(<<~SQL.squish)
         (in_app_notifications.event_type <> 'news' AND filings.filed_at >= alert_rule_settings.enabled_at) OR EXISTS (
           SELECT 1 FROM news_alert_snapshots source WHERE source.id = in_app_notifications.news_alert_snapshot_id

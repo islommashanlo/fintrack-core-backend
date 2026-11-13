@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class InAppNotification < ApplicationRecord
+  has_many :watchlist_filing_memberships, dependent: :restrict_with_exception
   belongs_to :alert_rule
   belongs_to :filing, optional: true
   belongs_to :news_item, optional: true
