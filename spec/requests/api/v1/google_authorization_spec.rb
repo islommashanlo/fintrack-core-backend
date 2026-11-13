@@ -6,15 +6,15 @@ require "googleauth/id_tokens"
 RSpec.describe "Google authorization-code sign-in" do
   include ApiAccounts
   include OpenapiResponses
-  SETTINGS = %w[OAUTH_GOOGLE_SIGN_IN OAUTH_GOOGLE_CODE_FLOW GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET GOOGLE_OAUTH_REDIRECT_URI].freeze
+  SIGN_IN_ENV_KEYS = %w[OAUTH_GOOGLE_SIGN_IN OAUTH_GOOGLE_CODE_FLOW GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET GOOGLE_OAUTH_REDIRECT_URI].freeze
   around do |example|
-    old = ENV.to_h.slice(*SETTINGS)
+    old = ENV.to_h.slice(*SIGN_IN_ENV_KEYS)
     ENV.update("OAUTH_GOOGLE_SIGN_IN" => "on", "OAUTH_GOOGLE_CODE_FLOW" => "on",
       "GOOGLE_OAUTH_CLIENT_ID" => "synthetic.apps.googleusercontent.com", "GOOGLE_OAUTH_CLIENT_SECRET" => "synthetic-secret",
       "GOOGLE_OAUTH_REDIRECT_URI" => "https://www.example.com/api/v1/auth/google/callback")
     travel_to(Time.utc(2026, 11, 13, 12)) { with_api_csrf_protection { example.run } }
   ensure
-    SETTINGS.each { |name| old.key?(name) ? ENV[name] = old[name] : ENV.delete(name) }
+    SIGN_IN_ENV_KEYS.each { |name| old.key?(name) ? ENV[name] = old[name] : ENV.delete(name) }
   end
   let(:user) { create(:user, password: "password123") }
   let(:key) { OpenSSL::PKey::RSA.generate(2048) }

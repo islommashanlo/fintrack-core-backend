@@ -3,6 +3,7 @@
 module Api
   module V1
     class GoogleSignInController < BaseController
+      include GoogleCallbackParameters
       prepend_before_action :private_response!
       prepend_before_action { response.headers["Referrer-Policy"] = "no-referrer" }
       before_action :require_signed_out
@@ -40,15 +41,8 @@ module Api
       end
 
       def callback
-        values = read_parameters(allowed: %w[state code error error_description scope authuser prompt iss])
-        require_parameters!(values, "state")
-        raise InvalidParameter, "Invalid callback parameters" unless values.values.all? { |value| value.bytesize <= 4096 } &&
-          (values.key?("code") != values.key?("error"))
-        raise Oauth::GoogleLinking::Invalid if values["iss"] && values["iss"] != "https://accounts.google.com"
-        keys = URI.decode_www_form(request.query_string).map(&:first)
-        raise InvalidParameter, "Duplicate callback parameters" unless keys.uniq.length == keys.length
         user = Oauth::GoogleAuthorization.complete(intent: session[:oauth_google_sign_in],
-          **values.slice("state", "code", "error").symbolize_keys) { |account| rotate_api_session(account) }
+          **google_callback_parameters) { |account| rotate_api_session(account) }
         render_session(user)
       end
 

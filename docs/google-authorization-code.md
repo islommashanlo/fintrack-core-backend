@@ -2,9 +2,8 @@
 
 A server authorization-code option now complements the existing ID-token sign-in
 API. It signs in already-linked Google subjects only. It does not create accounts,
-match email addresses, or change password-confirmed linking policy. Frontend Google
-navigation, account-linking through codes and real provider interoperability remain
-separate. No provider or deployment configuration was activated.
+match email addresses, or change password-confirmed linking policy. Frontend Google navigation and real provider interoperability remain separate.
+Password-confirmed code linking is now implemented in docs/google-code-linking.md. No provider or deployment configuration was activated.
 
 ## Disabled-by-default configuration
 
@@ -96,5 +95,5 @@ enrichment or worker activation occurred.
 Protocol references checked during implementation:
 [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect)
 and [Google web-server OAuth](https://developers.google.com/identity/protocols/oauth2/web-server).
-Live interoperability, provider console registration, frontend navigation and
-code-based account linking remain unverified or unimplemented as described above.
+Live interoperability, provider console registration and frontend navigation
+remain unverified. Code-based account linking is documented in google-code-linking.md.

@@ -1,6 +1,6 @@
 # External identity linking
 
-Authenticated Google linking is implemented behind default-off configuration. Google sign-in for already-linked accounts is implemented behind a separate default-off flag. Authorization-code sign-in and its GET callback now exist behind an additional default-off flag; see docs/google-authorization-code.md. Account creation through Google and code-based account linking remain unimplemented. No production configuration or real provider request was activated. The owner approved the googleauth dependency; the lockfile records version 1.17.7 and its dependencies. Rebuild development/worker images before using the changed bundle; no workers were started by this change.
+Authenticated Google linking is implemented behind default-off configuration. Google sign-in for already-linked accounts is implemented behind a separate default-off flag. Authorization-code sign-in and its GET callback now exist behind an additional default-off flag; see docs/google-authorization-code.md. Password-confirmed code linking now exists behind its own default-off flag; see docs/google-code-linking.md. Account creation through Google remains unimplemented. No production configuration or real provider request was activated. The owner approved the googleauth dependency; the lockfile records version 1.17.7 and its dependencies. Rebuild development/worker images before using the changed bundle; no workers were started by this change.
 
 ## Configuration and frontend contract
 
@@ -51,3 +51,22 @@ The five-minute challenge contains state/nonce digests and expiry in the encrypt
 Consumption happens before database session creation. If creation fails, the database changes roll back but the Redis challenge remains consumed: start again. This deliberately prevents retry/replay with a previously claimed challenge. Missing, stale, replaced, consumed or revoked-identity challenges return 401 OAUTH_INVALID. Provider/configuration failures return 503 OAUTH_UNAVAILABLE. Invalid input returns 400; missing CSRF returns 403. Each route permits ten attempts per IP per three minutes alongside shared API limits. Redis TTL bounds the lifetime of abandoned challenges; state, nonce and token parameters remain filtered from logs.
 
 Local tests use generated RSA keys and blocked external HTTP. They cover browser isolation, expiry, nonce/state/token rejection, one-time consumption, Redis loss/failure, challenge replacement, unlinking during verification, failed session creation, session/CSRF rotation, account-switch rejection and rate limits. Frontend integration and real Google interoperability remain untested.
+
+
+## Authorization-code linking option
+
+POST /api/v1/me/oauth-identities/google/authorize and GET
+/api/v1/me/oauth-identities/google/callback provide an alternative password-confirmed
+linking flow. The former needs authentication/CSRF/password and returns an S256
+PKCE authorization URL; the latter requires the original authenticated browser,
+state, verified nonce and the original configured callback. It links only under
+the existing subject-ownership policy and atomically rotates all account sessions.
+The flow is independent of sign-in and requires its own default-off code-linking
+flag plus separate configured callback URI.
+
+Linking intents now store an explicit id_token/code mode. A one-use Redis gate
+created at code issuance is claimed before exchange and remains consumed through
+provider failure or database rollback. Missing gates fail closed. Legacy token
+completion cannot consume code intents, and code callbacks cannot consume legacy
+intents. Existing legacy linking semantics remain authoritative for that flow.
+See [configuration, migration and verification](google-code-linking.md).

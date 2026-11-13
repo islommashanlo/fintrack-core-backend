@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.65.0
+  version: 1.66.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -502,6 +502,181 @@ paths:
                 properties:
                   data:
                     "$ref": "#/components/schemas/AccountSession"
+  "/me/oauth-identities/google/authorize":
+    post:
+      operationId: authorizeGoogleAccountLink
+      summary: Confirm the password and create a session-bound Google linking URL
+      description: Requires the authenticated browser, CSRF and current_password. Linking
+        and code-linking flags default off and are independent of sign-in. Fixed separately
+        configured linking callback, S256 PKCE and openid scope. Returns authorization_url/expiry
+        without contacting Google. Replaces this session linking intent, including legacy
+        ID-token mode.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      responses:
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          description: 'OAUTH_UNAVAILABLE: disabled/incomplete configuration, unavailable
+            keys or Redis; also shared limiter outage'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '200':
+          description: Private five-minute authorization URL; no client secret or verifier
+            returned
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - authorization_url
+                    - expires_at
+                    properties:
+                      authorization_url:
+                        type: string
+                        format: uri
+                      expires_at:
+                        type: string
+                        format: date-time
+        '401':
+          description: UNAUTHENTICATED, OAUTH_INVALID or REAUTHENTICATION_REQUIRED
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - current_password
+              properties:
+                current_password:
+                  type: string
+                  writeOnly: true
+                  minLength: 1
+  "/me/oauth-identities/google/callback":
+    get:
+      operationId: callbackGoogleAccountLink
+      summary: Exchange a session-bound Google linking code and rotate all account sessions
+      description: Requires the original authenticated browser and password-confirmed
+        intent. GET provider callback uses state, PKCE and nonce rather than a CSRF
+        header; initiation requires CSRF. Exactly one code/error plus state. Claims
+        the one-use Redis gate before exchange. Existing subject ownership and account
+        link policy apply; conflicts never transfer or replace identities. Success atomically
+        links and rotates all sessions, returning the standard JSON session envelope
+        without a frontend redirect. No account creation or email matching.
+      security:
+      - CookieSession: []
+      responses:
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          description: 'OAUTH_INVALID: invalid/replayed challenge, failed token checks
+            or unlinked subject'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '409':
+          description: 'OAUTH_CONFLICT: external identity or existing account link is
+            unavailable'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          description: 'OAUTH_UNAVAILABLE: disabled/incomplete configuration, unavailable
+            keys or Redis; also shared limiter outage'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/AccountSession"
+      parameters:
+      - name: state
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: code
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: error
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: error_description
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: scope
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: authuser
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: prompt
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: iss
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
   "/me/oauth-identities/google/start":
     post:
       operationId: startGoogleAccountLink

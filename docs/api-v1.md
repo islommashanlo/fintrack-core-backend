@@ -2868,7 +2868,7 @@ one of code/error. It claims state once before exchanging with the fixed Google
 endpoint using the original PKCE verifier, then reuses the verified nonce/subject
 policy. Success rotates session/CSRF and returns the standard JSON session envelope;
 there is no frontend redirect. Existing accounts must already have that subject
-linked. Account creation, email matching and code-based linking are not added.
+linked. Account creation and email matching are not added. Password-confirmed code linking is documented below.
 
 Unknown/duplicate/oversized parameters fail closed. Invalid challenges/claims return
 401, unavailable configuration/provider/cache returns 503, and signed-in browsers
@@ -2876,3 +2876,25 @@ receive 409. Each action has a ten-attempt/three-minute IP limit. Responses are
 no-store/no-referrer; codes and provider error descriptions are filtered. Neither
 provider tokens nor verifiers/secrets appear in responses. See [configuration,
 failure behavior and verification](google-authorization-code.md).
+
+
+### Google authorization-code account linking
+
+POST /api/v1/me/oauth-identities/google/authorize requires authenticated cookies,
+CSRF and current_password and returns data.authorization_url/expires_at. It uses
+the existing password-confirmed five-minute intent with an explicit code mode,
+S256 PKCE, a separate configured callback URI and independent default-off linking
+flags. No provider request occurs at authorization.
+
+GET /api/v1/me/oauth-identities/google/callback requires the original authenticated
+browser and state plus code/error. It claims a one-use Redis gate before exchange,
+then verifies nonce/claims and active session/configuration. Success atomically
+links under existing ownership constraints and replaces all account sessions,
+returning the standard JSON session envelope and fresh CSRF. Conflicts never
+transfer/replace another identity. Failed attempts cannot replay an exchanged code,
+even after database rollback. Legacy and code linking modes are isolated.
+
+No frontend redirect, automatic account creation or email matching is added.
+Provider tokens/secrets are not returned or stored in database rows. Responses are
+no-store/no-referrer; authentication, password, source, parameter and rate-limit
+errors remain generic. See [full contract and test-only migration notes](google-code-linking.md).

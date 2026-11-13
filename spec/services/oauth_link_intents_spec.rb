@@ -70,4 +70,19 @@ RSpec.describe OauthLinkIntents do
     session.update!(created_at: 31.days.ago)
     expect { issue }.to raise_error(described_class::Invalid)
   end
+
+  it "separates intent modes and enforces the mode constraint even without model validation" do
+    legacy = issue
+    expect(OauthLinkIntent.sole.flow).to eq("id_token")
+    code = described_class.issue(user:, session:, current_password: "password123", flow: "code")
+    expect { consume(legacy) }.to raise_error(described_class::Invalid)
+    expect { consume(code) }.to raise_error(described_class::Invalid)
+    record = OauthLinkIntent.sole
+    expect do
+      ApplicationRecord.transaction(requires_new: true) { record.update_columns(flow: "unsupported") }
+    end.to raise_error(ActiveRecord::StatementInvalid)
+    described_class.claim_code(user:, session:, state: code.state)
+    expect { described_class.claim_code(user:, session:, state: code.state) }.to raise_error(described_class::Invalid)
+    expect(described_class.consume(user:, session:, state: code.state, nonce: code.nonce, flow: "code")).to be_persisted
+  end
 end

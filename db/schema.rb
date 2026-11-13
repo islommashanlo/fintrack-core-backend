@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_13_170000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_13_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -636,8 +636,10 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_170000) do
     t.datetime "consumed_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "flow", default: "id_token", null: false
     t.index ["session_id"], name: "index_oauth_link_intents_on_session_id", unique: true
     t.index ["state_digest"], name: "index_oauth_link_intents_on_state_digest", unique: true
+    t.check_constraint "flow::text = ANY (ARRAY['id_token'::character varying, 'code'::character varying]::text[])", name: "oauth_link_intent_flow"
     t.check_constraint "state_digest::text ~ '^[0-9a-f]{64}$'::text AND nonce_digest::text ~ '^[0-9a-f]{64}$'::text", name: "oauth_link_intent_digests"
   end
 

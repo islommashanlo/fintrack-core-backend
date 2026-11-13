@@ -19,25 +19,34 @@ module Oauth
       raise Unavailable unless enabled?
     end
 
-    def self.start(user:, session:, current_password:)
+    def self.start(user:, session:, current_password:, flow: "id_token")
       require_enabled!
-      OauthLinkIntents.issue(user:, session:, current_password:)
+      OauthLinkIntents.issue(user:, session:, current_password:, flow:)
+    rescue OauthLinkIntents::Unavailable
+      raise Unavailable
     end
 
-    def self.complete(user:, session:, state:, id_token:)
+    def self.complete(user:, session:, state:, id_token: nil, exchange: nil)
       require_enabled!
       raise Invalid unless state.is_a?(String) && state.match?(/\A[A-Za-z0-9_-]{43}\z/)
+      code_flow = exchange.respond_to?(:call)
+      raise Invalid if code_flow && id_token
+      flow = code_flow ? "code" : "id_token"
       pending = OauthLinkIntent.joins(:session).where(session_id: session.id, sessions: { user_id: user.id },
-        state_digest: Digest::SHA256.hexdigest(state), consumed_at: nil)
+        state_digest: Digest::SHA256.hexdigest(state), consumed_at: nil, flow:)
         .where("expires_at > ? AND sessions.created_at > ?", Time.current, Time.current - Session::LIFETIME).exists?
       raise Invalid unless pending
 
       expected_client = client_id
+      if code_flow
+        OauthLinkIntents.claim_code(user:, session:, state:)
+        id_token = exchange.call
+      end
       claims = GoogleTokenVerifier.verify(id_token, client_id: expected_client)
       user.with_lock do
         require_enabled!
         raise Unavailable unless client_id == expected_client
-        OauthLinkIntents.consume(user:, session:, state:, nonce: claims.fetch(:nonce))
+        OauthLinkIntents.consume(user:, session:, state:, nonce: claims.fetch(:nonce), flow:)
         record = OauthIdentity.find_by(provider: "google", subject: claims.fetch(:subject))
         raise Conflict if record && record.user_id != user.id
         current = user.oauth_identities.find_by(provider: "google")
@@ -46,6 +55,8 @@ module Oauth
         yield record if block_given?
         record
       end
+    rescue OauthLinkIntents::Unavailable
+      raise Unavailable
     rescue OauthLinkIntents::Invalid
       raise Invalid
     rescue ActiveRecord::RecordNotUnique
