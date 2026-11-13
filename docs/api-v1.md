@@ -2736,8 +2736,8 @@ For example:
 Responses include scope. Watchlist drafts have follow_id=null and
 entity={type:"watchlist",key:null}; specific rules preserve their entity and follow
 ID. Metadata adds supported_scopes=[follow,watchlist], watchlist_activation=true,
-watchlist_in_app_supported_triggers=[new_filing,insider_transaction,cluster] and
-watchlist_email_supported_triggers=[new_filing,insider_transaction,cluster]. Only those channel/trigger pairs are activatable.
+watchlist_in_app_supported_triggers=[new_filing,insider_transaction,cluster,13f_change] and
+watchlist_email_supported_triggers=[new_filing,insider_transaction,cluster,13f_change]. Only those channel/trigger pairs are activatable.
 
 One owner/scope/trigger counts as one logical watchlist rule, shared across channels,
 irrespective of watchlist size. Specific-follow rules remain separate slots.
@@ -2759,7 +2759,7 @@ and alert-event cursor versions are unchanged.
 
 The legacy HTML page hides resume controls for unsupported watchlist pairs.
 Email and in-app filing notices capture membership evidence and deduplicate by
-rule/filing/channel; transaction and cluster support is described below. Watchlist 13f_change and news remain drafts. No migration replays historical events.
+rule/filing/channel; transaction and cluster support is described below. Watchlist news remains a draft. No migration replays historical events.
 
 ### Watchlist filing notice evidence
 
@@ -2816,5 +2816,22 @@ plan/consent timing and every constituent source. Delayed ingestion uses the
 snapshot primary filing for accession, membership evidence, enqueue and instant
 publication. Responses reuse cluster and matched_entities DTOs, bounded at 20
 identities with totals. Email history remains a delivery audit; in-app visibility
-requires valid sources. Watchlist 13f_change and news remain draft-only. See
+requires valid sources. Watchlist news remains draft-only; 13F change support is described below. See
 [cluster behavior and migration notes](watchlist-cluster-alerts.md).
+
+
+### Watchlist institutional position-change rules
+
+Watchlist 13f_change rules support email and in_app with existing typed change,
+direction, security-key and minimum-value conditions. Matching is limited to
+watched funds and uses complete adjacent-quarter comparisons with immutable
+current/prior report evidence. Repeated CUSIPs aggregate within put/call/share-type
+keys; missing normalized values stay null and cannot satisfy value thresholds.
+
+Captured fund membership is atomic per rule/snapshot and immutable across retries.
+Pending delivery/publication rechecks original membership epochs, consent, plan,
+revision and effective report sets. Amendments invalidate older comparisons;
+delayed baselines and baseline amendments use the actual snapshot primary filing.
+Responses reuse position_change, SEC sources and bounded matched_entities evidence.
+Free remains daily-only; verified Pro supports instant. Watchlist news remains
+draft-only. See [institutional alert behavior and migration notes](watchlist-institutional-alerts.md).

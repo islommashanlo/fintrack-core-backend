@@ -2,10 +2,12 @@
 
 class InstitutionalAlertValidity
   def self.apply(scope, as_of:)
+    now = ApplicationRecord.connection.quote(as_of)
     scope.where(<<~SQL.squish)
       alert_deliveries.institutional_change_snapshot_id IS NULL OR EXISTS (
         SELECT 1 FROM institutional_change_snapshots snapshot
         WHERE snapshot.id = alert_deliveries.institutional_change_snapshot_id
+          AND snapshot.primary_filing_id = alert_deliveries.filing_id AND snapshot.observed_at <= #{now}
           AND (#{report_sets_sql(as_of:)})
       )
     SQL

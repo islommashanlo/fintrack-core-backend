@@ -6,8 +6,8 @@ This design covers the existing five triggers and email/in-app channels. It does
 not add global rules, push delivery, unsupported filing forms or scoring. The
 ownership foundation, reader refactor and paused watchlist draft API are implemented.
 Watchlist new_filing matching is implemented for email and in_app with independent
-destinations and shared logical quotas. Watchlist insider_transaction and cluster are also implemented in both channels.
-13F changes and news remain draft-only.
+destinations and shared logical quotas. Watchlist insider_transaction, cluster and 13f_change are also implemented in both channels.
+News remains draft-only.
 
 Rules now store user_id, inferred from the follow on normal creation. A user FK,
 not-null constraint and composite (follow_id, user_id) FK enforce ownership even
@@ -228,7 +228,7 @@ insider_transaction is implemented in both channels, with shared predicate SQL,
 line-level deduplication, eligible-owner evidence and captured membership epochs.
 Email adds sparse private line identity without changing old follow-specific keys.
 See docs/watchlist-transaction-alerts.md for source/amendment behavior, migration
-costs and regression evidence. Clusters are now supported; 13F changes are the next unsupported watchlist trigger.
+costs and regression evidence. Clusters and 13F changes are now supported; news is the next unsupported watchlist trigger.
 
 ## Cluster query prerequisite
 
@@ -251,4 +251,17 @@ Both channels use shared constituent-source validity, and delayed windows enqueu
 and publish by their primary filing. No cluster definition, source identity or
 cursor version changes. The activation-constraint migration ran only in the test
 database. See docs/watchlist-cluster-alerts.md for behavior, migration costs and
-verification. Watchlist 13f_change and news remain inactive.
+verification. Watchlist 13f_change is supported by the subsequent increment; news remains inactive.
+
+
+## Watchlist institutional extension
+
+13f_change is implemented in both channels using the existing comparison matcher,
+immutable snapshots and report-set validity. WatchlistSnapshotCapture now shares
+atomic destination/witness insertion between cluster and institutional alerts,
+with fixed source identifiers and source-specific deduplication. Captured fund
+epochs, delayed primary filings, amendments, pending consent/plan/revision checks,
+digests and enqueue recovery retain the existing semantics. Email also verifies
+snapshot primary identity and observation time. The activation-constraint migration
+ran only in the test database. See docs/watchlist-institutional-alerts.md for
+behavior, migration costs and verification. Watchlist news remains inactive.

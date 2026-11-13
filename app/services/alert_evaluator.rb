@@ -18,6 +18,7 @@ class AlertEvaluator
     WatchlistFilingEmailMatcher.call(@filing)
     WatchlistTransactionMatcher.call(@filing, channel: "email")
     WatchlistClusterMatcher.call(@filing, channel: "email")
+    WatchlistInstitutionalMatcher.call(@filing, channel: "email")
     enqueue(matching_rules, event_type: "new_filing", unique_by: :index_alert_deliveries_on_alert_rule_id_and_filing_id) +
       enqueue(TransactionAlertMatcher.call(@filing), event_type: "insider_transaction", unique_by: :index_alert_deliveries_on_rule_and_transaction) +
       enqueue(ClusterAlertMatcher.call(@filing), event_type: "cluster", unique_by: :index_alert_deliveries_on_rule_and_cluster) +

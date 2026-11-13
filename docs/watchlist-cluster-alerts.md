@@ -1,7 +1,7 @@
 # Watchlist cluster alerts
 
 Watchlist cluster rules support email and in_app alongside new_filing and
-insider_transaction. Watchlist 13f_change and news remain draft-only.
+insider_transaction. Watchlist 13f_change is supported as documented in watchlist-institutional-alerts.md; news remains draft-only.
 
 ## API and cluster definition
 
@@ -32,7 +32,7 @@ observed time and source ceilings. A changed window membership creates a differe
 event key. Existing unique keys deduplicate by rule and snapshot independently
 for email and in-app.
 
-WatchlistClusterMatcher inserts a destination and all qualifying membership
+WatchlistClusterMatcher delegates to WatchlistSnapshotCapture, which inserts a destination and all qualifying membership
 witnesses in one SQL statement. Witnesses join the inserted destination by rule
 AND snapshot; matches from another window cannot release an unrelated alert.
 A conflicting destination returns no rows, so retries cannot append witnesses or
