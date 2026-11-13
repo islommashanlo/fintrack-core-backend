@@ -10,8 +10,8 @@ class InsiderClusterWindows
   end
 
   def self.sql(source:, from:, to:, min_insiders: ActivityMethodology.minimum_insiders)
-    ApplicationRecord.sanitize_sql([ <<~SQL, from:, to:, min_insiders: ])
-      WITH eligible AS (#{source.to_sql}), anchors AS (
+    sql = ApplicationRecord.sanitize_sql([ <<~SQL, from:, to:, min_insiders: ])
+      WITH eligible AS (CLUSTER_SOURCE), anchors AS (
         SELECT DISTINCT issuer_cik, transaction_code, known_at AS window_end
         FROM eligible WHERE known_at >= :from AND known_at < :to
       ), clusters AS (
@@ -45,5 +45,7 @@ class InsiderClusterWindows
         ) latest_names
       ) names ON TRUE
     SQL
+    # The relation already quotes its values; do not interpret them as named binds.
+    sql.sub("CLUSTER_SOURCE") { source.to_sql }
   end
 end

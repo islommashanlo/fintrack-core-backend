@@ -229,3 +229,14 @@ line-level deduplication, eligible-owner evidence and captured membership epochs
 Email adds sparse private line identity without changing old follow-specific keys.
 See docs/watchlist-transaction-alerts.md for source/amendment behavior, migration
 costs and regression evidence. Clusters are the next unsupported watchlist trigger.
+
+## Cluster query prerequisite
+
+InsiderClusterWindows now binds its window parameters before inserting the
+already-quoted source relation. Named-bind-looking text inside a source filter
+is preserved as data rather than interpreted again. Five database regressions
+cover collisions with window bind names, quotes and backslashes, and verify
+that unrelated transactions remain excluded. All five fail against the former
+builder. Window definitions, snapshot identities and activation support are
+unchanged. Watchlist cluster capture, membership evidence and delivery remain
+the next increment; cluster rules are still draft-only for watchlist scope.
