@@ -5,6 +5,7 @@ require "rails_helper"
 RSpec.describe "API v1 fund comparison" do
   include InstitutionalReadHelpers
   include ApiAccounts
+  include OpenapiResponses
   around { |example| travel_to(Time.utc(2026, 11, 11, 12)) { example.run } }
   let(:first) { create(:institutional_filer, name: "First Example Fund") }
   let(:second) { create(:institutional_filer, name: "Second Example Fund") }
@@ -15,6 +16,7 @@ RSpec.describe "API v1 fund comparison" do
   def meta = response.parsed_body.fetch("meta")
   def compare(funds = [ first, second ], **values)
     get api_v1_fund_comparison_path, params: { ciks: funds.map(&:cik).join(","), **values }
+    expect_documented_response(path: "/funds/compare") if response.successful?
   end
 
   def report(fund, quarter = period, **values)

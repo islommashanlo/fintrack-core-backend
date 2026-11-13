@@ -4,6 +4,7 @@ require "rails_helper"
 
 RSpec.describe "Reported portfolio weights and ranks in fund comparisons" do
   include InstitutionalReadHelpers
+  include OpenapiResponses
   around { |example| travel_to(Time.utc(2026, 11, 12, 12)) { example.run } }
   let(:first) { create(:institutional_filer) }
   let(:second) { create(:institutional_filer) }
@@ -24,6 +25,7 @@ RSpec.describe "Reported portfolio weights and ranks in fund comparisons" do
     get api_v1_fund_comparison_path, params: { ciks: [ first.cik, second.cik ].join(","), period: period.iso8601, **parameters }
     expect(response).to have_http_status(:ok)
     expect(response.headers["Cache-Control"]).to eq("no-store")
+    expect_documented_response(path: "/funds/compare")
     response.parsed_body
   end
 
@@ -125,6 +127,21 @@ RSpec.describe "Reported portfolio weights and ranks in fund comparisons" do
     expect(exited.fetch("weight_percent")).to be_nil
     expect(BigDecimal(exited.fetch("prior_weight_percent"))).to eq(100)
     expect(body.dig("data", "funds").find { |row| row["cik"] == second.cik }.fetch("prior_value_complete")).to be(false)
+  end
+
+  it "detects missing rank fields and numeric decimal drift against the published response schema" do
+    report(first)
+    report(second)
+    body = compare
+    document = YAML.safe_load_file(Rails.root.join("docs/openapi.yml"), aliases: true)
+    schema = document.fetch("paths").fetch("/funds/compare").fetch("get")
+      .fetch("responses").fetch("200").fetch("content").fetch("application/json").fetch("schema")
+    entry = body.fetch("data").fetch("positions").sole.fetch("funds").first
+    entry.delete("rank")
+    entry["value_usd"] = 100.0
+    errors = ApiContract::ResponseSchema.new(document:).errors(body, schema:)
+    expect(errors).to include("$.data.positions[0].funds[0].rank: required field missing",
+      "$.data.positions[0].funds[0].value_usd: expected string, got Float")
   end
 
   it "uses first-page report and holding ceilings for denominators across continued pages" do

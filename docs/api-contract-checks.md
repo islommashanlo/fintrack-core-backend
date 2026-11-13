@@ -50,8 +50,9 @@ same-level duplicate parameters fail.
 This is a bounded route/document checker, not a general OpenAPI or JSON Schema
 validator. It checks declaration presence and local reference resolution; it does
 not verify all schema keywords, reference target types, response status/body
-conformance, security behavior or example validity. Current path items are inline;
-parameter references target parameter definitions directly. Unsupported document
+conformance, security behavior or example validity. A separate request-test check
+now validates selected real response bodies as described below. Current path items
+are inline; parameter references target parameter definitions directly. Unsupported document
 structures must be reviewed before extending the checker.
 
 Request specs cover runtime behavior using WebMock. Passing this task does not
@@ -61,3 +62,47 @@ correctness or remote CI status. A deployment is not part of validation.
 The first run against version 1.44.0 found the missing required `id` declaration
 on `POST /notifications/{id}/read`. Version 1.44.1 fixes the declaration; the
 runtime endpoint and operation count are unchanged (83 at introduction).
+
+## Response-body checks in request tests
+
+`ApiContract::ResponseSchema` is a pure, dependency-free checker for an explicit
+subset of OpenAPI 3.0 response schemas. `OpenapiResponses` in `spec/support` looks
+up the requested documented path, method and actual status, requires a JSON media
+type, and validates `response.parsed_body`. It runs within ordinary RSpec/CI;
+`api:validate_contract` remains the route/document check and does not send requests.
+There is no runtime response middleware or production behavior change.
+
+Initial coverage is successful `/funds/compare` responses in the comparison and
+weights/ranks request specs: populated, incomplete, absent/empty portfolios,
+amendments, independent prior coverage, filters, and cursor continuations. Existing
+request specs retain their behavioral, history-gate and account-isolation checks.
+A mutation regression proves that deleting a required rank or encoding a decimal
+as a JSON number fails against the committed schema. This does not yet cover every
+endpoint, error response, header, or possible source-data combination.
+
+Supported rules are object/array/string/integer/finite-number/boolean types,
+required properties, explicit additional-property rules, items, allOf, nullable,
+enums, numeric bounds, array/string length bounds, patterns, and date/date-time/URI
+formats. Object properties remain open unless the schema explicitly closes them.
+Null is permitted where nullable is true, including nullable enums in this document.
+Date-time requires a timezone. URI validation is syntactic and never fetches links.
+Patterns use Ruby regular expressions; only compatible patterns should be used.
+A decimal-string schema without a pattern checks its JSON type, not decimal syntax.
+
+Only direct `#/components/schemas/Name` references are supported. External,
+missing or recursive references fail; reference annotations are allowed but
+validation siblings fail rather than being silently ignored. The checker inspects
+all reachable schema branches before data validation, so unsupported rules such
+as oneOf, unsupported formats and invalid patterns fail even for empty responses
+or absent optional properties. Diagnostics identify JSON response paths. This is
+not a full OpenAPI meta-schema validator: the committed document's declaration
+structure still needs the route/document checks and review. Extend the supported
+subset with focused tests before applying it to additional schema constructs.
+
+Run the initial coverage with:
+
+```sh
+bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
+  spec/requests/api/v1/fund_comparisons_spec.rb \
+  spec/requests/api/v1/fund_comparison_weights_spec.rb
+```

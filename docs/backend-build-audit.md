@@ -4,6 +4,22 @@ Audited commit: `597bc41` on `filingsintel-rails8`. Scope: the owner's Rails bac
 
 No deployment, ingestion, backfill, enrichment, seeding, provider activation or real delivery was performed. No new runtime code or schema is introduced by this audit.
 
+## Incremental status refresh
+
+The original audit below started at `597bc41`; it is not a fresh certification.
+Source review through `8ef81b5` confirms the subsequent independent in-app model,
+private notification APIs and all five existing trigger matchers are implemented.
+Fund directory/profile summaries and comparison weights/ranks now reuse reported
+portfolio coverage and source bounds. These local additions do not complete push,
+real-time transport, vendor activation, turnover or additional filing forms.
+OpenAPI 1.49.0 currently documents 83 operations. The pre-checker baseline passed
+1,284 examples with 626 Ruby files clean; it does not establish remote CI status.
+
+The next local validation increment adds selected response-body schema checks to
+RSpec, starting with successful fund comparisons. See `api-contract-checks.md` for
+supported rules and limits. It introduces no runtime API or schema change and no
+external requests. The original route inventory and counts below remain historical.
+
 ## What exists and what remains
 
 “Implemented” below means code and relevant local tests exist. It does not establish production configuration, complete SEC history, provider interoperability or measured service-level objectives.
@@ -19,13 +35,13 @@ No deployment, ingestion, backfill, enrichment, seeding, provider activation or 
 | Security mapping | `openfigi_enrichment.rb`, mapping ingestion, `Security`, `CusipSecurityMapping`; synthetic/stubbed specs. | Mapping code exists, but enrichment is not being run. Effective-dated ticker/name history and richer issuer metadata are incomplete; latest mappings are not a complete historical security master. |
 | Company, fund, insider APIs | Controllers, read queries, serializers and request specs under `api/v1`. Holdings, changes, comparisons, company history, insider transactions/companies and filing details exist. | Fund directory now supports reported portfolio-value and grouped-position ranges/sorts plus stored report-type/coverage filters with history gates; profiles expose the same derived summary while preserving raw-cover metadata; requested AUM/type/turnover/sector-focus filters remain unsupported. Sector/industry/market-cap coverage and full fund analytics are incomplete. Existing Filer/InstitutionalFiler structures intentionally differ from the prompt's entity names. |
 | Insider aggregates and clusters | `api/v1/insider_profile.rb` has 30/90/365-day summaries; `insider_cluster_windows.rb`, cluster read/matching specs and methodology define 14-day purchase/sale clusters. | Company profiles now expose 30/90/365-day summaries while retaining the legacy 90-day shape. Cluster output is filing-acceptance-based and first-listed-owner-based; that choice is documented, not proof of full coverage. |
-| Institutional analytics | Effective report SQL, `institutional_position_diff_query.rb`, materializer and comparison/history APIs with source evidence. | Fund holdings and changes now expose full-portfolio reported-value weights, competition ranks and independent integrity coverage for each period; Fund position history now exposes grouped shares, weights/ranks, independent period coverage and source evidence; turnover analytics and richer fund classification filters remain incomplete. Changes in reported value must not be presented as transaction values or capital flows. |
+| Institutional analytics | Effective report SQL, `institutional_position_diff_query.rb`, materializer and comparison/history APIs with source evidence. | Fund holdings and changes now expose full-portfolio reported-value weights, competition ranks and independent integrity coverage for each period; Fund position history now exposes grouped shares, weights/ranks, independent period coverage and source evidence; comparisons also expose full-fund weights/ranks with independent current/prior completeness. Turnover analytics and richer fund classification filters remain incomplete. Changes in reported value must not be presented as transaction values or capital flows. |
 | Activity Score and reasons | `activity_scoring/`, calculator/assessment specs and `config/activity_methodology.yml`. Draft diagnostics implement several point-in-time factors. | Score status is unavailable. Scale/liquidity inputs remain missing; draft factor diagnostics are not an active score, level or public reasons feed. No automatic zero filling or activation is justified. |
 | Unusual activity | Dashboard explicitly reports scoring_not_active. Activity accepts score/level filters with availability metadata. | `/activity/unusual` is absent. Empty filtered results are not equivalent to an implemented unusual-activity feed. Activation needs complete inputs, reviewed methodology, coverage and plan gates. |
 | Auth/account/preferences | Password auth/recovery, cookie/CSRF controls, private preferences and generated-key OAuth tests. Google linking and already-linked sign-in have independent default-off flags. | No automatic Google account creation, code exchange or redirect receiver. Frontend/provider interoperability and live configuration remain separate. |
 | Watchlist, search, screener, saved screens | SQL search and whitelist compilation; request/compiler/limit specs. Typed company/fund/insider watchlists and Pro saved-screen CRUD exist. | Requested sector/AUM/turnover/scoring fields are not all available. Unsupported values must remain explicit; a compiler whitelist does not imply every product filter exists. |
-| Email alerts and history | `AlertRule::EVENT_TYPES`: new_filing, insider_transaction, cluster, 13f_change, news. Matching/delivery revisions, source checks, daily digests, read/read-all and badge summary are implemented and tested. | Rule channel is email only; entities are follow-scoped rather than arbitrary global/watchlist-wide rules. Unusual/13D-G/144 triggers are missing. External delivery latency is not measured by unit tests. |
-| In-app and web push | Existing alert-event history/read state plus private encrypted push registration, consent and eligibility APIs. | **No independent in_app alert channel or notification delivery model.** Existing history records email matches. Matching SQL selects email rules and email activation requires email consent. Push transport remains hard-disabled; no real-time stream, VAPID sender or service-worker integration is implemented. |
+| Email alerts and history | `AlertRule::EVENT_TYPES`: new_filing, insider_transaction, cluster, 13f_change, news. Matching/delivery revisions, source checks, daily digests, read/read-all and badge summary are implemented and tested. | All five existing triggers now support separate email and in-app rules; entities remain follow-scoped rather than arbitrary global/watchlist-wide rules. Unusual/13D-G/144 triggers are missing. External delivery latency is not measured by unit tests. |
+| In-app and web push | Independent in-app matching/publication, private notifications/read state, all five existing triggers, shared logical quotas and Free daily/Pro instant timing (`docs/in-app-notifications.md`), plus encrypted push registration/consent APIs. | In-app publication is persistent and read through the API; no real-time stream is implemented. Push transport remains hard-disabled; VAPID sending and service-worker integration remain absent. |
 | Explain Filing | Cached normalized fact summaries, bounded facts-v2 coverage, templates and provider-selection/fallback tests. | No external LLM adapter. The implemented provider selects validated fact IDs; it does not directly publish model prose. This is a useful factual fallback, not a completed live AI integration. |
 | News and prices | Immutable headline/link ingestion, mention matching, local feeds/news alerts; exact OHLCV storage, gap planner and company price API. | Default providers are disabled. No real vendor adapter, nightly price refresh or 15-minute news refresh job. No provider redistribution rights have been established by tests. Historical calendars/symbol identity coverage remain explicit gaps. |
 | Billing and gating | Signed Stripe intake, durable receipts, verified entitlements, hosted attempts/recovery and request/concurrency tests. `PlanCatalog` centralizes requested Free limits. | Live configuration and unknown/unmatched outcome resolution remain operational concerns. No real customer/payment or entitlement activation was performed. Having a plan limit does not make an unavailable feature available. |
@@ -48,26 +64,24 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Build **independent in-app alerts**, beginning with the existing new_filing trigger and one follow-scoped rule. This fills a missing requested delivery channel using local data and existing source policy; it does not depend on vendor selection, enrichment, seeding or deploying an email/push sender.
+Extend selected response-schema conformance checks to company, fund and insider
+profile responses, then their paginated lists and error cases. This adds local CI
+coverage without vendor activation or new dependencies. Keep field semantics,
+source visibility, plan gates and latency tests separate: schema conformance alone
+does not establish any of them. The initial comparison coverage is deliberately
+bounded and fails explicitly on unsupported schema rules.
 
-The increment should:
-
-1. Keep current email rules/history backward-compatible; do not relabel email delivery records as in-app notifications.
-2. Add explicit in_app channel handling, source-event deduplication and private persistent notification/read state. Reuse matching/source validity and redact revoked sources consistently.
-3. Allow users to configure in-app notifications without enabling email. Keep Free rule quotas and digest-only restrictions enforced; channel-specific consent, frequency and display semantics must be defined before implementation rather than assuming free instant delivery.
-4. Make event matching/materialization idempotent and commit-deferred. Test double evaluation, account isolation, removed follows, rule revisions, source amendments, read/read-all, plan limits and existing email behavior.
-5. Publish the exact JSON capability and read contract. Real-time streaming can be a subsequent increment; do not claim it from polling/read-state APIs.
-
-A short implementation design should settle whether to extend rule channels or introduce channel configuration, how shared rule quotas count multi-channel rules, and how Free daily digest timing applies to the in-app channel. Recommendations: reuse the existing rule/source policy, count a user's logical rule once across its channels, preserve Free timing restrictions, and store channel delivery/read state separately. These are proposed decisions, not existing behavior or an approved migration.
+Independent in-app alerts, the original recommendation, are implemented for the
+five existing triggers; real-time transport and push remain separate work.
 
 ## Follow-on priorities and dependencies
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Independent in-app alerts as scoped above | Local implementation; review channel/quota/timing design before schema changes. Routine local schema changes are already authorized. |
+| Next | Extend response-schema checks beyond successful comparisons | Local request specs; support new schema constructs explicitly and retain behavioral tests. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Define reported turnover methodology and remaining fund analytics | Local SQL, coverage semantics and regression fixtures; no vendor activation needed for reported-data calculations. |
-| High | Add CI security/dependency checks and response-schema validation | Security tools may require approved dependencies; scanners were not run in this audit. |
+| High | Add CI security/dependency checks and broaden response-schema validation | Initial comparison conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |
 | Later | Complete scale/liquidity input storage and queries, then score/unusual activation | Point-in-time market identity and coverage, approved methodology and provider rights/selection; do not activate incomplete scores. |
 | Later | Form 3/5, Schedule 13D/G and Form 144 | Real-file format evidence first; separate ingestion/schema/parser increments. |
 | Separate activation track | Real news/price/LLM/push providers, Google/Stripe configuration, archive adapter, monitoring and load testing | Keep external requests, licensing, deployment and real delivery separately authorized. |
