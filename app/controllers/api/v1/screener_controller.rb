@@ -12,7 +12,7 @@ module Api
         history = if values.fetch("entity") == "funds"
           HistoryWindow.new(limit: PlanCatalog.limit_for(Current.user, :history_quarters), user_id: Current.user&.id)
         end
-        context.merge!(history.context).merge!("fund_metrics_version" => 2) if history
+        context.merge!(history.context).merge!("fund_metrics_version" => 3) if history
         page = CursorPage.new(parameters: values,
           context: context,
           sorts: ScreenerDefinition.sorts(values.fetch("entity")), default_sort: "name", bounds: ScreenerQuery::BOUNDS, as_of:)

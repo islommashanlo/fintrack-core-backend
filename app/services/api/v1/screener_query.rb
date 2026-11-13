@@ -22,7 +22,8 @@ module Api
           scoring_available: false, sector_available: false
         )
         if history
-          metadata.merge!(turnover_baseline_policy: turnover_context.fetch(:baseline_policy),
+          metadata.merge!(history_quarters: history.context.fetch("history_quarters"), earliest_period: history.earliest(as_of: page.as_of),
+            fund_metrics_policy_version: 3, turnover_baseline_policy: turnover_context.fetch(:baseline_policy),
             turnover_methodology_version: turnover_context.fetch(:methodology_version),
             turnover_history_quarters: history.context.fetch("history_quarters"), turnover_earliest_period: history.earliest(as_of: page.as_of))
         end

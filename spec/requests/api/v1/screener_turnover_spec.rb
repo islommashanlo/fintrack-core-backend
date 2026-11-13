@@ -116,11 +116,11 @@ RSpec.describe "Reported allocation turnover in fund screens" do
       "prior_period_of_report" => prior.iso8601, "current_complete" => true, "prior_complete" => true)
   end
 
-  it "gates only the new metric for old Free periods and invalidates paid cursors after downgrade" do
+  it "gates derived metrics for old Free periods and invalidates paid cursors after downgrade" do
     fund = create(:institutional_filer)
     old = pair(fund, quarter: Date.new(2025, 9, 30))
     row = screen.fetch("data").sole
-    expect(row.fetch("metrics")).to include(field => nil, "portfolio_value_usd" => "100.0")
+    expect(row.fetch("metrics")).to include(field => nil, "portfolio_value_usd" => nil, "position_count" => nil, "holding_row_count" => nil, "suspect" => nil)
     expect(row.fetch("reported_allocation_turnover")).to include("unavailable_reason" => "history_restricted",
       "current_complete" => nil, "prior_complete" => nil, "current_sources" => [], "prior_sources" => [], field => nil)
     expect(row.fetch("accession")).to eq(old.filing.accession_no)

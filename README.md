@@ -91,7 +91,9 @@ fund directory now supports turnover percentage ranges and sorting using batched
 SQL, with source evidence and unknown values preserved. See
 [the API contract](docs/api-v1.md#reported-allocation-turnover). The fund screener
 also supports this typed percentage, sorting, null conditions and Pro saved screens,
-with its own turnover history gates and source summaries.
+with source summaries. All derived fund-screen metrics now share directory
+history/integrity rules; policy 3 hides old Free counts/totals while preserving
+identity/filing metadata. Existing fund-screen cursors must be restarted.
 
 Fund holdings/changes/report history and company institutional ownership share the
 four-quarter Free history window. Older selected periods require Pro; collection

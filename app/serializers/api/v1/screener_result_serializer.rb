@@ -28,7 +28,10 @@ module Api
           metrics: row.slice(*metrics), source_filing_count: row.fetch("source_filing_count"),
           latest_role: @entity == "insiders" ? row.slice("latest_role_issuer_cik", "officer_title") : nil
         )
-        result[:reported_allocation_turnover] = turnover(row) if @entity == "funds"
+        if @entity == "funds"
+          result[:reported_allocation_turnover] = turnover(row)
+          result[:fund_metrics_unavailable_reason] = row.fetch("fund_metrics_unavailable_reason")
+        end
         result
       end
 

@@ -1980,7 +1980,8 @@ current market value or transaction flow. Cover-count/value mismatches, suspect
 or malformed rows and unknown/inconsistent normalization prevent a complete
 value total; `suspect` flags these derived quality gaps. Notice-only or unresolved
 additive periods have null holdings/value metrics. A complete empty holdings
-report has zero values. Failed/pending/skipped/future reports cannot supply data.
+report has zero values. Failed/pending/skipped filings and filings accepted after
+the snapshot cannot supply data.
 
 Fund screens now whitelist `reported_allocation_turnover_percent` for numeric
 comparisons, inclusive `between`, `in`, null conditions and ascending/descending
@@ -2004,21 +2005,47 @@ primary filing may be a later prior-quarter amendment; the result's existing
 primary filing and `source_filing_count` keep their latest-period identity meaning.
 Sources are preloaded for the page, with no per-fund calculation/query loop.
 
-The **new turnover field only** follows the four-completed-quarter Free history
-gate. Old Free latest quarters have a null metric and `history_restricted` summary
-with null completeness/provenance and empty sources. The current period remains
-already visible in the legacy result; the prior period is redacted. Pro can read
-older turnover; an accessible current quarter may use its adjacent baseline just
-outside the Free window. Existing portfolio/count/suspect fields retain their
-previous visibility, including older latest reports: this increment does not
-retroactively gate those legacy fields. That broader consistency gap remains.
+**Compatibility change — fund metrics policy 3:** all derived fund-screen fields
+now follow the same four-completed-quarter Free history gate as the directory.
+Old Free latest quarters retain identity, latest filing provenance/dates and the
+raw `period_of_report`, but `holding_row_count`, `position_count`,
+`portfolio_value_usd`, `suspect`, turnover percentage and `source_filing_count`
+are null. The turnover summary reports `history_restricted` with null prior
+period/completeness/provenance and empty sources. Numeric/boolean predicates do
+not match hidden values; explicit null predicates can select those identities.
+Verified Pro can read older metrics. This intentionally replaces policy 2's
+legacy exposure of old normalized portfolio/count fields.
 
-Fund metadata adds `turnover_history_quarters`, `turnover_earliest_period`,
-`turnover_baseline_policy` and `turnover_methodology_version`. Fund cursors now bind
-history entitlement and fund-metrics context version 2 alongside the existing
-actor, preview cap, filters, sort and source-ID ceilings. Restart fund-screen
-cursors issued before this extension. Company/insider cursor contexts are unchanged.
-New filters/sorts require a fresh cursor; downgrade or actor changes invalidate it.
+Current portfolio calculations now reuse the directory's `InstitutionalReportChecks`,
+including a resolvable original for amendments and consistent normalized units.
+Every effective report must pass before `position_count` or `portfolio_value_usd`
+is filterable. An incomplete set retains its observed `holding_row_count` and
+known effective-source count, with derived `suspect: true`, but unknown position
+and value totals. A notice or unresolved additive set leaves holdings metrics and
+suspect unknown, with zero contributing holdings sources. A valid empty holdings
+report still establishes row/key/value zero and `suspect: false`. Stored reported
+rows and values are never corrected or rewritten by screening.
+
+The fund-only `fund_metrics_unavailable_reason` is null for complete holdings,
+`history_restricted` for hidden history, `no_effective_holdings` for notice/orphan
+sets, or `incomplete_report_set` for failed integrity coverage. It describes current
+portfolio eligibility independently of the turnover's adjacent-quarter coverage.
+The screener still requires a parsed visible filing for a fund identity; a stored
+fund without reports is browsable through the directory instead.
+
+Fund metadata now includes `history_quarters`, `earliest_period` and
+`fund_metrics_policy_version: 3`. Existing `turnover_history_quarters` and
+`turnover_earliest_period` remain equivalent compatibility aliases alongside the
+turnover baseline/methodology fields. Fund cursors bind history entitlement and
+policy 3 with actor, preview cap, filters, sort and source-ID ceilings. **Restart
+all earlier fund-screen cursors.** Company/insider contexts and metrics are unchanged.
+An accessible current quarter can still retain its adjacent turnover baseline just
+outside the Free window. The Free three-result preview applies after conditions;
+counts/orderings are computed with the new null/quality semantics before pagination.
+Saved definitions remain valid, but prior portfolio predicates can now return fewer
+results because hidden/incomplete values no longer satisfy them. No saved definition
+or source record is rewritten. Production-scale screener latency remains
+unbenchmarked; constant query counts do not establish the p95 target.
 
 Pro saved screens accept this field through the same normalizer. Saved numeric
 strings and sort choices can be submitted unchanged to `/screener/run`; saved

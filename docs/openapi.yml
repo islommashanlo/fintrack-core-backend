@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.53.0
+  version: 1.54.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -3395,9 +3395,11 @@ paths:
         sectors, market caps and other unavailable metrics are rejected. This read-only
         POST makes no external requests or data writes. Fund screens also whitelist
         reported_allocation_turnover_percent using batched adjacent-quarter SQL, source
-        evidence and a Free/Pro history gate for that new field. Existing older fund
-        metrics retain their visibility. Fund cursors bind the history limit and version;
-        restart fund-screen cursors created before this extension.
+        evidence and the shared Free/Pro history gate for all derived fund metrics.
+        This intentionally hides old Free counts, totals, suspect flags and effective-source
+        counts while retaining identity and latest-filing metadata. Incomplete report sets
+        no longer supply position/value totals. Fund cursor policy is version 3; restart
+        fund-screen cursors created before this change.
       security:
       - CsrfToken: []
       - CookieSession: []
@@ -9130,6 +9132,11 @@ components:
           nullable: false
     ScreenerFundsMetrics:
       type: object
+      description: Uses shared directory integrity and history policy. Complete reports
+        establish value and grouped-position totals, including true zero for valid empty
+        holdings. Incomplete sets retain observed holding-row counts and a derived suspect
+        flag, but their position/value totals are null. Notice/orphan sets are unknown;
+        history-restricted fields are all null.
       required:
       - holding_row_count
       - position_count
@@ -9141,7 +9148,7 @@ components:
           "$ref": "#/components/schemas/NullableDecimal"
           description: Shared adjacent-quarter reported-allocation percentage, 0 to 100.
             Null for incomplete/missing/zero-value/future inputs or restricted Free history;
-            never inferred as zero. Other legacy fund metrics retain their existing visibility.
+            never inferred as zero. All derived fund metrics follow the shared history gate; restricted values stay null.
         holding_row_count:
           type: integer
           minimum: 0
@@ -9213,9 +9220,18 @@ components:
             description: Present for fund screens only. Includes separate current/prior
               source evidence and coverage with the same value as the metrics field.
               Existing top-level provenance remains the latest-period identity filing.
+          fund_metrics_unavailable_reason:
+            type: string
+            nullable: true
+            enum: [history_restricted, no_effective_holdings, incomplete_report_set, no_report]
+            description: Present for fund screens only. Null means complete effective
+              current holdings; other values identify hidden, absent or incomplete inputs.
           source_filing_count:
             type: integer
             minimum: 0
+            nullable: true
+            description: Current-period effective report count for funds; null for
+              restricted history. Existing company/insider source counts remain known.
           latest_role:
             type: object
             required:
@@ -9241,6 +9257,18 @@ components:
         - scoring_available
         - sector_available
         properties:
+          history_quarters:
+            type: integer
+            nullable: true
+            description: Present for funds; all derived metrics use this selected-period limit.
+          earliest_period:
+            type: string
+            format: date
+            nullable: true
+          fund_metrics_policy_version:
+            type: integer
+            enum: [3]
+            description: Present for funds. Restart cursors signed under earlier policies.
           turnover_methodology_version:
             type: string
             enum: [reported-allocation-turnover-v1]
@@ -9251,8 +9279,8 @@ components:
           turnover_history_quarters:
             type: integer
             nullable: true
-            description: History gate for the new turnover field only; Free has four
-              completed quarters, verified Pro has no limit. Legacy fields are unchanged.
+            description: Compatibility alias of the fund history gate; Free has four completed
+              quarters and verified Pro has no limit. All derived fund metrics follow it.
           turnover_earliest_period:
             type: string
             format: date

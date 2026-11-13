@@ -127,6 +127,9 @@ Fund screener turnover requests validate their actual response bodies, including
 entity-specific metrics under oneOf, the new source summary and history metadata.
 The checker requires exactly one matching oneOf branch and rejects zero or multiple
 matches; referenced branches and unsupported nested rules have focused tests.
+Fund policy-3 requests also validate hidden source counts, the unavailable reason
+and shared history metadata. Nullable source counts apply to restricted fund
+results; company/insider source counts retain their existing behavior.
 
 Supported rules are object/array/string/integer/finite-number/boolean types,
 required properties, explicit additional-property rules, items, allOf, oneOf, nullable,
@@ -178,7 +181,8 @@ bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
   spec/requests/api/v1/fund_turnover_spec.rb \
   spec/requests/api/v1/fund_profile_turnover_spec.rb \
   spec/requests/api/v1/fund_directory_turnover_spec.rb \
-  spec/requests/api/v1/screener_turnover_spec.rb
+  spec/requests/api/v1/screener_turnover_spec.rb \
+  spec/requests/api/v1/screener_fund_policy_spec.rb
 ```
 
 Comparison coverage remains in `fund_comparisons_spec.rb` and

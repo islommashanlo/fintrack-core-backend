@@ -17,9 +17,11 @@ strict coverage and source evidence; profiles now expose its compact summary usi
 shared bounds and plan-aware redaction. The directory now supports reported-allocation
 turnover ranges/sorts with batched SQL and source evidence. The fund screener now
 whitelists the same percentage, with saved-screen normalization and history gates
-for that new field only; older legacy fund metrics retain their existing visibility. This does not establish
+for all derived fund fields under policy 3. Old Free counts/totals/suspect and
+effective-source counts are now null while identity/latest-filing metadata remain
+visible; earlier fund cursors require restart. This does not establish
 transaction-based turnover.
-OpenAPI 1.53.0 now documents 84 operations, including reported allocation turnover.
+OpenAPI 1.54.0 now documents 84 operations, including reported allocation turnover.
 The pre-checker baseline passed
 1,284 examples with 626 Ruby files clean; it does not establish remote CI status.
 
@@ -77,13 +79,13 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Align legacy fund-screener portfolio metrics with the shared history and integrity
-policy used by the directory/profile. The new turnover metric is history-gated,
-but older latest-report portfolio/count fields still retain their pre-existing
-visibility and validation semantics. Treat changing those fields as an explicit
-compatibility change; preserve identity/source evidence and unknown coverage rather
-than manufacturing zeros. Turnover filtering/sorting and saved-screen support are
-now implemented. Filing/activity response-schema coverage remains useful follow-up.
+Add reported coverage and cover-report-type conditions to fund screens using the
+shared directory labels and quality policy. These conditions should describe filing
+evidence rather than inferred manager classifications, and should not expose hidden
+historical labels. The policy-3 alignment is complete: fund screens reuse directory
+integrity/history rules, preserve known empty zero versus unknown inputs and retain
+identity/provenance. Changing existing predicate results and invalidating old fund
+cursors are explicit compatibility changes documented in the API contract.
 
 Independent in-app alerts, the original recommendation, are implemented for the
 five existing triggers; real-time transport and push remain separate work.
@@ -92,7 +94,7 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Align legacy fund-screener history/integrity policy | Explicitly handle compatibility for older portfolio/count fields; preserve identities, source evidence and unknowns. |
+| Next | Add reported coverage/report-type conditions to fund screens | Reuse shared quality labels and stored cover evidence; do not infer manager type or expose restricted labels. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Extend fund analytics beyond reported allocation turnover | Standalone, profiles and directory filters/sorts are implemented. Richer manager/sector classifications still need supported data; no such classification is inferred from holdings. |
 | High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |
