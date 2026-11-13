@@ -550,7 +550,7 @@ parameters return 400 and invalid CSRF tokens return 403.
 
 | Route | Behavior |
 | --- | --- |
-| `GET /api/v1/funds` | Directory of stored institutional filers; `q` matches a literal name substring or exact CIK |
+| `GET /api/v1/funds` | Stored institutional filers with reported-portfolio coverage, ranges and sorts; `q` matches a literal name substring or exact CIK |
 | `GET /api/v1/funds/:cik` | CIK, name and latest known parsed report with cover metadata and provenance |
 | `GET /api/v1/funds/:cik/holdings` | Effective information-table rows for `period`, defaulting to the latest known report period |
 | `GET /api/v1/funds/:cik/changes` | Position changes from effective holdings for `period` versus the preceding available period |
@@ -569,7 +569,7 @@ changes, and `-period` for history. Supported sort fields:
 
 | List | Sort fields |
 | --- | --- |
-| Directory | `name` (case-insensitive), `cik` |
+| Directory | `name` (case-insensitive), `cik`, `portfolio_value_usd`, `position_count` |
 | Holdings | `value_usd`, `shares`, `cusip`, `row_sequence` |
 | Changes | `value_change` (absolute dollar delta), `shares_change` (absolute share delta), `cusip` |
 | History | `period`, `filed_at` |
@@ -584,6 +584,73 @@ reporting fund, row sequence, all reported value/share/voting fields, suspect
 flags and reasons, and filing provenance. `value_reported`, `value_unit`, and
 `value_usd` remain separate. Their `total_count` counts information-table rows,
 not distinct issuers or economic positions.
+
+### Reported metrics in the fund directory
+
+`GET /api/v1/funds` adds `reported_portfolio` and `portfolio_unavailable_reason`
+to each existing CIK/name entry. This is an additive directory representation;
+fund profiles and embedded fund identities retain their existing shape.
+
+| Parameter | Behavior |
+| --- | --- |
+| `q` | Existing literal name substring or exact 10-digit CIK search |
+| `period` | Optional exact ISO quarter-end; otherwise each fund uses its latest visible report period |
+| `min_portfolio_value_usd`, `max_portfolio_value_usd` | Inclusive normalized reported-value range; nonnegative decimal strings, up to 30 integer and 12 fractional digits |
+| `min_position_count`, `max_position_count` | Inclusive grouped-position range; nonnegative integers up to 12 digits |
+| `sort` | `name` (default), `cik`, `portfolio_value_usd`, `position_count`; prefix `-` for descending |
+| `limit`, `cursor` | Standard signed pagination, default 50, maximum 100 |
+
+Unknown numeric values sort last in either direction; fund ID breaks ties in the
+same direction. Numeric filters match known values only, including known zero.
+Unknown, suspect, malformed, unavailable or history-restricted metrics never
+become zero to satisfy a range. Invalid numbers, reversed ranges, malformed
+quarters and unsupported fields such as `aum` return JSON 400.
+
+`reported_portfolio` includes `period_of_report`, `complete`, nullable `value_usd`
+and `position_count`, observed `holding_row_count`, `effective_report_count`,
+primary filing provenance and `sources`. Repeated rows are grouped by CUSIP,
+put/call and share type for the position count. Source evidence includes all
+effective base/restatement and later NEW HOLDINGS reports. The primary source is
+the latest contributing report by acceptance time/accession. Notices and orphan
+additions retain their latest filing as evidence with no effective holdings.
+
+Value and position count are exposed only if every effective report passes the
+shared `InstitutionalReportChecks` structure and normalization checks. A valid
+empty report establishes zero value and zero positions. An incomplete report set
+keeps its source evidence and observed row count but leaves filterable numbers
+null. The latest notice-only or unresolved-addition period is unavailable; the
+query does not fall back to an older holdings quarter. Future/failed/skipped and
+undated report sources are excluded by the shared read scope.
+
+`portfolio_unavailable_reason` is null for complete portfolios, otherwise one of:
+
+- `no_report`: no visible report for the selected/default period; portfolio null.
+- `history_restricted`: the default latest period predates the Free cutoff;
+  portfolio null, with no old period, numbers or source evidence disclosed.
+- `no_effective_holdings`: notice-only or unresolved-addition coverage; the
+  portfolio keeps filing evidence with null numbers and zero effective reports.
+- `incomplete_report_set`: effective reports exist but fail integrity coverage.
+
+Identities remain browsable without a portfolio. An explicit older `period`
+requires Pro and returns the standard 402 response for Free. Verified Pro can
+read older metrics. Directory responses are now no-store and cursor context
+includes account and history entitlement as well as filters, sort, fixed time
+and fund/filing/report/holding ID ceilings. Previous directory cursors must be
+restarted. Later inserts and amendments do not change continuation calculations;
+mutable identity metadata is not a versioned history.
+
+Metadata adds `portfolio_period` (the selected date or `latest_per_fund`),
+`portfolio_history_limited`, `history_quarters`, `earliest_period`,
+`value_is_aum: false` and the product disclaimer. Directory `total_count` and
+`accessible_count` count matching **identities after metric filters**. Rows are
+not removed solely because a portfolio is unavailable; `truncated` is false,
+while history-limited metric fields are identified by their per-row reason.
+Default latest portfolios can use different quarters across funds.
+
+These numbers describe reported 13F information-table values, not AUM, current
+market prices, trading flows or investment performance. AUM/type/turnover/sector
+focus filters remain unsupported. No enrichment, provider request, derived write
+or migration is needed. Production directory latency has not been benchmarked.
 
 ### Reported portfolio weights and ranks
 

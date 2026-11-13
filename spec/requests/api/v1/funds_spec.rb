@@ -20,7 +20,7 @@ RSpec.describe "API v1 funds" do
     second = create(:institutional_filer, name: "Example Capital")
     create(:institutional_filer, name: "Other Fund")
     get api_v1_funds_path, params: { q: "example", limit: 1 }
-    expect(data).to eq([ { "cik" => first.cik, "name" => first.name } ])
+    expect(data).to eq([ { "cik" => first.cik, "name" => first.name, "reported_portfolio" => nil, "portfolio_unavailable_reason" => "no_report" } ])
     cursor = meta.fetch("next_cursor")
     create(:institutional_filer, name: first.name)
 

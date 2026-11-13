@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.44.1
+  version: 1.45.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1163,12 +1163,45 @@ paths:
           - "-name"
           - cik
           - "-cik"
+          - portfolio_value_usd
+          - "-portfolio_value_usd"
+          - position_count
+          - "-position_count"
           default: name
       - "$ref": "#/components/parameters/TransactionLimit"
       - "$ref": "#/components/parameters/TransactionCursor"
+      - "$ref": "#/components/parameters/Period"
+      - name: min_portfolio_value_usd
+        in: query
+        description: Inclusive reported normalized value bound; complete metrics only,
+          not AUM.
+        schema:
+          type: string
+          pattern: "^[0-9]{1,30}(\\.[0-9]{1,12})?$"
+      - name: min_position_count
+        in: query
+        description: Inclusive complete grouped-position count bound.
+        schema:
+          type: string
+          pattern: "^[0-9]{1,12}$"
+      - name: max_portfolio_value_usd
+        in: query
+        description: Inclusive reported normalized value bound; complete metrics only,
+          not AUM.
+        schema:
+          type: string
+          pattern: "^[0-9]{1,30}(\\.[0-9]{1,12})?$"
+      - name: max_position_count
+        in: query
+        description: Inclusive complete grouped-position count bound.
+        schema:
+          type: string
+          pattern: "^[0-9]{1,12}$"
       responses:
         '200':
-          description: Locally stored filing data.
+          description: Matching fund identities with reported portfolio coverage; numeric
+            filters use only accessible complete values. Free history limits hide metrics
+            rather than identities.
           content:
             application/json:
               schema:
@@ -1181,15 +1214,22 @@ paths:
                     type: array
                     maxItems: 100
                     items:
-                      "$ref": "#/components/schemas/Fund"
+                      "$ref": "#/components/schemas/FundDirectoryEntry"
                   meta:
-                    "$ref": "#/components/schemas/ReadPageMeta"
+                    "$ref": "#/components/schemas/FundDirectoryMeta"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
         '429':
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+      description: No-store directory with reported 13F portfolio metrics, not AUM.
+        Complete effective reports establish numeric values; unknown values sort last
+        and cannot match numeric ranges. Free hides default old portfolio fields but
+        retains identities; older explicit periods require Pro. Cursors bind account/plan
+        plus fund/filing/report/holding bounds; restart pre-extension cursors.
   "/funds/{cik}":
     get:
       operationId: getFund
@@ -4222,6 +4262,114 @@ paths:
     - "$ref": "#/components/parameters/FundCik"
 components:
   schemas:
+    FundDirectoryPortfolio:
+      type: object
+      required:
+      - accession
+      - form_type
+      - sec_url
+      - filed_at
+      - accepted_at
+      - ingested_at
+      - data_age_days
+      - period_of_report
+      - complete
+      - value_usd
+      - position_count
+      - holding_row_count
+      - effective_report_count
+      - sources
+      properties:
+        accession:
+          type: string
+          pattern: "^[0-9]{10}-[0-9]{2}-[0-9]{6}$"
+        form_type:
+          type: string
+        sec_url:
+          type: string
+          format: uri
+        filed_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        accepted_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        ingested_at:
+          "$ref": "#/components/schemas/NullableTimestamp"
+        data_age_days:
+          type: integer
+          nullable: true
+        period_of_report:
+          type: string
+          format: date
+        complete:
+          type: boolean
+        value_usd:
+          "$ref": "#/components/schemas/NullableDecimal"
+        position_count:
+          type: integer
+          minimum: 0
+          nullable: true
+        holding_row_count:
+          type: integer
+          minimum: 0
+        effective_report_count:
+          type: integer
+          minimum: 0
+        sources:
+          type: array
+          minItems: 1
+          items:
+            "$ref": "#/components/schemas/FilingProvenance"
+      nullable: true
+      description: Effective local reported portfolio, not AUM. Filterable values/counts
+        require complete structural and normalization checks. Notices or unresolved additions
+        retain filing evidence with null metrics. Old Free metrics and absent reports
+        return null at the parent property.
+    FundDirectoryEntry:
+      allOf:
+      - "$ref": "#/components/schemas/Fund"
+      - type: object
+        required:
+        - reported_portfolio
+        - portfolio_unavailable_reason
+        properties:
+          reported_portfolio:
+            "$ref": "#/components/schemas/FundDirectoryPortfolio"
+          portfolio_unavailable_reason:
+            type: string
+            nullable: true
+            enum:
+            -
+            - no_report
+            - history_restricted
+            - no_effective_holdings
+            - incomplete_report_set
+    FundDirectoryMeta:
+      allOf:
+      - "$ref": "#/components/schemas/HistoryReadPageMeta"
+      - type: object
+        required:
+        - portfolio_period
+        - portfolio_history_limited
+        - value_is_aum
+        - disclaimer
+        properties:
+          portfolio_period:
+            type: string
+            description: Selected quarter date, otherwise latest_per_fund.
+          portfolio_history_limited:
+            type: boolean
+          value_is_aum:
+            type: boolean
+            enum:
+            - false
+          truncated:
+            type: boolean
+            enum:
+            - false
+            description: Matching identities stay browsable; history restrictions hide
+              portfolio fields instead of dropping identities.
+          disclaimer:
+            type: string
     FundPositionHistory:
       allOf:
       - "$ref": "#/components/schemas/FilingProvenance"

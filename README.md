@@ -203,3 +203,9 @@ anomalies, eligible in-app due age and digest sending age. Instant completion
 watches use 120 seconds; long daily waiting periods are not treated as instant
 latency. Unknown receipt, email eligibility and in-app failure tracking remain
 explicit. The policy performs no additional I/O, retries or sends.
+
+`GET /api/v1/funds` now supports inclusive reported portfolio-value/position-count
+ranges and matching sorts, with nullable coverage and filing evidence. Values
+are reported 13F totals, not AUM. Free history limits hide older portfolio fields
+while keeping fund identities browsable; prior directory cursors require restart.
+See the [fund directory contract](docs/api-v1.md#reported-metrics-in-the-fund-directory).

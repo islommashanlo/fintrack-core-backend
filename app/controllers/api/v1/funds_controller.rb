@@ -3,16 +3,15 @@
 module Api
   module V1
     class FundsController < BaseController
-      prepend_before_action :private_response!, only: %i[holdings history position_history changes news]
+      prepend_before_action :private_response!, only: %i[index holdings history position_history changes news]
 
       def index
-        values = read_parameters(allowed: %w[q sort limit cursor])
-        page = CursorPage.new(parameters: values, context: { "resource" => "funds" },
-                              sorts: { "name" => "LOWER(institutional_filers.name)", "cik" => "institutional_filers.cik" },
-                              default_sort: "name", bounds: { "funds" => InstitutionalFiler }, as_of:)
-        scope = InstitutionalFiler.where("id <= ?", page.bound("funds"))
-        scope = scope.where("name ILIKE ? OR cik = ?", "%#{ApplicationRecord.sanitize_sql_like(values['q'])}%", values["q"]) if values["q"]
-        render_read_page(page.call(scope), FundSerializer)
+        values = read_parameters(allowed: FundDirectoryQuery::PARAMETERS)
+        period_parameter(values["period"])
+        query = FundDirectoryQuery.new(parameters: values, history: history_window, as_of:)
+        result = query.call
+        sources = FundDirectoryQuery.sources(result.records)
+        render json: { data: result.records.map { |fund| FundDirectorySerializer.render(fund, sources:, as_of: query.page.as_of) }, meta: result.meta }
       end
 
       def show
