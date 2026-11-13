@@ -82,8 +82,9 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 The public screener capabilities endpoint now exposes the execution whitelist,
 typed operators, enum tokens, sorts and transaction windows. Coverage and report
 type conditions retain plan gates and amendment-aware source evidence.
-Next, add explicit field input constraints to this discovery contract so clients
-can validate formats and bounds without guessing from semantic types.
+Field input constraints now expose shared formats, precision-safe bounds and
+container limits. Next, review remaining backend milestones against the current
+implementation and prioritize a functional gap that requires no external activation.
 
 Independent in-app alerts, the original recommendation, are implemented for the
 five existing triggers; real-time transport and push remain separate work.
@@ -92,7 +93,7 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Expose screener field input constraints | Reuse execution limits for formats, numeric bounds and list sizes; keep validation authoritative on the server. |
+| Next | Refresh backend milestone audit | Compare current routes/services/tests to the product brief and prioritize functional gaps independent of vendor activation. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Extend fund analytics beyond reported allocation turnover | Standalone, profiles and directory filters/sorts are implemented. Richer manager/sector classifications still need supported data; no such classification is inferred from holdings. |
 | High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |

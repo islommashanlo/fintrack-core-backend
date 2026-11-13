@@ -106,4 +106,23 @@ RSpec.describe "Screener capabilities" do
     expect(response).to have_http_status(:service_unavailable)
     expect_documented_response(path: "/screener/capabilities", method: :get)
   end
+
+  it "publishes precision-safe scalar bounds and existing container limits" do
+    items = capabilities
+    expect(items.map { |item| item.fetch("limits") }.uniq).to eq([ {
+      "max_filters" => 20, "min_list_items" => 1, "max_list_items" => 20,
+      "between_items" => 2, "between_order" => "ascending", "null_value" => "omit_or_null",
+      "page_min" => 1, "page_max" => 100, "page_default" => 50, "max_cursor_bytes" => 8192
+    } ])
+    fields = items.flat_map { |item| item.fetch("fields") }.index_by { |field| field.fetch("field") }
+    expect(fields.fetch("purchase_count").fetch("constraints"))
+      .to include("input_types" => %w[integer string], "minimum" => "0", "maximum" => "9223372036854775807")
+    expect(fields.fetch("reported_allocation_turnover_percent").fetch("constraints"))
+      .to include("minimum" => "0", "maximum" => "100", "finite" => true, "max_bytes" => 128)
+    expect(fields.fetch("name").fetch("constraints")).to include("max_length" => 200, "non_blank" => true, "excludes_null_character" => true)
+    expect(fields.fetch("last_filed_on").fetch("constraints"))
+      .to include("format" => "gregorian_date", "minimum" => "0001-01-01", "maximum" => "9999-12-31")
+    expect(fields.fetch("ticker").fetch("constraints")).to include("normalization" => "uppercase")
+    expect(fields.fetch("coverage").fetch("constraints")).to eq("input_types" => [ "string" ])
+  end
 end

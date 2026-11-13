@@ -2677,3 +2677,36 @@ saved-screen access and history remain enforced separately by the server; use
 `/plans` for plan limits. Unknown parameters return 400, throttling returns 429,
 and an unavailable limiter returns 503. This endpoint performs no provider calls
 or filing queries.
+
+### Screener input constraints
+
+Capabilities now include field-level `constraints` and per-entity `limits`.
+Both use shared execution constants; these additions preserve existing screen,
+saved-screen and cursor behavior. The server remains authoritative.
+
+`constraints.input_types` lists accepted JSON scalar types. Optional keys describe
+`minimum` / `maximum` (inclusive strings to preserve precision), `max_length`
+(Unicode characters), `max_bytes` (numeric textual representation), `finite`,
+`pattern`, `non_blank`, `excludes_null_character`, `format` and `normalization`.
+Only applicable keys appear. Enum fields retain their allowed `enum_values`;
+boolean fields accept JSON booleans.
+
+| Input | Constraints |
+| --- | --- |
+| Counts | Integer or digit string, 0–9223372036854775807; digit strings have at most 20 characters. Use strings for large integers. |
+| Decimal | Finite JSON number or plain decimal string, at most 128 bytes in textual representation; negative values are accepted. |
+| Percentage | Decimal rules plus inclusive 0–100 bounds. |
+| Date | Whole-string YYYY-MM-DD, Gregorian calendar, 0001-01-01 through 9999-12-31; impossible dates are rejected. |
+| Text | Nonblank, valid Unicode, at most 200 characters, no null character. |
+| CIK / ticker | Text rules plus exact 10 ASCII digits / 1–20 ASCII letters, digits, dots or hyphens with an alphanumeric first character. Tickers normalize to uppercase. |
+
+Patterns use common regex syntax with `^` and `$` and must match the **entire**
+input. Do not enable multiline matching or accept trailing newlines. Patterns apply
+to string values only: JSON numbers may use exponent notation, whereas decimal
+strings may not. Calendar validity and numeric bounds require checks in addition to
+patterns. Scalar constraints apply independently to every list/range entry.
+
+`limits` publishes: at most 20 AND filters; 1–20 entries for `in`; exactly two
+nondecreasing bounds for `between` (equal bounds are valid); null operators require
+omitted/null values; page sizes 1–100 (default 50); cursor length at most 8192 bytes.
+Pagination limits describe request size, not plan entitlements or total results.

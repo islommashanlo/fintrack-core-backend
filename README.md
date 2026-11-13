@@ -154,7 +154,8 @@ Saved-screen CRUD is available at `/api/v1/saved-screens` and
 entitlement; accounts remain Free unless configured billing verifies an eligible subscription.
 Returned query definitions can be sent directly to `/api/v1/screener/run`.
 Public `GET /api/v1/screener/capabilities` exposes supported fields, operators,
-enum values, sorts and transaction windows from the execution whitelist.
+enum values, sorts, transaction windows and precision-safe input constraints
+from shared execution rules.
 
 Billing is disabled by default. `/api/v1/webhooks/stripe` accepts authenticated
 Stripe snapshot events and queues current-subscription refresh; `/api/v1/billing/subscription`

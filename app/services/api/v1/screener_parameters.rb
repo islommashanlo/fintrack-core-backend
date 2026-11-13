@@ -19,7 +19,7 @@ module Api
         invalid! unless ScreenerDefinition::FIELDS.key?(entity)
         @fields = ScreenerDefinition::FIELDS.fetch(entity)
         filters = @parameters.fetch("filters", [])
-        invalid! unless filters.is_a?(Array) && filters.length <= 20
+        invalid! unless filters.is_a?(Array) && filters.length <= ScreenerInputRules::MAX_FILTERS
         values = { "entity" => entity, "filters" => filters.map { |filter| condition(filter) } }
         values["sort"] = @parameters.fetch("sort", "name")
         invalid! unless values["sort"].is_a?(String) && ScreenerDefinition.sorts(entity).key?(values["sort"].delete_prefix("-"))
@@ -40,12 +40,12 @@ module Api
         invalid! unless page.is_a?(Hash) && (page.keys - %w[limit cursor]).empty?
         invalid! if page.keys.any? { |key| @parameters.key?(key) }
         options = @parameters.slice("limit", "cursor").merge(page)
-        limit = options.fetch("limit", 50)
-        invalid! unless (limit.is_a?(Integer) || limit.is_a?(String)) && limit.to_s.match?(/\A\d{1,3}\z/) && limit.to_i.between?(1, 100)
+        limit = options.fetch("limit", ScreenerInputRules::DEFAULT_PAGE_SIZE)
+        invalid! unless (limit.is_a?(Integer) || limit.is_a?(String)) && limit.to_s.match?(/\A\d{1,3}\z/) && ScreenerInputRules::PAGE_RANGE.cover?(limit.to_i)
         values["limit"] = limit.to_i.to_s
         if options.key?("cursor")
           cursor = options["cursor"]
-          invalid! unless cursor.is_a?(String) && cursor.present? && cursor.bytesize <= 8192
+          invalid! unless cursor.is_a?(String) && cursor.present? && cursor.bytesize <= ScreenerInputRules::MAX_CURSOR_BYTES
           values["cursor"] = cursor
         end
       end
@@ -60,8 +60,8 @@ module Api
           invalid! unless value.nil?
           nil
         elsif %w[in between].include?(operator)
-          invalid! unless value.is_a?(Array) && value.length.between?(1, 20)
-          invalid! if operator == "between" && value.length != 2
+          invalid! unless value.is_a?(Array) && value.length.between?(ScreenerInputRules::MIN_LIST_ITEMS, ScreenerInputRules::MAX_LIST_ITEMS)
+          invalid! if operator == "between" && value.length != ScreenerInputRules::BETWEEN_ITEMS
           entries = value.map { |entry| scalar(entry, type) }
           if operator == "between"
             comparison = %i[count decimal percentage].include?(type) ? entries.map { |entry| BigDecimal(entry) } : entries
@@ -83,27 +83,27 @@ module Api
           invalid! unless value == true || value == false
           value
         when :count
-          invalid! unless (value.is_a?(Integer) || value.is_a?(String)) && value.to_s.match?(/\A\d{1,20}\z/)
-          invalid! if value.to_i > 9_223_372_036_854_775_807
+          invalid! unless (value.is_a?(Integer) || value.is_a?(String)) && ScreenerInputRules::MATCHERS.fetch(:count).match?(value.to_s)
+          invalid! if value.to_i > ScreenerInputRules::MAX_COUNT
           value.to_i.to_s
         when :decimal, :percentage
           invalid! unless value.is_a?(Numeric) || value.is_a?(String)
           text = value.to_s
-          invalid! unless text.bytesize <= 128
-          invalid! if value.is_a?(String) && !text.match?(/\A-?\d+(?:\.\d+)?\z/)
+          invalid! unless text.bytesize <= ScreenerInputRules::MAX_DECIMAL_BYTES
+          invalid! if value.is_a?(String) && !ScreenerInputRules::MATCHERS.fetch(:decimal).match?(text)
           number = BigDecimal(text)
           invalid! unless number.finite?
-          invalid! if type == :percentage && !number.between?(0, 100)
+          invalid! if type == :percentage && !ScreenerInputRules::PERCENTAGE_RANGE.cover?(number)
           number.to_s("F")
         when :date
-          invalid! unless value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+          invalid! unless value.is_a?(String) && ScreenerInputRules::MATCHERS.fetch(:date).match?(value)
           date = Date.iso8601(value, Date::GREGORIAN)
           invalid! unless date.year.positive?
           date.iso8601
         else
-          invalid! unless value.is_a?(String) && value.present? && value.valid_encoding? && !value.include?("\0") && value.length <= 200
-          invalid! if type == :cik && !value.match?(/\A\d{10}\z/)
-          invalid! if type == :ticker && !value.match?(/\A[A-Za-z0-9][A-Za-z0-9.-]{0,19}\z/)
+          invalid! unless value.is_a?(String) && value.present? && value.valid_encoding? && !value.include?("\0") && value.length <= ScreenerInputRules::MAX_TEXT_LENGTH
+          invalid! if type == :cik && !ScreenerInputRules::MATCHERS.fetch(:cik).match?(value)
+          invalid! if type == :ticker && !ScreenerInputRules::MATCHERS.fetch(:ticker).match?(value)
           type == :ticker ? value.upcase : value
         end
       rescue ArgumentError

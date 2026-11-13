@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.56.0
+  version: 1.57.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -8950,11 +8950,78 @@ components:
       properties:
         data:
           "$ref": "#/components/schemas/SavedScreen"
+    ScreenerInputLimits:
+      type: object
+      additionalProperties: false
+      required: [max_filters, min_list_items, max_list_items, between_items, between_order, null_value, page_min, page_max, page_default, max_cursor_bytes]
+      properties:
+        max_filters:
+          type: integer
+        min_list_items:
+          type: integer
+        max_list_items:
+          type: integer
+        between_items:
+          type: integer
+        between_order:
+          type: string
+          enum: [ascending]
+        null_value:
+          type: string
+          enum: [omit_or_null]
+        page_min:
+          type: integer
+        page_max:
+          type: integer
+        page_default:
+          type: integer
+        max_cursor_bytes:
+          type: integer
+    ScreenerFieldConstraints:
+      type: object
+      additionalProperties: false
+      required: [input_types]
+      description: Scalar constraints also apply to each list or range entry.
+        Patterns apply only to strings and must match the entire input, including
+        rejecting trailing newlines. Numeric JSON input may use exponent notation.
+        Bounds are strings to preserve integer and decimal precision.
+      properties:
+        input_types:
+          type: array
+          items:
+            type: string
+            enum: [integer, number, string, boolean]
+        minimum:
+          type: string
+        maximum:
+          type: string
+        max_length:
+          type: integer
+          description: Unicode character count.
+        max_bytes:
+          type: integer
+          description: Maximum byte length of the numeric input's textual representation.
+        finite:
+          type: boolean
+        pattern:
+          type: string
+        non_blank:
+          type: boolean
+        excludes_null_character:
+          type: boolean
+        normalization:
+          type: string
+          enum: [uppercase]
+        format:
+          type: string
+          enum: [gregorian_date]
     ScreenerEntityCapabilities:
       type: object
-      required: [entity, fields, sorts, default_sort, window_days, default_window_days]
+      required: [entity, fields, sorts, default_sort, window_days, default_window_days, limits]
       additionalProperties: false
       properties:
+        limits:
+          "$ref": "#/components/schemas/ScreenerInputLimits"
         entity:
           type: string
           enum: [companies, funds, insiders]
@@ -8962,7 +9029,7 @@ components:
           type: array
           items:
             type: object
-            required: [field, type, operators, enum_values]
+            required: [field, type, operators, enum_values, constraints]
             additionalProperties: false
             properties:
               field:
@@ -8975,6 +9042,8 @@ components:
                 items:
                   type: string
                   enum: [eq, not_eq, contains, starts_with, in, is_null, not_null, gt, gte, lt, lte, between]
+              constraints:
+                "$ref": "#/components/schemas/ScreenerFieldConstraints"
               enum_values:
                 type: array
                 nullable: true

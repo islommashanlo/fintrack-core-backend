@@ -195,3 +195,7 @@ coverage-sorted pagination. Saved-screen tests preserve the typed conditions.
 Screener capabilities request tests validate actual success/error bodies and
 exercise each advertised field/operator, enum token, sort and transaction window
 against execution validation. Metadata is public and contains no SQL or user data.
+
+Capabilities response checks now cover scalar constraints and container limits.
+Boundary regressions exercise count/percentage endpoints, Gregorian dates,
+whole-string formats, Unicode character limits and numeric/cursor byte limits.

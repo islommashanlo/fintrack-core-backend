@@ -7,11 +7,11 @@ module Api
         ScreenerDefinition::FIELDS.map do |entity, fields|
           sorts = ScreenerDefinition.sorts(entity).keys
           {
-            entity:,
+            entity:, limits: ScreenerInputRules.limits,
             fields: fields.map do |field, type|
               enum_values = ScreenerDefinition::ENUM_VALUES[type]
               { field:, type: enum_values ? "enum" : type.to_s,
-                operators: ScreenerDefinition::OPERATORS.fetch(type), enum_values: }
+                operators: ScreenerDefinition::OPERATORS.fetch(type), enum_values:, constraints: ScreenerInputRules.constraints(type) }
             end,
             sorts: sorts.flat_map { |sort| [ sort, "-#{sort}" ] }, default_sort: "name",
             window_days: entity == "funds" ? [] : ScreenerDefinition::WINDOW_DAYS,
