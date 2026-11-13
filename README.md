@@ -209,3 +209,9 @@ ranges and matching sorts, with nullable coverage and filing evidence. Values
 are reported 13F totals, not AUM. Free history limits hide older portfolio fields
 while keeping fund identities browsable; prior directory cursors require restart.
 See the [fund directory contract](docs/api-v1.md#reported-metrics-in-the-fund-directory).
+
+Fund directory `report_type=holdings|combination|notice` and `coverage` filters now
+use stored report labels and existing coverage reasons. Each source retains its
+reported type; restricted labels cannot be selected through Free type predicates.
+These facts do not classify a manager or fund investment style. See the directory
+contract for supported values and amendment semantics.

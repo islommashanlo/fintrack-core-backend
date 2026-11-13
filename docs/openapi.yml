@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.45.0
+  version: 1.46.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1197,6 +1197,31 @@ paths:
         schema:
           type: string
           pattern: "^[0-9]{1,12}$"
+      - name: report_type
+        in: query
+        description: 'Matches any contributing stored cover label: holdings = 13F HOLDINGS
+          REPORT, combination = 13F COMBINATION REPORT, notice = 13F NOTICE. Superseded/noncontributing
+          labels do not match; restricted labels cannot match. This is not a manager
+          classification.'
+        schema:
+          type: string
+          enum:
+          - holdings
+          - combination
+          - notice
+      - name: coverage
+        in: query
+        description: Complete matches a null unavailable reason; other values match
+          the existing reason exactly. Combines with report types and numeric ranges
+          using AND. Does not reveal restricted values or labels.
+        schema:
+          type: string
+          enum:
+          - complete
+          - incomplete_report_set
+          - no_effective_holdings
+          - no_report
+          - history_restricted
       responses:
         '200':
           description: Matching fund identities with reported portfolio coverage; numeric
@@ -1229,7 +1254,10 @@ paths:
         Complete effective reports establish numeric values; unknown values sort last
         and cannot match numeric ranges. Free hides default old portfolio fields but
         retains identities; older explicit periods require Pro. Cursors bind account/plan
-        plus fund/filing/report/holding bounds; restart pre-extension cursors.
+        plus fund/filing/report/holding bounds; restart pre-extension cursors. Report-type
+        filters use any contributing cover and preserve per-source labels; with no effective
+        holdings, the latest visible cover supplies type evidence. Changing type/coverage
+        filters invalidates cursor context; existing version-2 contexts remain compatible.
   "/funds/{cik}":
     get:
       operationId: getFund
@@ -4262,6 +4290,16 @@ paths:
     - "$ref": "#/components/parameters/FundCik"
 components:
   schemas:
+    FundDirectorySource:
+      allOf:
+      - "$ref": "#/components/schemas/FilingProvenance"
+      - type: object
+        required:
+        - report_type
+        properties:
+          report_type:
+            type: string
+            description: Original stored cover report_type for this source filing.
     FundDirectoryPortfolio:
       type: object
       required:
@@ -4279,6 +4317,7 @@ components:
       - holding_row_count
       - effective_report_count
       - sources
+      - report_types
       properties:
         accession:
           type: string
@@ -4318,7 +4357,15 @@ components:
           type: array
           minItems: 1
           items:
-            "$ref": "#/components/schemas/FilingProvenance"
+            "$ref": "#/components/schemas/FundDirectorySource"
+        report_types:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+          description: Distinct stored cover report_type labels from contributing reports,
+            sorted as strings. Unfamiliar labels are preserved.
       nullable: true
       description: Effective local reported portfolio, not AUM. Filterable values/counts
         require complete structural and normalization checks. Notices or unresolved additions

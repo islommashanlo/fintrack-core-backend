@@ -17,11 +17,12 @@ module Api
           WITH visible AS (#{visible.to_sql}), effective AS (
             SELECT v.* FROM visible v WHERE v.id IN (#{reports.effective_reports.select(:id).to_sql})
           ), checks AS (#{InstitutionalReportChecks.sql(max_holding_id: @page.bound('holdings'))}), latest AS (
-            SELECT DISTINCT ON (institutional_filer_id) id, institutional_filer_id, period_of_report
+            SELECT DISTINCT ON (institutional_filer_id) id, institutional_filer_id, period_of_report, report_type
             FROM visible ORDER BY institutional_filer_id, period_of_report DESC, known_filed_at DESC, known_accession DESC
           ), contexts AS (
             SELECT e.institutional_filer_id, e.period_of_report, COUNT(*) AS report_count,
               ARRAY_AGG(e.id ORDER BY e.known_filed_at DESC, e.known_accession DESC) AS report_ids,
+              ARRAY_AGG(DISTINCT e.report_type ORDER BY e.report_type) AS report_types,
               BOOL_AND(COALESCE(c.structure_complete AND c.values_complete, false)) AS complete
             FROM effective e INNER JOIN checks c ON c.id = e.id
             GROUP BY e.institutional_filer_id, e.period_of_report
@@ -40,6 +41,7 @@ module Api
             CASE WHEN #{allowed_sql} THEN COALESCE(t.holding_row_count, 0) END AS holding_row_count,
             CASE WHEN #{allowed_sql} THEN COALESCE(c.report_count, 0) END AS effective_report_count,
             CASE WHEN #{allowed_sql} AND l.id IS NOT NULL THEN COALESCE(c.report_ids, ARRAY[l.id]) ELSE '{}'::bigint[] END AS source_report_ids,
+            CASE WHEN #{allowed_sql} AND l.id IS NOT NULL THEN COALESCE(c.report_types, ARRAY[l.report_type]) ELSE '{}'::varchar[] END AS portfolio_report_types,
             CASE WHEN l.id IS NULL THEN 'no_report'
               WHEN NOT (#{allowed_sql}) THEN 'history_restricted'
               WHEN c.report_count IS NULL THEN 'no_effective_holdings'

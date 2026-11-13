@@ -595,6 +595,8 @@ fund profiles and embedded fund identities retain their existing shape.
 | --- | --- |
 | `q` | Existing literal name substring or exact 10-digit CIK search |
 | `period` | Optional exact ISO quarter-end; otherwise each fund uses its latest visible report period |
+| `report_type` | `holdings`, `combination` or `notice`; matches any contributing stored cover type |
+| `coverage` | `complete`, `incomplete_report_set`, `no_effective_holdings`, `no_report` or `history_restricted` |
 | `min_portfolio_value_usd`, `max_portfolio_value_usd` | Inclusive normalized reported-value range; nonnegative decimal strings, up to 30 integer and 12 fractional digits |
 | `min_position_count`, `max_position_count` | Inclusive grouped-position range; nonnegative integers up to 12 digits |
 | `sort` | `name` (default), `cik`, `portfolio_value_usd`, `position_count`; prefix `-` for descending |
@@ -608,7 +610,7 @@ quarters and unsupported fields such as `aum` return JSON 400.
 
 `reported_portfolio` includes `period_of_report`, `complete`, nullable `value_usd`
 and `position_count`, observed `holding_row_count`, `effective_report_count`,
-primary filing provenance and `sources`. Repeated rows are grouped by CUSIP,
+primary filing provenance, `report_types` and `sources`. Repeated rows are grouped by CUSIP,
 put/call and share type for the position count. Source evidence includes all
 effective base/restatement and later NEW HOLDINGS reports. The primary source is
 the latest contributing report by acceptance time/accession. Notices and orphan
@@ -622,6 +624,11 @@ null. The latest notice-only or unresolved-addition period is unavailable; the
 query does not fall back to an older holdings quarter. Future/failed/skipped and
 undated report sources are excluded by the shared read scope.
 
+`coverage=complete` matches a null `portfolio_unavailable_reason`. The other
+coverage values match that reason exactly; they do not substitute zero metrics.
+Type and coverage filters combine with ranges and search using AND. Contradictory
+valid filters return an empty list rather than silently widening the query.
+
 `portfolio_unavailable_reason` is null for complete portfolios, otherwise one of:
 
 - `no_report`: no visible report for the selected/default period; portfolio null.
@@ -631,12 +638,34 @@ undated report sources are excluded by the shared read scope.
   portfolio keeps filing evidence with null numbers and zero effective reports.
 - `incomplete_report_set`: effective reports exist but fail integrity coverage.
 
+Report-type filter tokens map to the labels confirmed in committed cover fixtures:
+`holdings` → `13F HOLDINGS REPORT`, `combination` → `13F COMBINATION REPORT`,
+`notice` → `13F NOTICE`. `reported_portfolio.report_types` preserves the distinct
+stored labels of the contributing reports, sorted as strings. Each entry in
+`sources` now adds its original `report_type`, so a label can be traced to its
+filing. Unfamiliar stored labels remain visible without being guessed or renamed;
+request tokens are limited to the three supported filters.
+
+A portfolio can match more than one report-type token across amendments; filtering
+selects the fund/period and does not remove contributing holdings from its totals.
+Superseded originals and noncontributing notices do not establish a type match
+when an effective holdings set exists. With no effective set, the latest visible
+notice/orphan cover supplies the type evidence, as it already supplies primary
+provenance. AUM, manager/fund classifications and investment styles are not inferred.
+
+History-restricted report labels are hidden in both responses and predicates:
+`report_type=combination&coverage=history_restricted` cannot expose an old
+combination label for Free. `coverage=history_restricted` alone can select the
+already-disclosed identity/restriction state, with no period, numbers or sources.
+
 Identities remain browsable without a portfolio. An explicit older `period`
 requires Pro and returns the standard 402 response for Free. Verified Pro can
 read older metrics. Directory responses are now no-store and cursor context
 includes account and history entitlement as well as filters, sort, fixed time
-and fund/filing/report/holding ID ceilings. Previous directory cursors must be
-restarted. Later inserts and amendments do not change continuation calculations;
+and fund/filing/report/holding ID ceilings. Directory cursors from before
+OpenAPI 1.45.0 must be restarted. The report-type/coverage extension retains
+version-2 cursors for unchanged request context; changing either filter requires
+a new cursor. Later inserts and amendments do not change continuation calculations;
 mutable identity metadata is not a versioned history.
 
 Metadata adds `portfolio_period` (the selected date or `latest_per_fund`),
