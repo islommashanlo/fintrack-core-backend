@@ -3,11 +3,32 @@
 module Api
   module V1
     class ScreenerFundsQuery
-      def initialize(page:)
-        @page = page
+      def initialize(page:, history:)
+        @page, @history = page, history
       end
 
       def to_sql
+        earliest = @history.earliest(as_of: @page.as_of)
+        allowed = earliest ? "s.period_of_report >= #{ApplicationRecord.connection.quote(earliest)}::date" : "TRUE"
+        targets = <<~SQL
+          SELECT f.id AS institutional_filer_id, s.period_of_report FROM fund_screen s
+          INNER JOIN institutional_filers f ON f.cik = s.cik WHERE #{allowed}
+        SQL
+        bounds = InstitutionalHoldingsQuery::BOUNDS.keys.index_with { |key| @page.bound(key) }
+        turnover = FundTurnoverSql.new(periods: targets, bounds:, as_of: @page.as_of)
+        <<~SQL
+          WITH fund_screen AS (#{portfolio_sql}), turnover AS (#{turnover.to_sql})
+          SELECT s.*, t.turnover_percent AS reported_allocation_turnover_percent,
+            NOT (#{allowed}) AS turnover_history_restricted,
+            (TO_JSONB(t) || JSONB_BUILD_OBJECT('turnover_percent', t.turnover_percent::text)) AS turnover_record
+          FROM fund_screen s INNER JOIN institutional_filers f ON f.cik = s.cik
+          LEFT JOIN turnover t ON t.institutional_filer_id = f.id
+        SQL
+      end
+
+      private
+
+      def portfolio_sql
         scope = InstitutionalReportScope.new(as_of: @page.as_of, max_report_id: @page.bound("reports"),
           max_filing_id: @page.bound("filings"))
         <<~SQL

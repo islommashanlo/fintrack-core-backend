@@ -123,8 +123,13 @@ encoding a decimal as a JSON number fails against the committed schema. This doe
 not yet cover every endpoint, error response, header, or possible source-data
 combination. Other paginated endpoints remain outside this coverage.
 
+Fund screener turnover requests validate their actual response bodies, including
+entity-specific metrics under oneOf, the new source summary and history metadata.
+The checker requires exactly one matching oneOf branch and rejects zero or multiple
+matches; referenced branches and unsupported nested rules have focused tests.
+
 Supported rules are object/array/string/integer/finite-number/boolean types,
-required properties, explicit additional-property rules, items, allOf, nullable,
+required properties, explicit additional-property rules, items, allOf, oneOf, nullable,
 enums, numeric bounds, array/string length bounds, unique array items, patterns,
 and date/date-time/URI formats. The integer `int64` format additionally enforces
 the signed range -2^63 through 2^63 - 1, requires an integer schema type, and
@@ -146,7 +151,7 @@ fetched. Schema resolution then supports only direct
 fail; reference annotations are allowed but
 validation siblings fail rather than being silently ignored. The checker inspects
 all reachable schema branches before data validation, so unsupported rules such
-as oneOf, unsupported formats and invalid patterns fail even for empty responses
+as anyOf, unsupported formats and invalid patterns fail even for empty responses
 or absent optional properties. Diagnostics identify JSON response paths. This is
 not a full OpenAPI meta-schema validator: the committed document's declaration
 structure still needs the route/document checks and review. Extend the supported
@@ -172,7 +177,8 @@ bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
   spec/requests/api/v1/company_history_spec.rb \
   spec/requests/api/v1/fund_turnover_spec.rb \
   spec/requests/api/v1/fund_profile_turnover_spec.rb \
-  spec/requests/api/v1/fund_directory_turnover_spec.rb
+  spec/requests/api/v1/fund_directory_turnover_spec.rb \
+  spec/requests/api/v1/screener_turnover_spec.rb
 ```
 
 Comparison coverage remains in `fund_comparisons_spec.rb` and

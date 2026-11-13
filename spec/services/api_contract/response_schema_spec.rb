@@ -68,6 +68,16 @@ RSpec.describe ApiContract::ResponseSchema do
     expect(errors({ "cik" => "0000000001", "name" => "Example" }, **schema)).to be_empty
   end
 
+  it "validates exactly one matching oneOf branch, including references" do
+    document["components"]["schemas"]["Name"] = { "type" => "string" }
+    schema = { oneOf: [ { "$ref" => "#/components/schemas/Name" }, { "type" => "integer" } ] }
+    expect(errors("Example", **schema)).to be_empty
+    expect(errors(10, **schema)).to be_empty
+    expect(errors(false, **schema)).to eq([ "$: expected exactly one oneOf match, got 0" ])
+    expect(errors(1, oneOf: [ { "type" => "number" }, { "type" => "integer" } ])).to eq([ "$: expected exactly one oneOf match, got 2" ])
+    expect(errors([], type: "array", items: { "oneOf" => [ { "anyOf" => [] } ] }).join).to include("unsupported keyword anyOf")
+  end
+
   it "validates string length and supported formats without network access" do
     expect(errors("abc", type: "string", minLength: 4)).not_to be_empty
     expect(errors("abc", type: "string", maxLength: 2)).not_to be_empty
@@ -89,7 +99,7 @@ RSpec.describe ApiContract::ResponseSchema do
   end
 
   it "rejects unsupported schema keywords and formats even on empty or absent data" do
-    expect(errors([], type: "array", items: { "oneOf" => [] }).join).to include("unsupported keyword oneOf")
+    expect(errors([], type: "array", items: { "anyOf" => [] }).join).to include("unsupported keyword anyOf")
     expect(errors({}, properties: { "absent" => { "format" => "email" } }).join).to include("unsupported format email")
     expect(errors(nil, type: "null").join).to include("unsupported type null")
     expect(errors({}, properties: { "absent" => { "pattern" => "[" } })).not_to be_empty

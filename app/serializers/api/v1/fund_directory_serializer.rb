@@ -26,7 +26,7 @@ module Api
 
         row = fund["turnover_record"]
         period = row && Date.iso8601(row.fetch("period_of_report"))
-        data = FundTurnoverSerializer.render(row:, sources:, fund:, period:, as_of:)
+        data = FundTurnoverSerializer.render(row:, sources:, period:, as_of:)
         FundTurnoverSummarySerializer.render(data:, meta: context)
       end
       private_class_method :turnover

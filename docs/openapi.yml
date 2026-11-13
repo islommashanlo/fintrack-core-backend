@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.52.0
+  version: 1.53.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -3393,7 +3393,11 @@ paths:
         Company/insider activity windows use acceptance time; fund values are normalized
         reported holdings, not AUM. Missing or suspect totals remain null. Scores,
         sectors, market caps and other unavailable metrics are rejected. This read-only
-        POST makes no external requests or data writes.
+        POST makes no external requests or data writes. Fund screens also whitelist
+        reported_allocation_turnover_percent using batched adjacent-quarter SQL, source
+        evidence and a Free/Pro history gate for that new field. Existing older fund
+        metrics retain their visibility. Fund cursors bind the history limit and version;
+        restart fund-screen cursors created before this extension.
       security:
       - CsrfToken: []
       - CookieSession: []
@@ -4693,7 +4697,7 @@ components:
         required: [period_of_report, prior_period_of_report, status, unavailable_reason, reported_allocation_turnover_percent, methodology_version, baseline_policy, current_complete, prior_complete, current_source_scope, prior_source_scope, current_sources, prior_sources]
         description: Profile/directory summary of the standalone reported allocation change calculation.
           Valuation and reporting-scope effects remain included. History-restricted summaries
-          retain methodology context and, on profiles, the already-visible raw cover period;
+          retain methodology context and, on profiles and fund screens, the already-visible current period;
           percentage, prior period, completeness, source scopes and provenance are null,
           with empty source arrays. Directory restricted summaries also have a null current
           period. The existing profile raw latest cover remains compatible.
@@ -8948,6 +8952,7 @@ components:
           - position_count
           - portfolio_value_usd
           - suspect
+          - reported_allocation_turnover_percent
         operator:
           type: string
           enum:
@@ -8982,7 +8987,10 @@ components:
           description: Type follows the selected field. between requires two ascending
             bounds. Null operators omit value or use null. Monetary decimal strings
             preserve precision. Counts must fit a nonnegative signed 64-bit integer;
-            dates use the Gregorian calendar with years 0001 through 9999.
+            dates use the Gregorian calendar with years 0001 through 9999. The fund-only
+            reported_allocation_turnover_percent field accepts finite percentages from
+            0 to 100, including every bound/list entry; decimal strings preserve precision.
+            It supports decimal numeric/null operators and both sort directions.
       additionalProperties: false
     ScreenerRequest:
       type: object
@@ -9127,7 +9135,13 @@ components:
       - position_count
       - portfolio_value_usd
       - suspect
+      - reported_allocation_turnover_percent
       properties:
+        reported_allocation_turnover_percent:
+          "$ref": "#/components/schemas/NullableDecimal"
+          description: Shared adjacent-quarter reported-allocation percentage, 0 to 100.
+            Null for incomplete/missing/zero-value/future inputs or restricted Free history;
+            never inferred as zero. Other legacy fund metrics retain their existing visibility.
         holding_row_count:
           type: integer
           minimum: 0
@@ -9193,6 +9207,12 @@ components:
             - "$ref": "#/components/schemas/ScreenerCompaniesMetrics"
             - "$ref": "#/components/schemas/ScreenerFundsMetrics"
             - "$ref": "#/components/schemas/ScreenerInsidersMetrics"
+          reported_allocation_turnover:
+            allOf:
+            - "$ref": "#/components/schemas/FundTurnoverSummary"
+            description: Present for fund screens only. Includes separate current/prior
+              source evidence and coverage with the same value as the metrics field.
+              Existing top-level provenance remains the latest-period identity filing.
           source_filing_count:
             type: integer
             minimum: 0
@@ -9221,6 +9241,22 @@ components:
         - scoring_available
         - sector_available
         properties:
+          turnover_methodology_version:
+            type: string
+            enum: [reported-allocation-turnover-v1]
+            description: Present for fund screens only.
+          turnover_baseline_policy:
+            type: string
+            enum: [adjacent_calendar_quarter]
+          turnover_history_quarters:
+            type: integer
+            nullable: true
+            description: History gate for the new turnover field only; Free has four
+              completed quarters, verified Pro has no limit. Legacy fields are unchanged.
+          turnover_earliest_period:
+            type: string
+            format: date
+            nullable: true
           entity:
             type: string
             enum:

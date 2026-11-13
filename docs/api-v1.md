@@ -1937,6 +1937,7 @@ identity, server entitlement, acceptance-time snapshot and source row-ID bounds.
 | Ticker | `eq`, `not_eq`, `contains`, `starts_with`, `in`, `is_null`, `not_null` | Literal symbol strings, normalized to uppercase |
 | Count | `eq`, `not_eq`, `gt`, `gte`, `lt`, `lte`, `between`, `in`, `is_null`, `not_null` | Nonnegative 64-bit integer or integer string |
 | Decimal | Same as count | Finite signed number or decimal string; strings preserve monetary precision |
+| Percentage (fund turnover) | Same as count | Finite number or decimal string from 0 to 100; every list/bound value is checked |
 | Date | Same as count | Strict Gregorian `YYYY-MM-DD` strings, years 0001–9999 |
 | Boolean | `eq`, `not_eq` | JSON `true` / `false` |
 
@@ -1953,7 +1954,7 @@ All entities support `name`, `cik`, and `last_filed_on`. Additional fields:
 | --- | --- |
 | Companies | `ticker`, `purchase_count`, `sale_count`, `open_market_count`, `insider_count`, `purchase_value`, `sale_value`, `net_open_market_value`, `transactions_without_usable_value` |
 | Insiders | Same transaction fields, `issuer_count` instead of `insider_count`, plus `latest_is_director`, `latest_is_officer`, `latest_is_ten_percent_owner`, `latest_is_other` |
-| Funds | `period_of_report`, `holding_row_count`, `position_count`, `portfolio_value_usd`, `suspect` |
+| Funds | `period_of_report`, `holding_row_count`, `position_count`, `portfolio_value_usd`, `suspect`, `reported_allocation_turnover_percent` |
 
 Company rows derive identity from parsed effective Form 4 issuer disclosures;
 insiders require reported transaction rows. Their metrics cover non-derivative
@@ -1981,6 +1982,48 @@ value total; `suspect` flags these derived quality gaps. Notice-only or unresolv
 additive periods have null holdings/value metrics. A complete empty holdings
 report has zero values. Failed/pending/skipped/future reports cannot supply data.
 
+Fund screens now whitelist `reported_allocation_turnover_percent` for numeric
+comparisons, inclusive `between`, `in`, null conditions and ascending/descending
+sorts. Values normalize through the typed decimal boundary with the existing
+128-byte input limit; each percentage must be finite and within 0–100. Decimal
+strings preserve precision. This field is rejected for companies and insiders;
+the ambiguous `turnover` alias remains unsupported. Missing values never become
+zero: `not_eq: 0` excludes nulls, while `is_null` explicitly selects them.
+
+The metric reuses the batched SQL and versioned formula described under reported
+allocation turnover. Each fund uses its latest observed quarter and its adjacent
+calendar-quarter baseline. Filtering `period_of_report` selects entities by that
+latest quarter; it does not request a different historical holdings period. Both
+periods need complete positive-value portfolios; valuation and reporting-scope
+effects remain included. No executed transactions are inferred.
+
+Fund result `metrics` includes the percentage as a nullable decimal string. The
+fund-only `reported_allocation_turnover` summary adds current/prior coverage,
+source scopes/lists, provenance and methodology context, matching profiles. Its
+primary filing may be a later prior-quarter amendment; the result's existing
+primary filing and `source_filing_count` keep their latest-period identity meaning.
+Sources are preloaded for the page, with no per-fund calculation/query loop.
+
+The **new turnover field only** follows the four-completed-quarter Free history
+gate. Old Free latest quarters have a null metric and `history_restricted` summary
+with null completeness/provenance and empty sources. The current period remains
+already visible in the legacy result; the prior period is redacted. Pro can read
+older turnover; an accessible current quarter may use its adjacent baseline just
+outside the Free window. Existing portfolio/count/suspect fields retain their
+previous visibility, including older latest reports: this increment does not
+retroactively gate those legacy fields. That broader consistency gap remains.
+
+Fund metadata adds `turnover_history_quarters`, `turnover_earliest_period`,
+`turnover_baseline_policy` and `turnover_methodology_version`. Fund cursors now bind
+history entitlement and fund-metrics context version 2 alongside the existing
+actor, preview cap, filters, sort and source-ID ceilings. Restart fund-screen
+cursors issued before this extension. Company/insider cursor contexts are unchanged.
+New filters/sorts require a fresh cursor; downgrade or actor changes invalidate it.
+
+Pro saved screens accept this field through the same normalizer. Saved numeric
+strings and sort choices can be submitted unchanged to `/screener/run`; saved
+screen CRUD access and the Free three-result preview remain unchanged.
+
 Each result includes `entity`, `cik`, `name`, `ticker` (nullable), `last_filed_at`,
 `last_filed_on`, `period_of_report` (funds), `window_days` (companies/insiders),
 `metrics`, `source_filing_count`, and standard accession/SEC-link/freshness fields.
@@ -1995,11 +2038,12 @@ returns at most three. Metadata retains the full `total_count`, and reports
 `truncated`, `feature: screener_results`, `preview_limit: 3`, plus normal cursor
 metadata. `has_more`/`next_cursor` cover the accessible preview only; its last page
 can have `truncated: true` and no next cursor. Each changed filter/sort is a new
-screen. A future verified unlimited entitlement uses the same query without the
-preview cap; clients cannot enable it through request fields.
+screen. Verified Pro uses the same query without the preview cap; clients cannot enable
+it through request fields.
 
-Scores, sectors, market caps, AUM, turnover and other unimplemented metrics are
-rejected as filter/sort fields. Exports remain pending.
+Scores, sectors, market caps, AUM and other unimplemented metrics are rejected
+as filter/sort fields. Only the explicitly named reported-allocation percentage is
+available as turnover; general trading turnover and screener exports remain unsupported.
 
 ## Billing
 

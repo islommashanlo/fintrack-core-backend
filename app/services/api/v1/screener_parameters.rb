@@ -64,7 +64,7 @@ module Api
           invalid! if operator == "between" && value.length != 2
           entries = value.map { |entry| scalar(entry, type) }
           if operator == "between"
-            comparison = %i[count decimal].include?(type) ? entries.map { |entry| BigDecimal(entry) } : entries
+            comparison = %i[count decimal percentage].include?(type) ? entries.map { |entry| BigDecimal(entry) } : entries
             invalid! if comparison.first > comparison.last
           end
           entries
@@ -83,13 +83,14 @@ module Api
           invalid! unless (value.is_a?(Integer) || value.is_a?(String)) && value.to_s.match?(/\A\d{1,20}\z/)
           invalid! if value.to_i > 9_223_372_036_854_775_807
           value.to_i.to_s
-        when :decimal
+        when :decimal, :percentage
           invalid! unless value.is_a?(Numeric) || value.is_a?(String)
           text = value.to_s
           invalid! unless text.bytesize <= 128
           invalid! if value.is_a?(String) && !text.match?(/\A-?\d+(?:\.\d+)?\z/)
           number = BigDecimal(text)
           invalid! unless number.finite?
+          invalid! if type == :percentage && !number.between?(0, 100)
           number.to_s("F")
         when :date
           invalid! unless value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}\z/)

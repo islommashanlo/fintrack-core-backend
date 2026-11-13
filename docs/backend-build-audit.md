@@ -15,9 +15,11 @@ real-time transport, vendor activation or additional filing forms. Reported allo
 turnover is now exposed independently, with a versioned adjacent-quarter formula,
 strict coverage and source evidence; profiles now expose its compact summary using
 shared bounds and plan-aware redaction. The directory now supports reported-allocation
-turnover ranges/sorts with batched SQL and source evidence. This does not establish
+turnover ranges/sorts with batched SQL and source evidence. The fund screener now
+whitelists the same percentage, with saved-screen normalization and history gates
+for that new field only; older legacy fund metrics retain their existing visibility. This does not establish
 transaction-based turnover.
-OpenAPI 1.52.0 now documents 84 operations, including reported allocation turnover.
+OpenAPI 1.53.0 now documents 84 operations, including reported allocation turnover.
 The pre-checker baseline passed
 1,284 examples with 626 Ruby files clean; it does not establish remote CI status.
 
@@ -75,12 +77,13 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Add reported allocation turnover as a whitelisted fund screener field, reusing the
-batched calculation and its history/completeness rules. Directory, profile and
-standalone routes now share one SQL builder and common serialization. Keep this
-reported-allocation metric distinct from executed transactions and preserve unknowns
-when applying screener conditions. Filing/activity response-schema coverage remains
-useful follow-up validation rather than the next missing product feature.
+Align legacy fund-screener portfolio metrics with the shared history and integrity
+policy used by the directory/profile. The new turnover metric is history-gated,
+but older latest-report portfolio/count fields still retain their pre-existing
+visibility and validation semantics. Treat changing those fields as an explicit
+compatibility change; preserve identity/source evidence and unknown coverage rather
+than manufacturing zeros. Turnover filtering/sorting and saved-screen support are
+now implemented. Filing/activity response-schema coverage remains useful follow-up.
 
 Independent in-app alerts, the original recommendation, are implemented for the
 five existing triggers; real-time transport and push remain separate work.
@@ -89,7 +92,7 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Add reported allocation turnover to the fund screener whitelist | Reuse batched SQL, completeness/history gates and source bounds; keep unknowns and valuation effects explicit. |
+| Next | Align legacy fund-screener history/integrity policy | Explicitly handle compatibility for older portfolio/count fields; preserve identities, source evidence and unknowns. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Extend fund analytics beyond reported allocation turnover | Standalone, profiles and directory filters/sorts are implemented. Richer manager/sector classifications still need supported data; no such classification is inferred from holdings. |
 | High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |

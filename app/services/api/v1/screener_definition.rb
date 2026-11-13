@@ -15,13 +15,15 @@ module Api
           "latest_is_director" => :boolean, "latest_is_officer" => :boolean,
           "latest_is_ten_percent_owner" => :boolean, "latest_is_other" => :boolean).freeze,
         "funds" => COMMON.merge("period_of_report" => :date, "holding_row_count" => :count,
-          "position_count" => :count, "portfolio_value_usd" => :decimal, "suspect" => :boolean).freeze
+          "position_count" => :count, "portfolio_value_usd" => :decimal, "suspect" => :boolean,
+          "reported_allocation_turnover_percent" => :percentage).freeze
       }.freeze
       OPERATORS = {
         text: %w[eq not_eq contains starts_with in is_null not_null],
         cik: %w[eq not_eq in], ticker: %w[eq not_eq in contains starts_with is_null not_null],
         count: %w[eq not_eq gt gte lt lte between in is_null not_null],
         decimal: %w[eq not_eq gt gte lt lte between in is_null not_null],
+        percentage: %w[eq not_eq gt gte lt lte between in is_null not_null],
         date: %w[eq not_eq gt gte lt lte between in is_null not_null], boolean: %w[eq not_eq]
       }.transform_values(&:freeze).freeze
 

@@ -24,6 +24,27 @@ RSpec.describe Api::V1::ScreenerParameters do
     end
   end
 
+  it "normalizes fund percentage conditions numerically for bounds, lists and nulls" do
+    result = described_class.normalize({ "entity" => "funds", "sort" => "-reported_allocation_turnover_percent", "filters" => [
+      { "field" => "reported_allocation_turnover_percent", "operator" => "between", "value" => [ "9.000000000001", "100" ] },
+      { "field" => "reported_allocation_turnover_percent", "operator" => "in", "value" => [ 0, "25.25", 100 ] },
+      { "field" => "reported_allocation_turnover_percent", "operator" => "not_null" }
+    ] })
+    expect(result.fetch("filters").map { |row| row["value"] }).to eq([ [ "9.000000000001", "100.0" ], [ "0.0", "25.25", "100.0" ], nil ])
+  end
+
+  it "rejects invalid percentages at every value boundary and for other entities" do
+    field = "reported_allocation_turnover_percent"
+    [ [ "eq", -1 ], [ "gt", "100.000000000001" ], [ "eq", "NaN" ], [ "eq", Float::INFINITY ],
+      [ "in", [ 0, 101 ] ], [ "between", [ 50, 49 ] ], [ "contains", "50" ], [ "is_null", false ] ].each do |operator, value|
+      expect { described_class.normalize({ "entity" => "funds", "filters" => [ { "field" => field, "operator" => operator, "value" => value } ] }) }
+        .to raise_error(Api::V1::InvalidParameter)
+    end
+    %w[companies insiders].each do |entity|
+      expect { described_class.normalize({ "entity" => entity, "sort" => field }) }.to raise_error(Api::V1::InvalidParameter)
+    end
+  end
+
   it "does not accept transaction windows or unsupported metrics for fund screens" do
     expect { described_class.normalize({ "entity" => "funds", "window_days" => 90 }) }.to raise_error(Api::V1::InvalidParameter)
     %w[aum turnover sector score].each do |field|

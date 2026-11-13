@@ -13,6 +13,15 @@ RSpec.describe Api::V1::ScreenerCompiler do
     expect(sql).to include("\\_", "\\%")
   end
 
+  it "revalidates and quotes the fund percentage whitelist at the SQL boundary" do
+    field = "reported_allocation_turnover_percent"
+    sql = described_class.call(entity: "funds", filters: [ { "field" => field, "operator" => "between", "value" => [ "9", "100" ] },
+      { "field" => field, "operator" => "not_null" } ])
+    expect(sql).to include("activity.#{field} BETWEEN '9.0' AND '100.0'", "activity.#{field} IS NOT NULL")
+    expect { described_class.call(entity: "funds", filters: [ { "field" => field, "operator" => "gte", "value" => "101 OR 1=1" } ]) }
+      .to raise_error(Api::V1::InvalidParameter)
+  end
+
   it "returns TRUE for an empty condition list" do
     expect(described_class.call(entity: "funds", filters: [])).to eq("TRUE")
   end

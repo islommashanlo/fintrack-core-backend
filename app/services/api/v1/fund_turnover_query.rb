@@ -19,7 +19,7 @@ module Api
         ids = row ? row.fetch("current_source_ids") + row.fetch("prior_source_ids") : []
         sources = InstitutionalReport.where(id: ids).includes(:filing).index_by(&:id)
         {
-          data: FundTurnoverSerializer.render(row:, sources:, fund: @fund, period: @period, as_of: @as_of),
+          data: FundTurnoverSerializer.render(row:, sources:, period: @period, as_of: @as_of).merge(fund: FundSerializer.render(@fund)),
           meta: { as_of: @as_of.iso8601(6), period_selection: @explicit_period ? "explicit" : "latest_report",
             history_quarters: @history.context.fetch("history_quarters"), earliest_period: @history.earliest(as_of: @as_of),
             disclaimer: FilingsIntel::DISCLAIMER }.merge(FundTurnoverSerializer.context)

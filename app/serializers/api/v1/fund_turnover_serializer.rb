@@ -8,7 +8,7 @@ module Api
           methodology_version: ActivityMethodology.definition.fetch("reported_allocation_turnover").fetch("version") }
       end
 
-      def self.render(row:, sources:, fund:, period:, as_of:)
+      def self.render(row:, sources:, period:, as_of:)
         primary = row && row["primary_report_id"]
         provenance = if primary
           FilingProvenance.render(sources.fetch(primary).filing, as_of:)
@@ -18,7 +18,7 @@ module Api
         reason = row ? row["unavailable_reason"] : "no_current_report"
         percent = row && row["turnover_percent"]
         percent = BigDecimal(percent) if percent.is_a?(String)
-        provenance.merge(fund: FundSerializer.render(fund), period_of_report: period,
+        provenance.merge(period_of_report: period,
           prior_period_of_report: period && (period << 3).end_of_quarter,
           status: reason ? "unavailable" : "available", unavailable_reason: reason,
           reported_allocation_turnover_percent: percent,
