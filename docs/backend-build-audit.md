@@ -1,104 +1,98 @@
-# Backend build audit — 2026-11-12
+# Backend build audit — 2026-11-13
 
-Audited commit: `597bc41` on `filingsintel-rails8`. Scope: the owner's Rails backend build prompt, the current Rails rebuild, implementation, routes, API contracts, fixtures and tests. The later backend prompt supersedes older frontend/phase assumptions in `project-brief.md`. This is a source audit, not a production-readiness certification or live data validation. The older `gap-analysis.md` describes the rebuild's starting point and remains historical evidence.
+Audited runtime commit: 59d470d on filingsintel-rails8. This refresh replaces the
+earlier 597bc41 source audit; its historical text remains in Git. Scope is the
+owner's Rails backend build prompt, with docs/project-brief.md supplying the
+standing invariants. The later JSON API prompt supersedes the brief's older
+frontend and phase assumptions.
 
-No deployment, ingestion, backfill, enrichment, seeding, provider activation or real delivery was performed. No new runtime code or schema is introduced by this audit.
+This is a source and local-test audit, not a production-readiness certification.
+No deployment, provider/SEC request, enrichment, seed, backfill, reprocessing,
+worker start, schedule change or real delivery was performed. This increment
+changes documentation only.
 
-## Incremental status refresh
+## Current milestone status
 
-The original audit below started at `597bc41`; it is not a fresh certification.
-Source review through `8ef81b5` confirms the subsequent independent in-app model,
-private notification APIs and all five existing trigger matchers are implemented.
-Fund directory/profile summaries and comparison weights/ranks now reuse reported
-portfolio coverage and source bounds. These local additions do not complete push,
-real-time transport, vendor activation or additional filing forms. Reported allocation
-turnover is now exposed independently, with a versioned adjacent-quarter formula,
-strict coverage and source evidence; profiles now expose its compact summary using
-shared bounds and plan-aware redaction. The directory now supports reported-allocation
-turnover ranges/sorts with batched SQL and source evidence. The fund screener now
-whitelists the same percentage, with saved-screen normalization and history gates
-for all derived fund fields under policy 3. Old Free counts/totals/suspect and
-effective-source counts are now null while identity/latest-filing metadata remain
-visible; earlier fund cursors require restart. This does not establish
-transaction-based turnover.
-OpenAPI 1.54.0 now documents 84 operations, including reported allocation turnover.
-The pre-checker baseline passed
-1,284 examples with 626 Ruby files clean; it does not establish remote CI status.
+Implemented means source and relevant local regression tests exist. Partial means
+requested behavior, supported inputs or integration are still missing. Disabled
+adapters and draft calculators do not count as activated product features.
 
-Local validation now includes selected response-body schema checks in RSpec,
-covering successful fund comparisons and company/fund/insider profiles plus
-the profiles' documented 400/404/429/503 responses. Fund holdings/changes and
-global/company/insider transaction lists now also check paginated responses,
-history gates and documented errors; signed int64 IDs are validated explicitly.
-Fund directory/report history and company institutional ownership/history also
-validate actual paginated bodies, coverage previews and documented errors. See
-`api-contract-checks.md` for supported rules and limits. It introduces no runtime API or schema change and no
-external requests. The original route inventory and counts below remain historical.
-
-## What exists and what remains
-
-“Implemented” below means code and relevant local tests exist. It does not establish production configuration, complete SEC history, provider interoperability or measured service-level objectives.
-
-| Requirement | Current evidence | Remaining work |
+| Milestone | Current evidence | Remaining work |
 | --- | --- | --- |
-| Form 4 / 4/A ingestion | `form4_parser.rb`, `form4_ingestor.rb`, `form4_pipeline.rb`; corresponding service specs and `spec/fixtures/filings/form4/`. Multiple owners, both tables, codes, footnotes and plan disclosure are represented. | Do not equate preserved price/footnote evidence with inferred exact prices. Real data coverage and live acceptance-to-delivery targets were not audited. |
-| 13F detection, archive, parse, amendments | `edgar_13f_poller.rb`, `form13f_pipeline.rb`, `form13f_ingestor.rb`, `institutional_report_scope.rb`; parser/ingestor/diff specs and committed XML. | **Unit selection is explicit**, not automatic: pipeline requires value_unit, jobs default to FORM13F_VALUE_UNIT, backfill requires an argument. A single global choice is not a historical cutoff policy. Keep mixed-era execution blocked until the evidence-based policy is resolved. |
-| 13F fixture/evidence coverage | `spec/fixtures/13f/README.md`: historical/recent XML, combination managers, repeated CUSIPs, put/call, NEW HOLDINGS and NT. | No real RESTATEMENT or optional FIGI example in that fixture set; synthetic behavior tests do not replace real format evidence. Exact unit cutoff and earliest XML period remain open in the ingestion plan. No additional SEC request was made here. |
-| Other forms | `Filing::SEC_INGEST_TYPES` contains Form 4 and the 13F family. | Form 3/5, Schedule 13D/G and Form 144 parsers, storage, detection, activity and alerts are absent. Inspect and commit real filings before implementing these formats. |
-| SEC access, queues and backfill | `sec_client.rb`, `sec_rate_limiter.rb`, queue config; `backfill.rb`, `form13f_backfill.rb` and task specs. Shared five-per-second cap and lane reservations exist. | The newer prompt describes Atom and market-hours-dependent polling; implementation uses EFTS minute polling and daily reconciliation. Do not silently replace it. Historical backfills remain separately authorized operations. |
-| Raw archive | `filing_archive.rb` and write-once archive specs. | Current adapter is local disk. SQL path coverage and bounded read-only file metadata verification now exist (`docs/archive-health.md`); content/checksum verification, production object storage, backup/restore and retention validation remain separate. |
-| Security mapping | `openfigi_enrichment.rb`, mapping ingestion, `Security`, `CusipSecurityMapping`; synthetic/stubbed specs. | Mapping code exists, but enrichment is not being run. Effective-dated ticker/name history and richer issuer metadata are incomplete; latest mappings are not a complete historical security master. |
-| Company, fund, insider APIs | Controllers, read queries, serializers and request specs under `api/v1`. Holdings, changes, comparisons, company history, insider transactions/companies and filing details exist. | Fund directory now supports reported portfolio-value and grouped-position ranges/sorts plus stored report-type/coverage filters with history gates; profiles expose the same derived summary while preserving raw-cover metadata; reported allocation-turnover ranges/sorts are now supported; requested AUM/manager-type/sector-focus filters remain unsupported. Sector/industry/market-cap coverage and full fund analytics are incomplete. Existing Filer/InstitutionalFiler structures intentionally differ from the prompt's entity names. |
-| Insider aggregates and clusters | `api/v1/insider_profile.rb` has 30/90/365-day summaries; `insider_cluster_windows.rb`, cluster read/matching specs and methodology define 14-day purchase/sale clusters. | Company profiles now expose 30/90/365-day summaries while retaining the legacy 90-day shape. Cluster output is filing-acceptance-based and first-listed-owner-based; that choice is documented, not proof of full coverage. |
-| Institutional analytics | Effective report SQL, `institutional_position_diff_query.rb`, materializer and comparison/history APIs with source evidence. | Fund holdings and changes now expose full-portfolio reported-value weights, competition ranks and independent integrity coverage for each period; Fund position history now exposes grouped shares, weights/ranks, independent period coverage and source evidence; comparisons also expose full-fund weights/ranks with independent current/prior completeness. Reported allocation turnover now has an adjacent-quarter API and published methodology. Directory reported-allocation turnover ranges/sorts are implemented with shared batched SQL; richer fund classifications remain incomplete and executed transactions are not inferred. Changes in reported value must not be presented as transaction values or capital flows. |
-| Activity Score and reasons | `activity_scoring/`, calculator/assessment specs and `config/activity_methodology.yml`. Draft diagnostics implement several point-in-time factors. | Score status is unavailable. Scale/liquidity inputs remain missing; draft factor diagnostics are not an active score, level or public reasons feed. No automatic zero filling or activation is justified. |
-| Unusual activity | Dashboard explicitly reports scoring_not_active. Activity accepts score/level filters with availability metadata. | `/activity/unusual` is absent. Empty filtered results are not equivalent to an implemented unusual-activity feed. Activation needs complete inputs, reviewed methodology, coverage and plan gates. |
-| Auth/account/preferences | Password auth/recovery, cookie/CSRF controls, private preferences and generated-key OAuth tests. Google linking and already-linked sign-in have independent default-off flags. | No automatic Google account creation, code exchange or redirect receiver. Frontend/provider interoperability and live configuration remain separate. |
-| Watchlist, search, screener, saved screens | SQL search and whitelist compilation; request/compiler/limit specs. Typed company/fund/insider watchlists and Pro saved-screen CRUD exist. | Requested sector/AUM/turnover/scoring fields are not all available. Unsupported values must remain explicit; a compiler whitelist does not imply every product filter exists. |
-| Email alerts and history | `AlertRule::EVENT_TYPES`: new_filing, insider_transaction, cluster, 13f_change, news. Matching/delivery revisions, source checks, daily digests, read/read-all and badge summary are implemented and tested. | All five existing triggers now support separate email and in-app rules; entities remain follow-scoped rather than arbitrary global/watchlist-wide rules. Unusual/13D-G/144 triggers are missing. External delivery latency is not measured by unit tests. |
-| In-app and web push | Independent in-app matching/publication, private notifications/read state, all five existing triggers, shared logical quotas and Free daily/Pro instant timing (`docs/in-app-notifications.md`), plus encrypted push registration/consent APIs. | In-app publication is persistent and read through the API; no real-time stream is implemented. Push transport remains hard-disabled; VAPID sending and service-worker integration remain absent. |
-| Explain Filing | Cached normalized fact summaries, bounded facts-v2 coverage, templates and provider-selection/fallback tests. | No external LLM adapter. The implemented provider selects validated fact IDs; it does not directly publish model prose. This is a useful factual fallback, not a completed live AI integration. |
-| News and prices | Immutable headline/link ingestion, mention matching, local feeds/news alerts; exact OHLCV storage, gap planner and company price API. | Default providers are disabled. No real vendor adapter, nightly price refresh or 15-minute news refresh job. No provider redistribution rights have been established by tests. Historical calendars/symbol identity coverage remain explicit gaps. |
-| Billing and gating | Signed Stripe intake, durable receipts, verified entitlements, hosted attempts/recovery and request/concurrency tests. `PlanCatalog` centralizes requested Free limits. | Live configuration and unknown/unmatched outcome resolution remain operational concerns. No real customer/payment or entitlement activation was performed. Having a plan limit does not make an unavailable feature available. |
-| Deadlines | `Form13fDeadline` and specs test the Q3 2026 deadline as Nov 16, contrasting the newer prompt's unadjusted Nov 14 example. | No general Form 4 business-day lateness engine. Draft scoring staleness uses calendar-day age and explicitly does not determine legal lateness. |
-| CI and monitoring | CI runs RSpec, RuboCop, the recommendation-language check and API route/document validation. `OpsMetrics`, health/readiness and queue checks exist. | CI has no dependency/security scanner job. No measured p95-under-200ms result, production load test, external lag/failure alert receiver, or two-minute delivery result was verified. Operator metrics now add per-form ingestion timing/backlog/failures, archive-reference coverage, configured ready queues and bounded retry/scheduled/dead attribution. A pure operator health summary now combines these observations with explicit review thresholds and unknown coverage; policy v2 adds supported notification outcome checks without inferring receipt or activating retries. Stored email/in-app completion timing, channel coverage and digest states are now observable (`docs/notification-metrics.md`); provider acknowledgment, recipient receipt, worker heartbeats, external monitoring and production targets remain unverified. |
-| Deliverables | Setup/env/task docs, current API docs, OpenAPI and extensive local tests/fixtures. | Fictional prototype seeds are intentionally not added under the owner's no-seeding instruction. Separate frontend integration, provider setup and production rollout remain outside this audit. |
+| Form 4 / 4/A ingestion | Implemented: Form4Parser, Form4Pipeline, Form4Ingestor, archive/amendment services and real fixtures cover multiple owners, both tables, codes, footnotes and plan disclosure. | Historical coverage and acceptance-to-delivery latency are unverified. Preserved footnotes do not establish an exact price where the filing supplies none. |
+| 13F ingestion/history | Partial: detection, document discovery, archive, pure parsers, idempotent ingestion, amendments, NT and pre-XML handling exist in Form13fPipeline, Form13fIngestor and InstitutionalReportScope, with specs. | Unit selection is caller-supplied; jobs default to FORM13F_VALUE_UNIT. One global choice is not a mixed-era cutoff policy. Exact transition and earliest-XML evidence remain unresolved. |
+| 13F fixture evidence | Partial: spec/fixtures/13f/README.md records historical/recent XML, combinations, repeated CUSIPs, options, NEW HOLDINGS and NT. | No real RESTATEMENT or FIGI fixture in that set. Synthetic tests do not replace real-format evidence. Additional SEC inspection needs a separately scoped request budget. |
+| Additional forms | Missing: Filing::SEC_INGEST_TYPES contains only Form 4 and the 13F family. | Form 3/5, Schedule 13D/G and Form 144 need real fixtures, ingestion, persistence, reads and alerts. Do not infer formats from memory. |
+| SEC access/backfill | Shared five-request/second boundary, lane reservations, queue configuration, tasks and dry-run controls exist. See SecClient, SecRateLimiter, Backfill and Form13fBackfill. | EFTS minute polling/daily reconciliation differs from the later prompt's Atom/market-hours cadence. Do not silently replace working detection. Backfill execution remains separately authorized. |
+| Archive/security identity | Partial: write-once local archive, inventory/metadata verification and mapping/enrichment code exist with local tests. | Object storage, restore/content verification, full effective-dated ticker/name identity and issuer metadata are incomplete. Enrichment is not being run. |
+| Company/fund/insider reads | Core profiles, transactions, filings, holdings, changes, histories, comparisons and provenance exist under app/controllers/api/v1, with query/serializer/request tests. | Requested AUM, manager-style and sector-focus filters are unsupported. Sector/industry/market-cap coverage is incomplete. Existing entity names intentionally differ from the proposed schema. |
+| Institutional analytics | Effective holdings, diffs/materialization, grouped shares, weights, competition ranks, overlaps and source evidence exist. FundTurnoverSql supplies reported-allocation turnover across standalone/profile/directory/screener reads. | Allocation turnover includes valuation changes, not executed trades. Reported value changes are not transaction values or capital flows. Richer classifications need supported data. |
+| Insider aggregates/clusters | Issuer/person 30/90/365-day summaries and 14-day purchase/sale clusters exist with source and missing-value coverage. | Cluster semantics use filing acceptance and the canonical first-listed owner; this documented choice does not establish complete real-world coverage. |
+| Dashboard/activity/scoring | Partial: dashboard summaries, deadlines, watchlist activity and supported-source feed exist. Draft point-in-time assessments live in activity_scoring; config/activity_methodology.yml keeps scoring unavailable. | Scale/liquidity inputs, complete factor coverage, reviewed activation, active levels/reasons, price movers and /activity/unusual remain missing. Unsupported source tokens do not implement 13D/G or 144 events. Never fill missing factors with zero to activate a score. |
+| Accounts/preferences/OAuth | Password sessions/recovery, CSRF/origin controls, private preferences, Google linking and already-linked sign-in exist; Google flags default off. | No automatic Google account creation, authorization-code exchange or redirect receiver. Live provider interoperability is unverified. |
+| Watchlist/search/screener | Typed watchlists, ranked SQL search, whitelist compilation and Pro saved screens exist. Fund filters share coverage/history gates. ScreenerCapabilities exposes fields/operators/enums/sorts/windows and shared precision-safe input constraints. | Sector/AUM/scoring filters remain unsupported. Metadata does not grant access or activate absent data. Address a larger functional gap before adding more screener metadata. |
+| Alerts/inboxes | Five triggers (new_filing, insider_transaction, cluster, 13f_change, news) support separate email/in-app rules, dedupe, revisions, source invalidation, logical quotas, plan timing and read APIs. See docs/in-app-notifications.md. | Rules are follow-scoped; arbitrary global/watchlist-wide rules and unusual/13D-G/144 triggers are absent. In-app publication is persistent and API-readable but has no real-time transport. Delivery within two minutes is unmeasured. |
+| Web push | Registration, consent and encrypted storage exist. PushChannelEligibility always includes delivery_disabled. | VAPID sender and service-worker integration are missing. Registration is not functioning delivery. |
+| Explain Filing | Cached normalized facts, factual templates, validation and provider-selection/fallback tests exist. | No external model adapter. The interface selects validated fact IDs rather than publishing arbitrary model prose. |
+| News/prices | Immutable headline/link storage, mentions, local feeds/news alerts, OHLCV ingestion, gap planning and company price reads exist. | News::Provider::Disabled and MarketData::Provider::Disabled are defaults. Vendor adapters/rights, authoritative calendars/identity and scheduled refresh/gap-fill orchestration are incomplete. |
+| Billing/gating | Verified Stripe intake, durable receipts, entitlement expiry, hosted attempts/recovery and PlanCatalog limits exist with request/concurrency tests. | Live interoperability and unknown/unmatched outcome resolution remain operational concerns. No real customer/payment or entitlement activation occurred. Plan limits do not make absent features available. |
+| Deadlines | Form13fDeadline/tests implement adjusted Q3 2026 deadline Nov 16, contrasting the prompt's unadjusted Nov 14 example. | No general Form 4 two-business-day lateness engine. Calendar-day scoring staleness is not legal lateness. |
+| Operations/CI | Ingestion/archive/queue/notification metrics, health review, readiness, tests, lint, language policy and API contract checks exist. | CI has no dependency/security scanner. Production p95/load results, worker heartbeats, external monitoring, recipient receipt and two-minute delivery targets are unverified. |
+| Deliverables | Setup/env/task docs, migrations, real fixtures, OpenAPI and local tests exist. | Frontend integration, provider setup and rollout remain separate. Prototype seeds are intentionally absent under the owner's no-seeding instruction. |
 
-## Route and contract verification
+## Current verification evidence
 
-A read-only Rails runner enumerated routes and compared them to OpenAPI 1.35.0, respecting path-level server overrides and the export dispatcher's three allowed datasets:
+OpenAPI 1.57.0 documents **85 operations**. During this audit,
+bundle exec rake api:validate_contract policy:banned_terms passed against the
+current routes/document. The inventory expands the CSV dispatcher into its three
+supported datasets and includes both unsubscribe operations outside /api/v1 with
+their explicit server override.
 
-- 74 `/api/v1` Rails route entries.
-- Three concrete CSV operations share one `/api/v1/exports/:dataset` route.
-- Two unsubscribe operations are mounted at `/email/unsubscribe/:token`, outside the API prefix, with an explicit OpenAPI server override.
-- 78 expanded/documented operations; zero undocumented or unrouted operations after these normalizations.
+The immediately preceding runtime increment ran **1,410 examples, zero failures**,
+and RuboCop checked **645 Ruby files, no offenses**. These are prior-run evidence
+for 59d470d, not a fresh suite/lint run during this documentation-only audit.
+No remote CI or production result is asserted.
 
-This confirms route coverage only. It does not prove every response conforms to its schema. OpenAPI references and unique operation IDs were also checked. The later `api:validate_contract` task now enforces API route coverage and bounded document checks in CI; see `docs/api-contract-checks.md`. It does not establish response-schema conformance.
-
-Most recent full-suite evidence at the audited commit: 1,087 examples, zero failures; 564 Ruby files clean under RuboCop. Those checks ran during the immediately preceding sign-in increment, not again during this documentation-only audit. This audit ran the route comparison, local-reference/operation checks, language policy and diff checks. No assertion is made about remote CI status or production data.
+Selected request suites check actual response bodies against the contract,
+including profiles, comparisons, paginated holdings/transactions, institutional
+histories, fund coverage and screener capabilities. The bounded checker does not
+prove all OpenAPI keywords or all responses conform. See docs/api-contract-checks.md.
 
 ## Recommended next implementation
 
-The public screener capabilities endpoint now exposes the execution whitelist,
-typed operators, enum tokens, sorts and transaction windows. Coverage and report
-type conditions retain plan gates and amendment-aware source evidence.
-Field input constraints now expose shared formats, precision-safe bounds and
-container limits. Next, review remaining backend milestones against the current
-implementation and prioritize a functional gap that requires no external activation.
+Build **authenticated real-time in-app inbox invalidation**, retaining the
+persistent REST inbox as the source of truth. This closes an explicit alert gap
+without requiring new filing formats, market data, external provider accounts
+or real sends.
 
-Independent in-app alerts, the original recommendation, are implemented for the
-five existing triggers; real-time transport and push remain separate work.
+Action Cable is installed through Rails in Gemfile.lock, but its engine is
+commented out in config/application.rb; there are no cable/channel files.
+Installation is not configuration or activation. A first reviewable increment should:
+
+1. Authenticate using the existing signed session cookie and active Session row;
+   enforce trusted origins and prevent clients from selecting another user's stream.
+2. Publish a small refresh hint only after committed publication/read-state changes.
+   Fetch bodies through existing authenticated, source-validating REST APIs; never
+   broadcast raw filing data, rule secrets or account-wide payloads.
+3. Define session expiry/revocation, reconnect and missed-hint handling. REST
+   inbox/summary reads remain the recovery path; do not promise exactly-once delivery.
+4. Test user isolation, untrusted origins, expired/revoked sessions, rollback,
+   duplicate/missed hints and continued Free digest/Pro instant timing.
+   Separate adapter configuration from live worker/deployment activation.
+
+This is recommended work, not completed transport. Source invalidation and stored
+notification history must remain intact. Publication does not establish recipient
+receipt or latency compliance.
 
 ## Follow-on priorities and dependencies
 
-| Priority | Work | Dependency or constraint |
+| Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Refresh backend milestone audit | Compare current routes/services/tests to the product brief and prioritize functional gaps independent of vendor activation. |
-| High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
-| High | Extend fund analytics beyond reported allocation turnover | Standalone, profiles and directory filters/sorts are implemented. Richer manager/sector classifications still need supported data; no such classification is inferred from holdings. |
-| High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |
-| Later | Complete scale/liquidity input storage and queries, then score/unusual activation | Point-in-time market identity and coverage, approved methodology and provider rights/selection; do not activate incomplete scores. |
-| Later | Form 3/5, Schedule 13D/G and Form 144 | Real-file format evidence first; separate ingestion/schema/parser increments. |
-| Separate activation track | Real news/price/LLM/push providers, Google/Stripe configuration, archive adapter, monitoring and load testing | Keep external requests, licensing, deployment and real delivery separately authorized. |
-
-The owner explicitly excluded enrichment, seeding and deployment from the current development workflow. None of these is a prerequisite for continuing local product implementation.
+| Next | Authenticated real-time inbox updates | Reuse Rails/Redis and REST visibility; no deployment, worker start or real delivery activation. |
+| High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
+| High | Dependency/security CI checks | Select tools and confirm new gems before adding them. No scanner/database was fetched in this audit. |
+| High | Score input storage and point-in-time coverage | Reviewed factor applicability and supported scale/liquidity inputs before activation. |
+| Later | Watchlist-wide alerts and web push | Preserve ownership, quotas, consent, source validity and plan timing; validate browser/sender integration separately. |
+| Later | Additional filing forms | Real evidence first, then isolated ingestion/schema/read/alert increments. |
+| Later | Vendor adapters and refresh orchestration | Provider selection/rights, authoritative calendars/identity and explicit request authorization. |
+| Separate | Production rollout/performance validation | Approved configuration/deployment, realistic load tests, monitoring and delivery evidence. |
