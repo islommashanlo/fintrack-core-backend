@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.47.0
+  version: 1.48.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -5064,7 +5064,7 @@ components:
       allOf:
       - "$ref": "#/components/schemas/ComparisonProvenance"
       - type: object
-        required: [cik, name, current_available, prior_available, current_report_present, prior_report_present, current_report_suspect, prior_report_suspect, position_count, excluded_current_rows, excluded_prior_rows, current_sources, prior_sources]
+        required: [cik, name, current_available, prior_available, current_value_complete, prior_value_complete, current_portfolio_value_usd, prior_portfolio_value_usd, current_report_present, prior_report_present, current_report_suspect, prior_report_suspect, position_count, excluded_current_rows, excluded_prior_rows, current_sources, prior_sources]
         properties:
           cik:
             "$ref": "#/components/schemas/Cik"
@@ -5074,6 +5074,18 @@ components:
             type: boolean
           prior_available:
             type: boolean
+          current_value_complete:
+            type: boolean
+            description: All effective current reports pass shared structure and value-normalization checks; independent of key availability.
+          prior_value_complete:
+            type: boolean
+            description: Independent adjacent-quarter structure and value-normalization completeness.
+          current_portfolio_value_usd:
+            "$ref": "#/components/schemas/NullableDecimal"
+            description: Full current reported portfolio total before filters and pagination; null if incomplete, zero for a valid empty portfolio.
+          prior_portfolio_value_usd:
+            "$ref": "#/components/schemas/NullableDecimal"
+            description: Full adjacent-quarter reported portfolio total; null if incomplete.
           current_report_present:
             type: boolean
           prior_report_present:
@@ -5157,7 +5169,7 @@ components:
       allOf:
       - "$ref": "#/components/schemas/ComparisonProvenance"
       - type: object
-        required: [cik, present, shares, value_usd, prior_shares, prior_value_usd, shares_delta, value_usd_delta, change_type, suspect, prior_suspect, row_count, current_available, prior_available, current_sources, prior_sources]
+        required: [cik, present, shares, value_usd, prior_shares, prior_value_usd, shares_delta, value_usd_delta, change_type, suspect, prior_suspect, row_count, current_available, prior_available, current_value_complete, prior_value_complete, weight_percent, prior_weight_percent, current_sources, prior_sources]
         properties:
           cik:
             "$ref": "#/components/schemas/Cik"
@@ -5190,6 +5202,18 @@ components:
             type: boolean
           prior_available:
             type: boolean
+          current_value_complete:
+            type: boolean
+            description: Full current fund portfolio passes shared structure and value-normalization checks.
+          prior_value_complete:
+            type: boolean
+            description: Full adjacent-quarter fund portfolio passes the same checks independently.
+          weight_percent:
+            "$ref": "#/components/schemas/NullableDecimal"
+            description: 100 times grouped current reported value divided by the full current fund total before filters and pagination; null for incomplete coverage, absent positions or a zero denominator.
+          prior_weight_percent:
+            "$ref": "#/components/schemas/NullableDecimal"
+            description: Independently computed adjacent-quarter weight using the full prior fund total; same null semantics as weight_percent.
           current_sources:
             "$ref": "#/components/schemas/ComparisonSources"
           prior_sources:

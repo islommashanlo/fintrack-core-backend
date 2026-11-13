@@ -139,6 +139,27 @@ Missing coverage or suspect/missing quantities make changes unknown. Monetary
 deltas additionally require known values. Reported sums and flags remain visible;
 anomalies are never corrected. Decimal amounts use JSON strings.
 
+Fund summaries also expose `current_value_complete`, `prior_value_complete`,
+`current_portfolio_value_usd` and `prior_portfolio_value_usd`. These independent
+current/adjacent-quarter checks use the shared holdings/profile integrity policy:
+every effective report must have valid row structure, matching cover entry/value
+totals, a resolvable amendment original, and consistent reported units and normalized
+values. Missing or invalid values anywhere in that fund's quarter make that side's
+total null, including rows outside the requested filter. A valid empty portfolio
+has a known zero total. These totals describe reported holdings, not AUM.
+
+Each matrix entry adds `weight_percent`, `prior_weight_percent` and the two
+value-completeness flags. Weights are decimal strings: 100 × grouped reported
+value / the full fund-quarter total, computed in SQL before scope/security filters
+and pagination. Each quarter is independent. Repeated keys combine, while options
+and principal remain separate keys. Weights are null for incomplete coverage,
+absent positions or a zero denominator; a reported zero-value position in a
+complete positive-total portfolio has weight zero. Restatements replace and
+NEW HOLDINGS add to the denominator under existing effective-report rules.
+Existing availability, overlap and `meta.complete` flags retain their position-key
+coverage meaning and can be true while value completeness is false. Weights share
+the existing source bounds and history gates; no stored reported values change.
+
 `shared_by_all` is null if any current portfolio is unavailable. `differing_moves`
 is null unless every selected fund has a known classification for that key; when
 known, it tests whether classifications differ (not whether change magnitudes

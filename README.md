@@ -66,7 +66,9 @@ limits and unsupported formats.
 
 `/api/v1/funds/compare?ciks=...` compares effective local 13F portfolios for one
 common quarter, with pairwise key overlap, a paginated positions matrix and
-adjacent-quarter change classifications. Free comparisons enforce two funds and
+adjacent-quarter change classifications. Current/prior reported-value weights use
+full fund totals before filtering/pagination, with independent strict completeness
+flags; incomplete values remain unknown. Free comparisons enforce two funds and
 four quarters; missing coverage stays unknown. See `docs/api-v1.md` for source and
 amendment semantics. No provider calls or schema change are needed.
 

@@ -64,6 +64,7 @@ module Api
                 'shares', shares::text, 'value_usd', value_usd::text, 'prior_shares', prior_shares::text,
                 'prior_value_usd', prior_value_usd::text, 'shares_delta', shares_delta::text,
                 'value_usd_delta', value_usd_delta::text, 'change_type', change_type,
+                'weight_percent', weight_percent::text, 'prior_weight_percent', prior_weight_percent::text,
                 'suspect', suspect, 'prior_suspect', prior_suspect, 'row_count', row_count)
                 ORDER BY cik) AS funds,
               jsonb_build_array(cusip, put_call_key, share_type)::text AS event_key,
@@ -86,12 +87,15 @@ module Api
 
       def ctes
         ids = @funds.map(&:id)
-        effective = @reports.effective_reports.where(institutional_filer_id: ids, period_of_report: [ @period, @prior ].compact)
+        periods = [ @period, @prior ].compact
+        visible = @reports.visible_reports.where(institutional_filer_id: ids, period_of_report: periods)
+        effective = @reports.effective_reports.where(institutional_filer_id: ids, period_of_report: periods)
         diff_scope = InstitutionalReportScope.new(as_of: @page.as_of, max_report_id: @page.bound("reports"),
           max_filing_id: @page.bound("filings"), report_ids: effective.select(:id))
         changes = InstitutionalPositionDiffQuery.new(period_of_report: @period, report_scope: diff_scope,
           max_holding_id: @page.bound("holdings")).to_sql
         <<~SQL
+          visible AS (#{visible.to_sql}), value_checks AS (#{InstitutionalReportChecks.sql(max_holding_id: @page.bound('holdings'))}),
           effective AS (#{effective.to_sql}), contexts AS (
             SELECT institutional_filer_id, period_of_report, ARRAY_AGG(id ORDER BY id) AS report_ids, BOOL_OR(suspect) AS suspect
             FROM effective GROUP BY institutional_filer_id, period_of_report
@@ -109,6 +113,15 @@ module Api
             FROM effective r INNER JOIN institutional_holdings h ON h.institutional_report_id = r.id
             WHERE h.id <= #{@page.bound('holdings')} AND (#{VALID_KEY}) IS NOT TRUE
             GROUP BY r.institutional_filer_id, r.period_of_report
+          ), value_contexts AS (
+            SELECT r.institutional_filer_id, r.period_of_report,
+              BOOL_AND(COALESCE(v.structure_complete AND v.values_complete, false)) AS complete,
+              CASE WHEN BOOL_AND(COALESCE(v.structure_complete AND v.values_complete, false)) THEN COALESCE((
+                SELECT SUM(l.value_usd) FROM lines l WHERE l.institutional_filer_id = r.institutional_filer_id
+                  AND l.period_of_report = r.period_of_report
+              ), 0.0) END AS total_value_usd
+            FROM effective r INNER JOIN value_checks v ON v.id = r.id
+            GROUP BY r.institutional_filer_id, r.period_of_report
           ), fund_state AS (
             SELECT f.id, f.cik, f.name, c.report_ids AS current_report_ids, p.report_ids AS prior_report_ids,
               c.report_ids IS NOT NULL AS current_report_present, p.report_ids IS NOT NULL AS prior_report_present,
@@ -116,12 +129,16 @@ module Api
               p.report_ids IS NOT NULL AND NOT p.suspect AND COALESCE(ip.rows, 0) = 0 AS prior_available,
               COALESCE(c.suspect, false) AS current_report_suspect, COALESCE(p.suspect, false) AS prior_report_suspect,
               COALESCE(ic.rows, 0) AS excluded_current_rows, COALESCE(ip.rows, 0) AS excluded_prior_rows,
+              COALESCE(vc.complete, false) AS current_value_complete, COALESCE(vp.complete, false) AS prior_value_complete,
+              vc.total_value_usd AS current_portfolio_value_usd, vp.total_value_usd AS prior_portfolio_value_usd,
               CASE WHEN c.report_ids IS NOT NULL AND NOT c.suspect AND COALESCE(ic.rows, 0) = 0 THEN
                 (SELECT COUNT(*) FROM lines l WHERE l.institutional_filer_id = f.id AND l.period_of_report = #{quote(@period)}) END AS position_count,
               #{primary_report('r.institutional_filer_id = f.id')} AS primary_report_id
             FROM institutional_filers f
             LEFT JOIN contexts c ON c.institutional_filer_id = f.id AND c.period_of_report = #{quote(@period)}
             LEFT JOIN contexts p ON p.institutional_filer_id = f.id AND p.period_of_report = #{quote(@prior)}
+            LEFT JOIN value_contexts vc ON vc.institutional_filer_id = f.id AND vc.period_of_report = #{quote(@period)}
+            LEFT JOIN value_contexts vp ON vp.institutional_filer_id = f.id AND vp.period_of_report = #{quote(@prior)}
             LEFT JOIN invalid ic ON ic.institutional_filer_id = f.id AND ic.period_of_report = #{quote(@period)}
             LEFT JOIN invalid ip ON ip.institutional_filer_id = f.id AND ip.period_of_report = #{quote(@prior)}
             WHERE f.id IN (#{ids.join(',')})
@@ -132,6 +149,10 @@ module Api
               k.*, COALESCE(c.issuer_name, p.issuer_name) AS issuer_name,
               CASE WHEN c.cusip IS NOT NULL THEN true WHEN s.current_available THEN false END AS current_present,
               c.shares, c.value_usd, p.shares AS prior_shares, p.value_usd AS prior_value_usd,
+              CASE WHEN s.current_value_complete AND s.current_portfolio_value_usd > 0 AND c.cusip IS NOT NULL
+                THEN c.value_usd * 100 / s.current_portfolio_value_usd END AS weight_percent,
+              CASE WHEN s.prior_value_complete AND s.prior_portfolio_value_usd > 0 AND p.cusip IS NOT NULL
+                THEN p.value_usd * 100 / s.prior_portfolio_value_usd END AS prior_weight_percent,
               COALESCE(c.suspect, false) OR s.current_report_suspect AS suspect,
               COALESCE(p.suspect, false) OR s.prior_report_suspect AS prior_suspect,
               COALESCE(c.row_count, 0) AS row_count,

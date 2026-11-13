@@ -13,7 +13,8 @@ module Api
       def fund(row)
         provenance(row["primary_report_id"]).merge(row.slice("cik", "name", "current_available", "prior_available",
           "current_report_present", "prior_report_present", "current_report_suspect", "prior_report_suspect",
-          "position_count", "excluded_current_rows", "excluded_prior_rows"),
+          "position_count", "excluded_current_rows", "excluded_prior_rows", "current_value_complete", "prior_value_complete",
+          "current_portfolio_value_usd", "prior_portfolio_value_usd"),
           current_sources: sources(row["current_report_ids"]), prior_sources: sources(row["prior_report_ids"]))
       end
 
@@ -32,7 +33,8 @@ module Api
           funds: entries.map do |entry|
             state = @states.fetch(entry.fetch("cik"))
             provenance(state["primary_report_id"]).merge(entry, current_available: state.fetch("current_available"),
-              prior_available: state.fetch("prior_available"), current_sources: sources(state["current_report_ids"]),
+              prior_available: state.fetch("prior_available"), current_value_complete: state.fetch("current_value_complete"),
+              prior_value_complete: state.fetch("prior_value_complete"), current_sources: sources(state["current_report_ids"]),
               prior_sources: sources(state["prior_report_ids"]))
           end)
       end
