@@ -821,6 +821,37 @@ one acceptance-time/ingestion-ID snapshot, including report and holding bounds.
 Later inserts during the read cannot become new cover or holdings evidence.
 These bounds are not a versioned history of in-place metadata changes.
 
+`data.reported_allocation_turnover` now adds a profile summary of the standalone
+`/funds/:cik/turnover` calculation. It contains `reported_allocation_turnover_percent`,
+`status`, `unavailable_reason`, current/prior periods, independent `current_complete`
+and `prior_complete` flags, `current_sources`/`prior_sources`, their source scopes,
+common filing provenance, methodology version and `baseline_policy`. The formula
+and caveats are unchanged: half the total absolute allocation-weight change across
+adjacent quarters, including valuation/reporting effects. It does not infer executed
+transactions. Full portfolio totals/counts remain on the standalone route.
+
+Available metrics and genuine zero change stay distinct from missing/incomplete
+coverage, notices and zero-value portfolios through the existing turnover reasons.
+A later prior-quarter amendment can be the turnover's primary source while
+`latest_report` remains the latest-period raw cover. A same-quarter notice does
+not substitute for an effective holdings base; a notice-only newer quarter does
+not trigger fallback to older holdings.
+
+For an old Free latest period, the profile still returns 200. The new summary has
+`status: unavailable`, reason `history_restricted`, a null percentage, null prior
+period/completeness/source scopes/provenance and empty source lists. Its current
+period remains the period already visible in the raw cover; methodology context
+also remains visible. Restricted turnover inputs are not calculated. Pro can read
+the full summary, and every request rechecks entitlement, including after downgrade.
+An allowed current period may retain its adjacent baseline as calculation context
+just outside the Free window, following the standalone policy.
+
+Turnover receives the same `as_of` and filing/report/holding ID ceilings already
+captured for the profile. It does not take a second, later snapshot. Late inserted
+baselines, holdings or amendments cannot enter only the turnover result. The SQL
+stays scoped to one fund and two adjacent quarters, and source filing evidence is
+preloaded. No per-position model loading or aggregation in Ruby is introduced.
+
 The shared directory SQL is scoped to the requested fund and does not load all
 fund holdings into Ruby. No provider request, enrichment, schema change or derived
 write is needed. Production profile latency has not been benchmarked.

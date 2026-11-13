@@ -3,10 +3,11 @@
 module Api
   module V1
     class FundTurnoverQuery
-      def initialize(fund:, history:, as_of:, period: nil)
+      def initialize(fund:, history:, as_of:, period: nil, bounds: nil)
         @fund, @history, @as_of = fund, history, as_of
         @explicit_period = period.present?
-        @bounds = InstitutionalHoldingsQuery::BOUNDS.transform_values { |model| model.maximum(:id) || 0 }
+        @bounds = (bounds || InstitutionalHoldingsQuery::BOUNDS.transform_values { |model| model.maximum(:id) || 0 })
+          .slice(*InstitutionalHoldingsQuery::BOUNDS.keys).freeze
         reports = InstitutionalReportScope.new(as_of:, max_report_id: @bounds.fetch("reports"),
           max_filing_id: @bounds.fetch("filings"), report_ids: InstitutionalReport.where(institutional_filer_id: fund.id).select(:id))
         @period = period || reports.visible_reports.except(:select).maximum(:period_of_report)

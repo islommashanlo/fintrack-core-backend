@@ -85,7 +85,9 @@ across adjacent quarters, using half the total absolute weight change. It return
 an explicit unavailable reason when report/value coverage is insufficient and
 retains source evidence and Free/Pro history gates. This includes valuation effects
 and does not measure executed transactions. The versioned formula is published
-through `/methodology`; see [the API contract](docs/api-v1.md#reported-allocation-turnover).
+through `/methodology`. Fund profiles also include a compact turnover summary with
+the same source bounds, plus explicit history redaction for old Free periods. See
+[the API contract](docs/api-v1.md#reported-allocation-turnover).
 
 Fund holdings/changes/report history and company institutional ownership share the
 four-quarter Free history window. Older selected periods require Pro; collection

@@ -19,11 +19,25 @@ module Api
           .order(Arel.sql("known_filed_at DESC, known_accession DESC")).preload(:filing).first
         {
           data: FundDirectorySerializer.render(projection, sources:, as_of: @page.as_of).merge(
-            latest_report: latest && InstitutionalReportSerializer.render(latest, as_of: @page.as_of)),
+            latest_report: latest && InstitutionalReportSerializer.render(latest, as_of: @page.as_of),
+            reported_allocation_turnover: turnover(latest, projection["portfolio_unavailable_reason"])),
           meta: { as_of: @page.as_of.iso8601(6), history_quarters: @history.context.fetch("history_quarters"),
             earliest_period: @history.earliest(as_of: @page.as_of), portfolio_history_limited: !@history.earliest(as_of: @page.as_of).nil?,
             portfolio_period: "latest_per_fund", value_is_aum: false, disclaimer: FilingsIntel::DISCLAIMER }
         }
+      end
+
+      private
+
+      def turnover(latest, portfolio_reason)
+        if portfolio_reason == "history_restricted"
+          return FundTurnoverSummarySerializer.history_restricted(period: latest.period_of_report)
+        end
+
+        bounds = InstitutionalHoldingsQuery::BOUNDS.keys.index_with { |key| @page.bound(key) }
+        result = FundTurnoverQuery.new(fund: @fund, history: @history, as_of: @page.as_of,
+          period: latest&.period_of_report, bounds:).call
+        FundTurnoverSummarySerializer.render(result)
       end
     end
   end

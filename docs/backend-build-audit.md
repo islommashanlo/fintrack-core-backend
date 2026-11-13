@@ -13,8 +13,9 @@ Fund directory/profile summaries and comparison weights/ranks now reuse reported
 portfolio coverage and source bounds. These local additions do not complete push,
 real-time transport, vendor activation or additional filing forms. Reported allocation
 turnover is now exposed independently, with a versioned adjacent-quarter formula,
-strict coverage and source evidence; it does not establish transaction-based turnover.
-OpenAPI 1.50.0 now documents 84 operations, including reported allocation turnover.
+strict coverage and source evidence; profiles now expose its compact summary using
+shared bounds and plan-aware redaction. It does not establish transaction-based turnover.
+OpenAPI 1.51.0 now documents 84 operations, including reported allocation turnover.
 The pre-checker baseline passed
 1,284 examples with 626 Ruby files clean; it does not establish remote CI status.
 
@@ -72,11 +73,12 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Expose the reported allocation-turnover summary on fund profiles using the same
-formula, source bounds and completeness/history policy. Directory filtering can
-follow with batched SQL; do not compute every fund's metric in Ruby or label it as
-executed transaction turnover. Filing/activity response-schema coverage remains
-useful follow-up validation rather than the next missing product feature.
+Add reported allocation-turnover ranges/sorts to the fund directory with batched
+SQL and the same formula, source bounds, completeness and history policy. The
+standalone endpoint and fund profile summary are implemented; do not compute each
+directory fund separately in Ruby or label the metric as executed transactions.
+Filing/activity response-schema coverage remains useful follow-up validation
+rather than the next missing product feature.
 
 Independent in-app alerts, the original recommendation, are implemented for the
 five existing triggers; real-time transport and push remain separate work.
@@ -85,7 +87,7 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Expose reported allocation turnover on fund profiles | Reuse the implemented formula, completeness/history gates and source bounds; keep valuation effects explicit. |
+| Next | Add reported allocation-turnover ranges/sorts to the fund directory | Use batched SQL with the existing formula, completeness/history gates and source bounds; keep valuation effects explicit. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Extend reported allocation turnover to fund directory filters and remaining analytics | The v1 metric is implemented; directory filters need batched SQL and the same coverage/history semantics. No vendor activation is required. |
 | High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |

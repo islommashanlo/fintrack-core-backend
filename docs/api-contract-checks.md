@@ -110,6 +110,8 @@ No production API or schema change was needed to add this coverage.
 
 The reported allocation turnover feature also checks successful and unavailable
 `/funds/{cik}/turnover` bodies against its contract, plus 400/402/404/429/503 cases.
+Fund profile bodies also validate their turnover summary, including history-restricted
+redaction, incomplete inputs, source evidence and shared snapshot bounds.
 Its new methodology section is declared separately from the inactive draft score.
 No existing response schema was weakened to admit the feature.
 
@@ -166,7 +168,8 @@ bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
   spec/requests/api/v1/fund_directory_spec.rb \
   spec/requests/api/v1/fund_directory_filters_spec.rb \
   spec/requests/api/v1/company_history_spec.rb \
-  spec/requests/api/v1/fund_turnover_spec.rb
+  spec/requests/api/v1/fund_turnover_spec.rb \
+  spec/requests/api/v1/fund_profile_turnover_spec.rb
 ```
 
 Comparison coverage remains in `fund_comparisons_spec.rb` and

@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.50.0
+  version: 1.51.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1261,12 +1261,12 @@ paths:
   "/funds/{cik}":
     get:
       operationId: getFund
-      summary: Get fund cover metadata and reported portfolio summary
+      summary: Get fund cover, reported portfolio and allocation turnover summaries
       parameters: []
       responses:
         '200':
           description: Fund identity, preserved latest-cover evidence, plan-aware reported-portfolio
-            fields and history metadata.
+            and allocation-turnover summaries with history metadata.
           content:
             application/json:
               schema:
@@ -4654,6 +4654,58 @@ components:
           minimum: 1
           description: Descending reported value competition rank (1, 1, 3). Null for
             incomplete portfolios.
+    FundTurnoverSummary:
+      allOf:
+      - "$ref": "#/components/schemas/ComparisonProvenance"
+      - type: object
+        required: [period_of_report, prior_period_of_report, status, unavailable_reason, reported_allocation_turnover_percent, methodology_version, baseline_policy, current_complete, prior_complete, current_source_scope, prior_source_scope, current_sources, prior_sources]
+        description: Profile summary of the standalone reported allocation change calculation.
+          Valuation and reporting-scope effects remain included. History-restricted summaries
+          retain only the already-visible current cover period and methodology context;
+          percentage, prior period, completeness, source scopes and provenance are null,
+          with empty source arrays. The existing raw latest cover remains compatible.
+        properties:
+          period_of_report:
+            type: string
+            format: date
+            nullable: true
+          prior_period_of_report:
+            type: string
+            format: date
+            nullable: true
+          status:
+            type: string
+            enum: [available, unavailable]
+          unavailable_reason:
+            type: string
+            nullable: true
+            enum: [history_restricted, no_current_report, no_prior_report, future_report_period, no_effective_current_holdings, no_effective_prior_holdings, incomplete_current_portfolio, incomplete_prior_portfolio, zero_current_portfolio_value, zero_prior_portfolio_value]
+          reported_allocation_turnover_percent:
+            "$ref": "#/components/schemas/NullableDecimal"
+          methodology_version:
+            type: string
+            enum: [reported-allocation-turnover-v1]
+          baseline_policy:
+            type: string
+            enum: [adjacent_calendar_quarter]
+          current_complete:
+            type: boolean
+            nullable: true
+          prior_complete:
+            type: boolean
+            nullable: true
+          current_source_scope:
+            type: string
+            nullable: true
+            enum: [effective_holdings, observed_reports]
+          prior_source_scope:
+            type: string
+            nullable: true
+            enum: [effective_holdings, observed_reports]
+          current_sources:
+            "$ref": "#/components/schemas/ComparisonSources"
+          prior_sources:
+            "$ref": "#/components/schemas/ComparisonSources"
     FundTurnoverResponse:
       type: object
       required: [data, meta]
@@ -6128,6 +6180,7 @@ components:
       - latest_report
       - reported_portfolio
       - portfolio_unavailable_reason
+      - reported_allocation_turnover
       properties:
         cik:
           "$ref": "#/components/schemas/Cik"
@@ -6204,6 +6257,8 @@ components:
           nullable: true
         reported_portfolio:
           "$ref": "#/components/schemas/FundDirectoryPortfolio"
+        reported_allocation_turnover:
+          "$ref": "#/components/schemas/FundTurnoverSummary"
         portfolio_unavailable_reason:
           type: string
           nullable: true
@@ -6216,7 +6271,9 @@ components:
       description: Raw latest_report cover metadata is preserved; the new effective reported_portfolio
         follows Free/Pro history gates. The latest raw cover can remain visible for an
         old period while its derived summary is history_restricted. Amendment cover totals
-        are not silently replaced by full effective portfolio totals.
+        are not silently replaced by full effective portfolio totals. The reported allocation
+        turnover summary reuses the standalone formula and source bounds; history-restricted
+        profiles suppress its derived evidence while preserving the existing cover.
     InstitutionalHolding:
       type: object
       required:
