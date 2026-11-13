@@ -1,7 +1,7 @@
 # Watchlist filing notices — email and in-app
 
-Watchlist rules support trigger=new_filing in email and in_app. Other watchlist
-triggers remain draft-only. Existing specific-follow
+Watchlist rules support trigger=new_filing in email and in_app. Watchlist insider_transaction is also supported; clusters, 13F changes and news
+remain draft-only. See docs/watchlist-transaction-alerts.md. Existing specific-follow
 rules retain their existing supported triggers and channels.
 
 ## Rule API and timing
@@ -13,8 +13,8 @@ without enabling email. Instant publication is a database event, not proof of
 browser receipt or a latency guarantee. Real-time hints remain separately opt-in.
 
 Capability metadata reports watchlist_activation=true,
-watchlist_in_app_supported_triggers=["new_filing"] and
-watchlist_email_supported_triggers=["new_filing"]. The activation flag does not authorize
+watchlist_in_app_supported_triggers=["new_filing","insider_transaction"] and
+watchlist_email_supported_triggers=["new_filing","insider_transaction"]. The activation flag does not authorize
 other channel/trigger pairs. Model, API and database constraints enforce this matrix.
 
 One watchlist rule/trigger counts as one logical quota slot across channels.

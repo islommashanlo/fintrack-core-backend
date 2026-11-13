@@ -2723,7 +2723,7 @@ schemas and notification cursor version 4 are unchanged.
 
 POST /api/v1/alert-rules now accepts scope=watchlist without follow_id. Existing
 follow_id requests default to scope=follow. Both channels and all five existing
-triggers support creating/editing paused watchlist drafts. Watchlist activation is supported for new_filing in email and in_app; other watchlist
+triggers support creating/editing paused watchlist drafts. Watchlist activation supports new_filing and insider_transaction in email and in_app; other watchlist
 channel/trigger pairs return 422 ALERT_CONFIGURATION_REQUIRED and remain blocked
 by model/database constraints. See docs/watchlist-filing-notifications.md.
 
@@ -2736,8 +2736,8 @@ For example:
 Responses include scope. Watchlist drafts have follow_id=null and
 entity={type:"watchlist",key:null}; specific rules preserve their entity and follow
 ID. Metadata adds supported_scopes=[follow,watchlist], watchlist_activation=true,
-watchlist_in_app_supported_triggers=[new_filing] and
-watchlist_email_supported_triggers=[new_filing]. Only those channel/trigger pairs are activatable.
+watchlist_in_app_supported_triggers=[new_filing,insider_transaction] and
+watchlist_email_supported_triggers=[new_filing,insider_transaction]. Only those channel/trigger pairs are activatable.
 
 One owner/scope/trigger counts as one logical watchlist rule, shared across channels,
 irrespective of watchlist size. Specific-follow rules remain separate slots.
@@ -2787,3 +2787,17 @@ Instant jobs enqueue after commit. Capture retries may requeue a committed pendi
 delivery following a queue outage; they never append witnesses. The existing
 send locks/status guards remain authoritative. See
 [the complete behavior](watchlist-filing-notifications.md) for limitations.
+
+### Watchlist insider transaction rules
+
+Watchlist insider_transaction rules now support email and in_app with the existing
+typed transaction conditions, consent/plan timing and shared logical quotas.
+Matching is per reported table/line rather than reporting-owner copy. The first
+eligible owner pointer and membership evidence are retained on retries, even after
+one matching owner is removed.
+
+Pending alerts recheck captured membership epochs and effective Form 4 sources.
+Amendments suppress pending original transaction alerts without deleting history.
+Email and in-app reuse bounded matched_entities evidence and existing transaction
+DTOs; private email line-key columns are not exposed as new reported values.
+See [identity, migration and verification notes](watchlist-transaction-alerts.md).

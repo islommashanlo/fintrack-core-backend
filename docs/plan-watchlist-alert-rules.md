@@ -6,7 +6,8 @@ This design covers the existing five triggers and email/in-app channels. It does
 not add global rules, push delivery, unsupported filing forms or scoring. The
 ownership foundation, reader refactor and paused watchlist draft API are implemented.
 Watchlist new_filing matching is implemented for email and in_app with independent
-destinations and shared logical quotas. Other watchlist triggers remain draft-only.
+destinations and shared logical quotas. Watchlist insider_transaction is also implemented in both channels. Clusters,
+13F changes and news remain draft-only.
 
 Rules now store user_id, inferred from the follow on normal creation. A user FK,
 not-null constraint and composite (follow_id, user_id) FK enforce ownership even
@@ -214,9 +215,17 @@ delivery retries can recover enqueue outages without altering first-capture
 witnesses. Digest claim and send recheck membership; send also rechecks current
 consent, plan, quota, source, revision and batch time zone. Mailers, private history,
 read state, summaries, legacy HTML and cleanup support nullable-follow email rules.
-Other watchlist triggers remain inactive until their own snapshots/matching paths
+Remaining watchlist triggers stay inactive until their own snapshot/matching paths
 are implemented.
 
 Email history retains its established delivery-audit semantics after source or
 membership changes; pending-send validity and in-app visibility are independent.
 No provider receipt or exactly-once delivery guarantee is introduced.
+
+## Watchlist transaction extension
+
+insider_transaction is implemented in both channels, with shared predicate SQL,
+line-level deduplication, eligible-owner evidence and captured membership epochs.
+Email adds sparse private line identity without changing old follow-specific keys.
+See docs/watchlist-transaction-alerts.md for source/amendment behavior, migration
+costs and regression evidence. Clusters are the next unsupported watchlist trigger.

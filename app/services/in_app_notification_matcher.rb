@@ -5,6 +5,7 @@ class InAppNotificationMatcher
     return unless filing&.parse_status == "parsed" && Filing::SEC_INGEST_TYPES.include?(filing.form_type) && filing.filed_at && filing.filed_at <= as_of
 
     WatchlistFilingNotificationMatcher.call(filing, as_of:)
+    WatchlistTransactionMatcher.call(filing, channel: "in_app", as_of:)
     capture(filing:, as_of:, event_type: "new_filing", source_sql: filing_matches(filing))
     transactions = TransactionAlertMatcher.sql(filing, as_of:, channel: "in_app")
     capture(filing:, as_of:, event_type: "insider_transaction", source_sql: transactions) if transactions

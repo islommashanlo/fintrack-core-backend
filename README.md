@@ -256,3 +256,7 @@ missed-hint recovery, the PostgreSQL adapter and activation boundaries.
 Watchlist-wide new-filing rules support email and in-app with captured membership
 checks, shared quotas and private history. Email requires explicit consent; no
 live delivery is activated here. See [the contract](docs/watchlist-filing-notifications.md).
+
+Watchlist insider transaction rules support email and in-app with reported-line
+identity, eligible-owner evidence and amendment-aware membership checks. See
+[the transaction alert contract](docs/watchlist-transaction-alerts.md).

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_13_130000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_13_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -31,6 +31,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_130000) do
     t.bigint "institutional_change_snapshot_id"
     t.bigint "news_item_id"
     t.bigint "news_alert_snapshot_id"
+    t.string "watchlist_security_table"
+    t.integer "watchlist_txn_seq"
+    t.index ["alert_rule_id", "filing_id", "watchlist_security_table", "watchlist_txn_seq"], name: "watchlist_delivery_unique_transaction_line", unique: true, where: "(watchlist_txn_seq IS NOT NULL)"
     t.index ["alert_rule_id", "filing_id"], name: "index_alert_deliveries_on_alert_rule_id_and_filing_id", unique: true, where: "((insider_transaction_id IS NULL) AND (insider_cluster_snapshot_id IS NULL) AND (institutional_change_snapshot_id IS NULL) AND (news_item_id IS NULL))"
     t.index ["alert_rule_id", "insider_cluster_snapshot_id"], name: "index_alert_deliveries_on_rule_and_cluster", unique: true, where: "(insider_cluster_snapshot_id IS NOT NULL)"
     t.index ["alert_rule_id", "insider_transaction_id"], name: "index_alert_deliveries_on_rule_and_transaction", unique: true, where: "(insider_transaction_id IS NOT NULL)"
@@ -47,6 +50,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_130000) do
     t.check_constraint "frequency::text = ANY (ARRAY['instant'::character varying::text, 'daily_digest'::character varying::text])", name: "alert_delivery_frequency"
     t.check_constraint "news_item_id IS NULL AND news_alert_snapshot_id IS NULL AND filing_id IS NOT NULL AND (event_type::text = 'new_filing'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = 'cluster'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NOT NULL AND institutional_change_snapshot_id IS NULL OR event_type::text = '13f_change'::text AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NOT NULL) OR event_type::text = 'news'::text AND filing_id IS NULL AND news_item_id IS NOT NULL AND news_alert_snapshot_id IS NOT NULL AND insider_transaction_id IS NULL AND insider_cluster_snapshot_id IS NULL AND institutional_change_snapshot_id IS NULL", name: "alert_delivery_source"
     t.check_constraint "rule_revision > 0", name: "alert_delivery_revision"
+    t.check_constraint "watchlist_security_table IS NULL AND watchlist_txn_seq IS NULL OR event_type::text = 'insider_transaction'::text AND insider_transaction_id IS NOT NULL AND watchlist_security_table IS NOT NULL AND watchlist_txn_seq IS NOT NULL AND (watchlist_security_table::text = ANY (ARRAY['non_derivative'::character varying, 'derivative'::character varying]::text[])) AND watchlist_txn_seq > 0", name: "watchlist_delivery_transaction_identity"
   end
 
   create_table "alert_digest_batches", force: :cascade do |t|
@@ -117,7 +121,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_130000) do
     t.index ["id", "user_id"], name: "index_alert_rules_on_id_and_owner", unique: true
     t.index ["user_id", "event_type", "channel"], name: "index_watchlist_alert_rules_on_owner_trigger_channel", unique: true, where: "((scope)::text = 'watchlist'::text)"
     t.index ["user_id"], name: "index_alert_rules_on_user_id"
-    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active OR event_type::text = 'new_filing'::text AND (channel::text = ANY (ARRAY['email'::character varying, 'in_app'::character varying]::text[]))", name: "alert_rule_watchlist_supported_activation"
+    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active OR (event_type::text = ANY (ARRAY['new_filing'::character varying, 'insider_transaction'::character varying]::text[])) AND (channel::text = ANY (ARRAY['email'::character varying, 'in_app'::character varying]::text[]))", name: "alert_rule_watchlist_supported_activation"
     t.check_constraint "scope::text = 'follow'::text AND follow_id IS NOT NULL OR scope::text = 'watchlist'::text AND follow_id IS NULL", name: "alert_rule_scope_target"
   end
 
@@ -404,6 +408,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_130000) do
     t.index "lower((insider_name)::text) gin_trgm_ops", name: "search_insider_transactions_insider_name", using: :gin
     t.index ["accession_no", "insider_cik", "security_table", "txn_seq"], name: "index_insider_transactions_on_natural_key", unique: true
     t.index ["filing_id"], name: "index_insider_transactions_on_filing_id"
+    t.index ["id", "filing_id", "security_table", "txn_seq"], name: "index_transactions_on_id_filing_table_seq", unique: true
     t.index ["insider_cik", "transaction_date"], name: "index_insider_transactions_on_insider_cik_and_transaction_date"
     t.index ["issuer_cik", "transaction_date"], name: "index_insider_transactions_on_issuer_cik_and_transaction_date"
     t.index ["transaction_code"], name: "index_insider_transactions_on_transaction_code"
@@ -835,6 +840,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_130000) do
   add_foreign_key "alert_deliveries", "filings"
   add_foreign_key "alert_deliveries", "insider_cluster_snapshots"
   add_foreign_key "alert_deliveries", "insider_transactions"
+  add_foreign_key "alert_deliveries", "insider_transactions", column: ["insider_transaction_id", "filing_id", "watchlist_security_table", "watchlist_txn_seq"], primary_key: ["id", "filing_id", "security_table", "txn_seq"], name: "fk_watchlist_delivery_transaction_line"
   add_foreign_key "alert_deliveries", "institutional_change_snapshots"
   add_foreign_key "alert_deliveries", "news_alert_snapshots"
   add_foreign_key "alert_deliveries", "news_items"

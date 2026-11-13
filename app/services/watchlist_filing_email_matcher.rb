@@ -29,15 +29,7 @@ class WatchlistFilingEmailMatcher
     SQL
     sql = sql.sub("WATCHLIST_CANDIDATES") { WatchlistFilingCandidates.sql(filing:, channel: "email", as_of:) }
     inserted = Api::V1::CursorPage.sql_rows(sql)
-    # Queue outages may leave a committed instant row pending. A capture retry may
-    # requeue that row without changing its original membership evidence.
-    instant_ids = AlertDelivery.joins(:alert_rule).where(filing_id: filing.id, frequency: "instant", status: "pending",
-      alert_rules: { scope: "watchlist", channel: "email", event_type: "new_filing", active: true }).pluck(:id)
-    ActiveRecord.after_all_transactions_commit do
-      instant_ids.each do |id|
-        raise ActiveJob::EnqueueError, "Unable to enqueue watchlist email" unless SendAlertJob.perform_later(id)
-      end
-    end if instant_ids.any?
+    WatchlistEmailEnqueue.call(filing_id: filing.id, event_type: "new_filing")
     inserted
   end
 end

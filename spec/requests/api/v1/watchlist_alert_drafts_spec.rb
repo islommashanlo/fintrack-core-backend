@@ -42,9 +42,9 @@ RSpec.describe "Watchlist alert drafts" do
   end
 
   it "keeps unsupported watchlist trigger activation blocked through create, update, model and direct writes" do
-    expect { create_draft(trigger: "insider_transaction", active: true) }.not_to change(AlertRule, :count)
+    expect { create_draft(trigger: "cluster", active: true) }.not_to change(AlertRule, :count)
     expect(response).to have_http_status(:unprocessable_entity)
-    create_draft(trigger: "insider_transaction")
+    create_draft(trigger: "cluster")
     rule = AlertRule.sole
     patch api_v1_alert_rule_path(rule), params: { active: true }, headers: api_headers, as: :json
     expect(response).to have_http_status(:unprocessable_entity)
