@@ -64,9 +64,11 @@ RSpec.describe "API v1 companies" do
     create(:insider_transaction, filing: issuer_filing(issuer_ticker: "ACME.A"), is_director: true)
 
     get insiders_api_v1_company_path("ACME"), params: { role: "director", limit: 1 }
+    expect_documented_response(path: "/companies/{ticker}/insiders")
     expect(data.pluck("id")).to eq([ second.id ])
     cursor = meta.fetch("next_cursor")
     get insiders_api_v1_company_path("ACME"), params: { role: "director", limit: 1, cursor: }
+    expect_documented_response(path: "/companies/{ticker}/insiders")
     expect(data.pluck("id")).to eq([ first.id ])
     expect(meta).to include("total_count" => 2, "has_more" => false)
   end

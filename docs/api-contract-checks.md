@@ -83,20 +83,35 @@ amendments, no reports, zero holdings and Free/Pro history visibility. Profile
 shared error response definitions. Retry-After and private-error redaction retain
 separate behavioral assertions.
 
+Paginated coverage now also includes `/funds/{cik}/holdings`,
+`/funds/{cik}/changes`, `/insiders/transactions`,
+`/insiders/{cik}/transactions` and `/companies/{ticker}/insiders`. Existing tests
+validate actual bodies across cursor continuations, sort ties, nullable dates and
+values, repeated owners/security keys, amendments, incomplete normalization and
+empty pages. Fund history-gate cases check 402 responses, verified Pro pages and
+cursor invalidation after downgrade. Malformed filters/cursors check 400 schemas;
+unknown scoped resources check 404, and all five lists check 429/503 responses.
+The global transaction list has a successful empty page rather than a missing
+resource response. Counts, ordering, source visibility and history gates remain
+separate behavioral assertions, not conclusions drawn from schema validation.
+
 Existing request specs retain their behavioral, history-gate and account-isolation
 checks. A mutation regression proves that deleting a required comparison rank or
 encoding a decimal as a JSON number fails against the committed schema. This does
 not yet cover every endpoint, error response, header, or possible source-data
-combination. Paginated lists remain outside this increment except comparisons.
+combination. Other paginated endpoints remain outside this coverage.
 
 Supported rules are object/array/string/integer/finite-number/boolean types,
 required properties, explicit additional-property rules, items, allOf, nullable,
 enums, numeric bounds, array/string length bounds, unique array items, patterns,
-and date/date-time/URI formats. Object properties remain open unless the schema
-explicitly closes them.
+and date/date-time/URI formats. The integer `int64` format additionally enforces
+the signed range -2^63 through 2^63 - 1, requires an integer schema type, and
+rejects JSON strings, floats and overflow; large decimal strings remain untouched.
+Object properties remain open unless the schema explicitly closes them.
 Unique items use JSON value equality, including equivalent integer/float numbers
 and objects with differing key order. Null is permitted where nullable is true,
-including nullable enums in this document. Date-time requires a timezone. URI validation is syntactic and never fetches links.
+including nullable enums in this document. Date-time requires a timezone. URI
+validation is syntactic and never fetches links.
 Patterns use Ruby regular expressions; only compatible patterns should be used.
 A decimal-string schema without a pattern checks its JSON type, not decimal syntax.
 
@@ -115,7 +130,7 @@ not a full OpenAPI meta-schema validator: the committed document's declaration
 structure still needs the route/document checks and review. Extend the supported
 subset with focused tests before applying it to additional schema constructs.
 
-Run the schema checker, helper and profile coverage with:
+Run the schema checker, helper, profile and list coverage with:
 
 ```sh
 bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
@@ -125,7 +140,11 @@ bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
   spec/requests/api/v1/funds_spec.rb \
   spec/requests/api/v1/fund_profiles_spec.rb \
   spec/requests/api/v1/insiders_spec.rb \
-  spec/requests/api/v1/profile_errors_spec.rb
+  spec/requests/api/v1/profile_errors_spec.rb \
+  spec/requests/api/v1/fund_portfolios_spec.rb \
+  spec/requests/api/v1/fund_change_portfolios_spec.rb \
+  spec/requests/api/v1/insider_transactions_spec.rb \
+  spec/requests/api/v1/history_limits_spec.rb
 ```
 
 Comparison coverage remains in `fund_comparisons_spec.rb` and

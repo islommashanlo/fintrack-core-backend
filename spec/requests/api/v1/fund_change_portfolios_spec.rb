@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "Fund change portfolio analytics" do
+  include OpenapiResponses
   include InstitutionalReadHelpers
   around { |example| travel_to(Time.utc(2026, 11, 12, 12)) { example.run } }
   let(:fund) { create(:institutional_filer) }
@@ -21,6 +22,7 @@ RSpec.describe "Fund change portfolio analytics" do
 
   def fetch(**parameters)
     get changes_api_v1_fund_path(fund.cik), params: parameters
+    expect_documented_response(path: "/funds/{cik}/changes")
     expect(response).to have_http_status(:ok)
     response.parsed_body
   end
@@ -140,6 +142,7 @@ RSpec.describe "Fund change portfolio analytics" do
     expect(body.dig("meta", "current_portfolio")).to include("complete" => false, "report_count" => 0)
     report(period: Date.new(2024, 12, 31))
     get changes_api_v1_fund_path(fund.cik), params: { period: "2024-12-31" }
+    expect_documented_response(path: "/funds/{cik}/changes")
     expect(response).to have_http_status(:payment_required)
     expect(WebMock).not_to have_requested(:any, /./)
   end

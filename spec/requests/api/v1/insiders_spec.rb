@@ -49,6 +49,7 @@ RSpec.describe "API v1 insider profiles" do
     expect(data.fetch("summaries")).to all(include("purchase_count" => 0, "counts_by_code" => {}))
 
     get transactions_api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}/transactions")
     expect(data).to eq([])
     expect(meta.fetch("total_count")).to eq(0)
     get companies_api_v1_insider_path(cik)
@@ -71,6 +72,7 @@ RSpec.describe "API v1 insider profiles" do
     expect(response).to have_http_status(:ok)
     expect(data.fetch("summaries")).to all(include("counts_by_code" => {}, "issuer_count" => 0))
     get transactions_api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}/transactions")
     expect(data.pluck("id")).to eq([ transaction.id ])
   end
 
@@ -117,6 +119,7 @@ RSpec.describe "API v1 insider profiles" do
       amends_accession_no: original.accession_no), insider_cik: cik)
 
     get transactions_api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}/transactions")
     expect(data.pluck("id")).to eq([ corrected.id ])
     get api_v1_insider_path(cik)
     expect_documented_response(path: "/insiders/{cik}")
@@ -142,13 +145,17 @@ RSpec.describe "API v1 insider profiles" do
     other_cik = "0000000789"
     create(:insider_transaction, filing:, insider_cik: other_cik, is_director: true)
     get transactions_api_v1_insider_path(cik), params: { role: "director", limit: 1 }
+    expect_documented_response(path: "/insiders/{cik}/transactions")
     expect(data.pluck("id")).to eq([ second.id ])
     cursor = meta.fetch("next_cursor")
     get transactions_api_v1_insider_path(cik), params: { role: "director", limit: 1, cursor: }
+    expect_documented_response(path: "/insiders/{cik}/transactions")
     expect(data.pluck("id")).to eq([ first.id ])
     get transactions_api_v1_insider_path(other_cik), params: { role: "director", cursor: }
+    expect_documented_response(path: "/insiders/{cik}/transactions")
     expect(response).to have_http_status(:bad_request)
     get transactions_api_v1_insider_path(cik), params: { insider_cik: other_cik }
+    expect_documented_response(path: "/insiders/{cik}/transactions")
     expect(response).to have_http_status(:bad_request)
   end
 
@@ -225,6 +232,7 @@ RSpec.describe "API v1 insider profiles" do
 
   it "keeps the existing global transactions route distinct from an insider CIK" do
     get api_v1_insider_transactions_path
+    expect_documented_response(path: "/insiders/transactions")
     expect(response).to have_http_status(:ok)
     expect(data).to eq([])
   end

@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API v1 insider transactions" do
+  include OpenapiResponses
   around do |example|
     travel_to(Time.utc(2026, 10, 5, 12, 0)) { example.run }
   end
@@ -24,6 +25,7 @@ RSpec.describe "API v1 insider transactions" do
     award = create(:insider_transaction, filing:, transaction_code: "A", price: nil)
 
     get api_v1_insider_transactions_path
+    expect_documented_response(path: "/insiders/transactions")
 
     expect(response).to have_http_status(:ok)
     expect(rows.map { |row| row.fetch("id") }).to eq([ award.id, sale.id, purchase.id ])
@@ -49,9 +51,11 @@ RSpec.describe "API v1 insider transactions" do
     unknown = create(:insider_transaction, transaction_code: nil)
 
     get api_v1_insider_transactions_path, params: { type: "open_market" }
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to contain_exactly(purchase.id, sale.id)
 
     get api_v1_insider_transactions_path, params: { type: "administrative" }
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to contain_exactly(award.id, unknown.id)
   end
 
@@ -68,6 +72,7 @@ RSpec.describe "API v1 insider transactions" do
       insider_cik: purchase.insider_cik, issuer_cik: purchase.issuer_cik, ticker: "exmp",
       security_table: "non_derivative"
     }
+    expect_documented_response(path: "/insiders/transactions")
 
     expect(rows.pluck("id")).to eq([ purchase.id ])
     expect(meta.fetch("total_count")).to eq(1)
@@ -81,6 +86,7 @@ RSpec.describe "API v1 insider transactions" do
 
     transactions.each do |role, transaction|
       get api_v1_insider_transactions_path, params: { role:, direction: "other" }
+      expect_documented_response(path: "/insiders/transactions")
       expect(rows.pluck("id")).to eq([ transaction.id ])
     end
   end
@@ -94,9 +100,11 @@ RSpec.describe "API v1 insider transactions" do
     create(:insider_transaction, price: nil)
 
     get api_v1_insider_transactions_path, params: { date_from: "2026-09-01", date_to: "2026-09-30", min_value: "100", max_value: "200" }
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to contain_exactly(first.id, last.id)
 
     get api_v1_insider_transactions_path
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.find { |row| row["id"] == suspect.id }).to include("price" => "100000.0", "value" => nil,
                                                                 "price_suspect" => true, "price_suspect_reason" => "implausible")
     expect(suspect.reload.price).to eq(BigDecimal("100000"))
@@ -109,9 +117,11 @@ RSpec.describe "API v1 insider transactions" do
     derivative = create(:insider_transaction, filing:, txn_seq: 1, security_table: "derivative")
 
     get api_v1_insider_transactions_path
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to contain_exactly(first.id, joint.id, derivative.id)
 
     get api_v1_insider_transactions_path, params: { insider_cik: joint.insider_cik }
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to eq([ joint.id ])
     expect(rows.first.fetch("owner_sequence")).to eq(2)
   end
@@ -124,6 +134,7 @@ RSpec.describe "API v1 insider transactions" do
     end
 
     get api_v1_insider_transactions_path
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to eq([ visible.id ])
   end
 
@@ -136,6 +147,7 @@ RSpec.describe "API v1 insider transactions" do
     replacement = create(:insider_transaction, filing: final)
 
     get api_v1_insider_transactions_path
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to eq([ replacement.id ])
     expect(Filing.where(id: [ original.id, first.id, final.id ]).count).to eq(3)
   end
@@ -148,6 +160,7 @@ RSpec.describe "API v1 insider transactions" do
     create(:filing, form_type: "4/A", amends_accession_no: original.accession_no, filed_at: 1.day.from_now)
 
     get api_v1_insider_transactions_path
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to eq([ transaction.id ])
   end
 
@@ -173,6 +186,7 @@ RSpec.describe "API v1 insider transactions" do
       cursor = nil
       loop do
         get api_v1_insider_transactions_path, params: { sort:, limit: 1 }.merge(cursor ? { cursor: } : {})
+        expect_documented_response(path: "/insiders/transactions")
         expect(response).to have_http_status(:ok)
         expect(meta.fetch("total_count")).to eq(5)
         ids.concat(rows.pluck("id"))
@@ -190,10 +204,12 @@ RSpec.describe "API v1 insider transactions" do
     second = create(:insider_transaction, shares: BigDecimal("9223372036854775808000.000002"), price: 1)
 
     get api_v1_insider_transactions_path, params: { sort: "-value", limit: 1 }
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to eq([ second.id ])
     cursor = meta.fetch("next_cursor")
 
     get api_v1_insider_transactions_path, params: { sort: "-value", limit: 1, cursor: }
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to eq([ first.id ])
     expect(rows.first.fetch("value")).to eq("9223372036854775808000.000001")
   end
@@ -204,6 +220,7 @@ RSpec.describe "API v1 insider transactions" do
     newest = create(:insider_transaction)
 
     get api_v1_insider_transactions_path, params: { limit: 1 }
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to eq([ newest.id ])
     cursor = meta.fetch("next_cursor")
     create(:insider_transaction, filing: original)
@@ -213,6 +230,7 @@ RSpec.describe "API v1 insider transactions" do
     create(:insider_transaction, filing: amendment)
 
     get api_v1_insider_transactions_path, params: { limit: 1, cursor: }
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows.pluck("id")).to eq([ oldest.id ])
     expect(meta).to include("total_count" => 2, "has_more" => false, "next_cursor" => nil)
   end
@@ -220,16 +238,19 @@ RSpec.describe "API v1 insider transactions" do
   it "rejects altered, expired and mismatched cursors" do
     create_list(:insider_transaction, 2)
     get api_v1_insider_transactions_path, params: { limit: 1 }
+    expect_documented_response(path: "/insiders/transactions")
     cursor = meta.fetch("next_cursor")
 
     [ { cursor: "#{cursor}x" }, { cursor:, sort: "filed_at" }, { cursor:, role: "director" } ].each do |parameters|
       get api_v1_insider_transactions_path, params: parameters
+      expect_documented_response(path: "/insiders/transactions")
       expect(response).to have_http_status(:bad_request)
       expect(response.parsed_body.dig("error", "message")).to eq("Invalid cursor parameter")
     end
 
     travel 25.hours
     get api_v1_insider_transactions_path, params: { cursor: }
+    expect_documented_response(path: "/insiders/transactions")
     expect(response).to have_http_status(:bad_request)
   end
 
@@ -242,6 +263,7 @@ RSpec.describe "API v1 insider transactions" do
       { unexpected: "anything" }, { role: [ "officer" ] }, { code: { value: "P" } }, { type: "" },
       { cursor: "x" * 8193 } ].each do |parameters|
       get api_v1_insider_transactions_path, params: parameters
+      expect_documented_response(path: "/insiders/transactions")
       expect(response).to have_http_status(:bad_request), parameters.inspect
       expect(response.parsed_body.dig("error", "code")).to eq("INVALID_PARAMETER")
     end
@@ -249,6 +271,7 @@ RSpec.describe "API v1 insider transactions" do
 
   it "returns an empty page with consistent metadata" do
     get api_v1_insider_transactions_path
+    expect_documented_response(path: "/insiders/transactions")
     expect(rows).to eq([])
     expect(meta).to include("total_count" => 0, "has_more" => false, "next_cursor" => nil)
   end
@@ -262,6 +285,7 @@ RSpec.describe "API v1 insider transactions" do
 
     ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
       get api_v1_insider_transactions_path
+      expect_documented_response(path: "/insiders/transactions")
     end
 
     expect(rows.length).to eq(5)

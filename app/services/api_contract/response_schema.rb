@@ -10,7 +10,7 @@ module ApiContract
     ANNOTATIONS = %w[title description example default deprecated readOnly writeOnly].freeze
     RULES = %w[$ref type nullable properties required items additionalProperties allOf enum minimum maximum minItems maxItems uniqueItems minLength maxLength pattern format].freeze
     TYPES = %w[object array string integer number boolean].freeze
-    FORMATS = %w[date date-time uri].freeze
+    FORMATS = %w[date date-time uri int64].freeze
 
     def initialize(document:)
       @document = document
@@ -52,6 +52,9 @@ module ApiContract
       end
       @errors << "#{path}: unsupported type #{schema['type']}" if schema.key?("type") && !TYPES.include?(schema["type"])
       @errors << "#{path}: unsupported format #{schema['format']}" if schema.key?("format") && !FORMATS.include?(schema["format"])
+      if schema["format"] == "int64" && schema["type"] != "integer"
+        @errors << "#{path}: int64 format requires integer type"
+      end
       Regexp.new(schema.fetch("pattern")) if schema.key?("pattern")
       schema.fetch("properties", {}).each { |key, child| inspect_schema(child, "#{path}.#{key}", ancestors) }
       schema.fetch("allOf", []).each_with_index { |child, i| inspect_schema(child, "#{path}.allOf[#{i}]", ancestors) }
@@ -84,7 +87,11 @@ module ApiContract
         bounds(value.length, schema, path, "minLength", "maxLength")
         @errors << "#{path}: does not match pattern" if schema.key?("pattern") && !Regexp.new(schema["pattern"]).match?(value)
         @errors << "#{path}: invalid #{schema['format']}" if schema.key?("format") && !valid_format?(value, schema["format"])
-      when Numeric then bounds(value, schema, path, "minimum", "maximum")
+      when Numeric
+        bounds(value, schema, path, "minimum", "maximum")
+        if schema["format"] == "int64" && !value.between?(-(2**63), 2**63 - 1)
+          @errors << "#{path}: outside int64 range"
+        end
       end
     end
 

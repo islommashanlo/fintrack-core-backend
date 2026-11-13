@@ -38,6 +38,19 @@ RSpec.describe ApiContract::ResponseSchema do
     expect(errors([ { "rank" => 4 }, {}, {} ], **schema)).to include("$: above maxItems 2", "$[0].rank: above maximum 3")
   end
 
+  it "validates signed int64 boundaries without accepting overflow, strings or floats" do
+    [ -(2**63), 0, 2**63 - 1 ].each do |value|
+      expect(errors(value, type: "integer", format: "int64")).to be_empty
+    end
+    [ -(2**63) - 1, 2**63 ].each do |value|
+      expect(errors(value, type: "integer", format: "int64")).to eq([ "$: outside int64 range" ])
+    end
+    [ "1", 1.0 ].each do |value|
+      expect(errors(value, type: "integer", format: "int64")).not_to be_empty
+    end
+    expect(errors([], type: "array", format: "int64").join).to include("int64 format requires integer type")
+  end
+
   it "checks unique items by JSON value, including nested objects and equivalent numbers" do
     expect(errors([ "holdings", "notice" ], type: "array", uniqueItems: true)).to be_empty
     expect(errors([ "holdings", "holdings" ], type: "array", uniqueItems: true)).to eq([ "$: duplicate array items" ])

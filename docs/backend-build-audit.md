@@ -17,7 +17,9 @@ OpenAPI 1.49.0 currently documents 83 operations. The pre-checker baseline passe
 
 Local validation now includes selected response-body schema checks in RSpec,
 covering successful fund comparisons and company/fund/insider profiles plus
-the profiles' documented 400/404/429/503 responses. See `api-contract-checks.md` for
+the profiles' documented 400/404/429/503 responses. Fund holdings/changes and
+global/company/insider transaction lists now also check paginated responses,
+history gates and documented errors; signed int64 IDs are validated explicitly. See `api-contract-checks.md` for
 supported rules and limits. It introduces no runtime API or schema change and no
 external requests. The original route inventory and counts below remain historical.
 
@@ -65,9 +67,10 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Extend selected response-schema conformance checks to paginated holdings, fund
-changes and insider transaction lists, then remaining error cases. Company, fund
-and insider profiles now have success and documented error conformance checks.
+Extend selected response-schema conformance checks to the fund directory, report
+history and company institutional ownership/history routes. Holdings, fund changes,
+insider transaction lists and company/fund/insider profiles now have selected success
+and documented error conformance checks.
 This adds local CI coverage without vendor activation or new dependencies. Keep field semantics,
 source visibility, plan gates and latency tests separate: schema conformance alone
 does not establish any of them. The checker remains deliberately bounded and
@@ -80,7 +83,7 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Extend response-schema checks to paginated holdings, changes and insider transactions | Local request specs; support new schema constructs explicitly and retain behavioral tests. |
+| Next | Extend response-schema checks to fund directory/report history and company institutional ownership/history | Local request specs; support new schema constructs explicitly and retain behavioral tests. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Define reported turnover methodology and remaining fund analytics | Local SQL, coverage semantics and regression fixtures; no vendor activation needed for reported-data calculations. |
 | High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |

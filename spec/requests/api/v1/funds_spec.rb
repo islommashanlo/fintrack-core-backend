@@ -80,6 +80,7 @@ RSpec.describe "API v1 funds" do
     create(:institutional_holding, institutional_report: future)
 
     get holdings_api_v1_fund_path(fund.cik)
+    expect_documented_response(path: "/funds/{cik}/holdings")
 
     expect(data.pluck("id")).to contain_exactly(first.id, second.id, added.id)
     expect(data.find { |row| row["id"] == first.id }).to include(
@@ -96,11 +97,13 @@ RSpec.describe "API v1 funds" do
     create(:institutional_holding, institutional_report: notice)
 
     get holdings_api_v1_fund_path(fund.cik)
+    expect_documented_response(path: "/funds/{cik}/holdings")
     expect(data).to eq([])
 
     orphan = create_13f(fund:, period: Date.new(2025, 12, 31), amendment_type: "NEW HOLDINGS")
     create(:institutional_holding, institutional_report: orphan)
     get holdings_api_v1_fund_path(fund.cik), params: { period: "2025-12-31" }
+    expect_documented_response(path: "/funds/{cik}/holdings")
     expect(data).to eq([])
   end
 
@@ -113,6 +116,7 @@ RSpec.describe "API v1 funds" do
     create(:institutional_holding, institutional_report: current, put_call: "CALL", share_type: "PRN")
 
     get holdings_api_v1_fund_path(fund.cik), params: { period: "2026-03-31", cusip: wanted.cusip, put_call: "CALL", share_type: "PRN" }
+    expect_documented_response(path: "/funds/{cik}/holdings")
     expect(data.pluck("id")).to eq([ wanted.id ])
   end
 
@@ -123,15 +127,18 @@ RSpec.describe "API v1 funds" do
     second = create(:institutional_holding, institutional_report: report, value_usd: nil)
     third = create(:institutional_holding, institutional_report: report, value_usd: 100)
     get holdings_api_v1_fund_path(fund.cik), params: { limit: 1 }
+    expect_documented_response(path: "/funds/{cik}/holdings")
     expect(data.pluck("id")).to eq([ third.id ])
     cursor = meta.fetch("next_cursor")
     replacement = create_13f(fund:, amendment_type: "RESTATEMENT", filed_at: Time.utc(2026, 8, 20))
     create(:institutional_holding, institutional_report: replacement)
 
     get holdings_api_v1_fund_path(fund.cik), params: { limit: 1, cursor: }
+    expect_documented_response(path: "/funds/{cik}/holdings")
     expect(data.pluck("id")).to eq([ second.id ])
     cursor = meta.fetch("next_cursor")
     get holdings_api_v1_fund_path(fund.cik), params: { limit: 1, cursor: }
+    expect_documented_response(path: "/funds/{cik}/holdings")
     expect(data.pluck("id")).to eq([ first.id ])
     expect(meta).to include("total_count" => 3, "has_more" => false)
   end
@@ -157,12 +164,14 @@ RSpec.describe "API v1 funds" do
     report = create_13f(fund:)
     create_list(:institutional_holding, 2, institutional_report: report)
     get holdings_api_v1_fund_path(fund.cik), params: { limit: 1 }
+    expect_documented_response(path: "/funds/{cik}/holdings")
     cursor = meta.fetch("next_cursor")
     get history_api_v1_fund_path(fund.cik), params: { cursor: }
     expect(response).to have_http_status(:bad_request)
     [ { period: "2026-09-29" }, { period: "2026-02-30" }, { cusip: "invalid" }, { put_call: "OTHER" },
       { share_type: "invalid" }, { sort: "price; SELECT 1" }, { limit: "101" }, { period: [] } ].each do |values|
       get holdings_api_v1_fund_path(fund.cik), params: values
+      expect_documented_response(path: "/funds/{cik}/holdings")
       expect(response).to have_http_status(:bad_request), values.inspect
     end
   end
@@ -184,6 +193,7 @@ RSpec.describe "API v1 funds" do
 
     expect do
       get changes_api_v1_fund_path(fund.cik)
+      expect_documented_response(path: "/funds/{cik}/changes")
     end.not_to change(PositionDiff, :count)
 
     expect(data.pluck("change_type")).to contain_exactly("added", "exited", "new", "reduced")
@@ -196,6 +206,7 @@ RSpec.describe "API v1 funds" do
     expect(exited).to include("accession" => current.filing.accession_no, "shares_delta" => "-50.0")
 
     get changes_api_v1_fund_path(fund.cik), params: { change_type: "added", limit: 1 }
+    expect_documented_response(path: "/funds/{cik}/changes")
     expect(data.pluck("cusip")).to eq([ "037833100" ])
     expect(meta.fetch("total_count")).to eq(1)
   end
@@ -207,12 +218,15 @@ RSpec.describe "API v1 funds" do
     create(:institutional_holding, institutional_report: report, cusip: "594918104", value_usd: 100)
 
     get changes_api_v1_fund_path(fund.cik), params: { limit: 1 }
+    expect_documented_response(path: "/funds/{cik}/changes")
     first = data.first.fetch("cusip")
     cursor = meta.fetch("next_cursor")
     get changes_api_v1_fund_path(fund.cik), params: { limit: 1, cursor: }
+    expect_documented_response(path: "/funds/{cik}/changes")
     expect(data.first.fetch("cusip")).not_to eq(first)
     expect(meta).to include("total_count" => 2, "has_more" => false)
     get changes_api_v1_fund_path(fund.cik), params: { change_type: "invalid" }
+    expect_documented_response(path: "/funds/{cik}/changes")
     expect(response).to have_http_status(:bad_request)
   end
 
