@@ -3,7 +3,7 @@
 module Api
   module V1
     class FundsController < BaseController
-      prepend_before_action :private_response!, only: %i[index holdings history position_history changes news]
+      prepend_before_action :private_response!, only: %i[index show holdings history position_history changes news]
 
       def index
         values = read_parameters(allowed: FundDirectoryQuery::PARAMETERS)
@@ -16,13 +16,7 @@ module Api
 
       def show
         read_parameters(allowed: [], path_keys: [ :cik ])
-        fund = find_fund
-        report = InstitutionalReportScope.new(as_of:).visible_reports
-          .where(institutional_filer_id: fund.id).order(period_of_report: :desc)
-          .order(Arel.sql("known_filed_at DESC, known_accession DESC")).preload(:filing).first
-        render json: { data: FundSerializer.render(fund).merge(
-          latest_report: report && InstitutionalReportSerializer.render(report, as_of:)
-        ) }
+        render json: FundProfileQuery.new(fund: find_fund, history: history_window, as_of:).call
       end
 
       def holdings

@@ -215,3 +215,8 @@ use stored report labels and existing coverage reasons. Each source retains its
 reported type; restricted labels cannot be selected through Free type predicates.
 These facts do not classify a manager or fund investment style. See the directory
 contract for supported values and amendment semantics.
+
+Fund profiles now include the same reported-portfolio summary and coverage as the
+directory, with plan-aware no-store metadata. `latest_report` remains raw cover
+evidence and can differ from the effective holdings total; its existing older
+cover visibility is preserved. See the [fund profile contract](docs/api-v1.md#reported-portfolio-on-fund-profiles).

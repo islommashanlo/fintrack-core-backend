@@ -551,7 +551,7 @@ parameters return 400 and invalid CSRF tokens return 403.
 | Route | Behavior |
 | --- | --- |
 | `GET /api/v1/funds` | Stored institutional filers with reported-portfolio coverage, ranges and sorts; `q` matches a literal name substring or exact CIK |
-| `GET /api/v1/funds/:cik` | CIK, name and latest known parsed report with cover metadata and provenance |
+| `GET /api/v1/funds/:cik` | CIK/name, latest raw cover metadata and a plan-aware reported portfolio summary |
 | `GET /api/v1/funds/:cik/holdings` | Effective information-table rows for `period`, defaulting to the latest known report period |
 | `GET /api/v1/funds/:cik/changes` | Position changes from effective holdings for `period` versus the preceding available period |
 | `GET /api/v1/funds/:cik/history` | Parsed report history, including originals, notices and amendments; optional `period` filter |
@@ -680,6 +680,43 @@ These numbers describe reported 13F information-table values, not AUM, current
 market prices, trading flows or investment performance. AUM/type/turnover/sector
 focus filters remain unsupported. No enrichment, provider request, derived write
 or migration is needed. Production directory latency has not been benchmarked.
+
+### Reported portfolio on fund profiles
+
+`GET /api/v1/funds/:cik` adds `data.reported_portfolio` and
+`data.portfolio_unavailable_reason` using the same calculations, report-type labels,
+source evidence and coverage reasons as the directory. Values describe reported
+13F information tables, not AUM. The profile accepts no new query parameters;
+quarter selection and lists remain on the existing holdings/history routes.
+
+`data.latest_report` retains its existing raw-cover representation, selected by
+latest visible period and then acceptance/accession. It is not the effective
+portfolio total: a NEW HOLDINGS cover's total covers that amendment, while the
+derived summary combines the effective base/restatement and later additions.
+Likewise, a later notice within a quarter can be the latest cover while the
+effective holdings summary cites another source. Neither representation is
+renamed or silently substituted for the other.
+
+The new summary follows the directory history policy: Free hides derived fields
+for an older default latest period (`reported_portfolio: null`, reason
+`history_restricted`); verified Pro can read them. **Compatibility:** the existing
+`latest_report` cover record remains visible, including an older latest cover
+and its raw totals. This change does not retroactively paywall that existing
+field or claim that all old cover metadata is hidden. A notice in a newer quarter
+does not cause fallback to an older holdings period. No reports yields null cover
+and portfolio with `no_report`; valid empty reports can establish complete zero.
+
+Profile responses are now no-store because the derived summary is plan-aware.
+`meta` includes `as_of`, `history_quarters`, `earliest_period`,
+`portfolio_history_limited`, `portfolio_period: latest_per_fund`,
+`value_is_aum: false` and the product disclaimer. The cover and portfolio share
+one acceptance-time/ingestion-ID snapshot, including report and holding bounds.
+Later inserts during the read cannot become new cover or holdings evidence.
+These bounds are not a versioned history of in-place metadata changes.
+
+The shared directory SQL is scoped to the requested fund and does not load all
+fund holdings into Ruby. No provider request, enrichment, schema change or derived
+write is needed. Production profile latency has not been benchmarked.
 
 ### Reported portfolio weights and ranks
 

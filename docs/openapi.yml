@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.46.0
+  version: 1.47.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1261,20 +1261,24 @@ paths:
   "/funds/{cik}":
     get:
       operationId: getFund
-      summary: Get fund identity and latest known report
+      summary: Get fund cover metadata and reported portfolio summary
       parameters: []
       responses:
         '200':
-          description: Locally stored filing data.
+          description: Fund identity, preserved latest-cover evidence, plan-aware reported-portfolio
+            fields and history metadata.
           content:
             application/json:
               schema:
                 type: object
                 required:
                 - data
+                - meta
                 properties:
                   data:
                     "$ref": "#/components/schemas/FundProfile"
+                  meta:
+                    "$ref": "#/components/schemas/FundProfileMeta"
         '400':
           "$ref": "#/components/responses/InvalidParameter"
         '404':
@@ -1283,6 +1287,10 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+      description: No-store profile with shared directory portfolio calculations, source
+        evidence and snapshot bounds. Derived portfolio fields follow Free/Pro history
+        limits; the existing latest_report raw cover, including older cover totals,
+        remains compatible. No additional query parameters or provider requests.
     parameters:
     - "$ref": "#/components/parameters/FundCik"
   "/funds/{cik}/holdings":
@@ -4290,6 +4298,40 @@ paths:
     - "$ref": "#/components/parameters/FundCik"
 components:
   schemas:
+    FundProfileMeta:
+      type: object
+      required:
+      - as_of
+      - history_quarters
+      - earliest_period
+      - portfolio_history_limited
+      - portfolio_period
+      - value_is_aum
+      - disclaimer
+      properties:
+        as_of:
+          type: string
+          format: date-time
+        history_quarters:
+          type: integer
+          minimum: 1
+          nullable: true
+        earliest_period:
+          type: string
+          format: date
+          nullable: true
+        portfolio_history_limited:
+          type: boolean
+        portfolio_period:
+          type: string
+          enum:
+          - latest_per_fund
+        value_is_aum:
+          type: boolean
+          enum:
+          - false
+        disclaimer:
+          type: string
     FundDirectorySource:
       allOf:
       - "$ref": "#/components/schemas/FilingProvenance"
@@ -5906,6 +5948,8 @@ components:
       - cik
       - name
       - latest_report
+      - reported_portfolio
+      - portfolio_unavailable_reason
       properties:
         cik:
           "$ref": "#/components/schemas/Cik"
@@ -5980,6 +6024,21 @@ components:
               type: string
               nullable: true
           nullable: true
+        reported_portfolio:
+          "$ref": "#/components/schemas/FundDirectoryPortfolio"
+        portfolio_unavailable_reason:
+          type: string
+          nullable: true
+          enum:
+          -
+          - no_report
+          - history_restricted
+          - no_effective_holdings
+          - incomplete_report_set
+      description: Raw latest_report cover metadata is preserved; the new effective reported_portfolio
+        follows Free/Pro history gates. The latest raw cover can remain visible for an
+        old period while its derived summary is history_restricted. Amendment cover totals
+        are not silently replaced by full effective portfolio totals.
     InstitutionalHolding:
       type: object
       required:
