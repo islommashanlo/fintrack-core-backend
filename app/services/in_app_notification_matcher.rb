@@ -6,6 +6,7 @@ class InAppNotificationMatcher
 
     WatchlistFilingNotificationMatcher.call(filing, as_of:)
     WatchlistTransactionMatcher.call(filing, channel: "in_app", as_of:)
+    watchlist_clusters = WatchlistClusterMatcher.call(filing, channel: "in_app", as_of:)
     capture(filing:, as_of:, event_type: "new_filing", source_sql: filing_matches(filing))
     transactions = TransactionAlertMatcher.sql(filing, as_of:, channel: "in_app")
     capture(filing:, as_of:, event_type: "insider_transaction", source_sql: transactions) if transactions
@@ -13,7 +14,7 @@ class InAppNotificationMatcher
     capture(filing:, as_of:, event_type: "cluster", source_sql: snapshot_matches(clusters, source_key: "insider_cluster_snapshot_id")) if clusters.any?
     changes = InstitutionalAlertMatcher.call(filing, as_of:, channel: "in_app")
     capture(filing:, as_of:, event_type: "13f_change", source_sql: snapshot_matches(changes, source_key: "institutional_change_snapshot_id")) if changes.any?
-    InAppNotificationPublisher.call(filing_id: [ filing.id, *(clusters + changes).map { |row| row.fetch("filing_id") } ].uniq, as_of:)
+    InAppNotificationPublisher.call(filing_id: [ filing.id, *watchlist_clusters, *(clusters + changes).map { |row| row.fetch("filing_id") } ].uniq, as_of:)
   end
 
   def self.news(item, as_of: Time.current)

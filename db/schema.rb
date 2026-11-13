@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_13_140000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_13_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -121,7 +121,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_140000) do
     t.index ["id", "user_id"], name: "index_alert_rules_on_id_and_owner", unique: true
     t.index ["user_id", "event_type", "channel"], name: "index_watchlist_alert_rules_on_owner_trigger_channel", unique: true, where: "((scope)::text = 'watchlist'::text)"
     t.index ["user_id"], name: "index_alert_rules_on_user_id"
-    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active OR (event_type::text = ANY (ARRAY['new_filing'::character varying, 'insider_transaction'::character varying]::text[])) AND (channel::text = ANY (ARRAY['email'::character varying, 'in_app'::character varying]::text[]))", name: "alert_rule_watchlist_supported_activation"
+    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active OR (event_type::text = ANY (ARRAY['new_filing'::character varying, 'insider_transaction'::character varying, 'cluster'::character varying]::text[])) AND (channel::text = ANY (ARRAY['email'::character varying, 'in_app'::character varying]::text[]))", name: "alert_rule_watchlist_supported_activation"
     t.check_constraint "scope::text = 'follow'::text AND follow_id IS NOT NULL OR scope::text = 'watchlist'::text AND follow_id IS NULL", name: "alert_rule_scope_target"
   end
 

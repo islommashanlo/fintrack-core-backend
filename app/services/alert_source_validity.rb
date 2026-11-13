@@ -7,7 +7,7 @@ class AlertSourceValidity
     scope = scope.where(<<~SQL.squish)
       EXISTS (SELECT 1 FROM alert_rules source_rule WHERE source_rule.id = alert_deliveries.alert_rule_id
         AND (source_rule.scope = 'follow' OR (
-          source_rule.scope = 'watchlist' AND alert_deliveries.event_type IN ('new_filing', 'insider_transaction')
+          source_rule.scope = 'watchlist' AND alert_deliveries.event_type IN ('new_filing', 'insider_transaction', 'cluster')
           AND EXISTS (SELECT 1 FROM filings source WHERE source.id = alert_deliveries.filing_id
             AND source.parse_status = 'parsed' AND source.form_type IN (#{types}) AND source.filed_at <= #{now})
           AND EXISTS (SELECT 1 FROM watchlist_filing_memberships witness
@@ -18,12 +18,9 @@ class AlertSourceValidity
     effective = Form4ReadScope.new(as_of:).effective_filings.select(:id)
     scope = scope.where("alert_deliveries.insider_transaction_id IS NULL OR alert_deliveries.filing_id IN (?)", effective)
       .where(<<~SQL.squish)
-        alert_deliveries.insider_cluster_snapshot_id IS NULL OR NOT EXISTS (
-          SELECT 1 FROM insider_cluster_snapshots snapshot
-          CROSS JOIN LATERAL unnest(snapshot.filing_ids) sources(id)
-          WHERE snapshot.id = alert_deliveries.insider_cluster_snapshot_id
-            AND sources.id NOT IN (#{effective.to_sql})
-        )
+        alert_deliveries.insider_cluster_snapshot_id IS NULL OR #{ClusterAlertValidity.sql(
+          snapshot_column: "alert_deliveries.insider_cluster_snapshot_id",
+          filing_column: "alert_deliveries.filing_id", as_of:)}
       SQL
     NewsAlertValidity.apply(InstitutionalAlertValidity.apply(scope, as_of:), as_of:)
   end

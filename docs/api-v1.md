@@ -2736,8 +2736,8 @@ For example:
 Responses include scope. Watchlist drafts have follow_id=null and
 entity={type:"watchlist",key:null}; specific rules preserve their entity and follow
 ID. Metadata adds supported_scopes=[follow,watchlist], watchlist_activation=true,
-watchlist_in_app_supported_triggers=[new_filing,insider_transaction] and
-watchlist_email_supported_triggers=[new_filing,insider_transaction]. Only those channel/trigger pairs are activatable.
+watchlist_in_app_supported_triggers=[new_filing,insider_transaction,cluster] and
+watchlist_email_supported_triggers=[new_filing,insider_transaction,cluster]. Only those channel/trigger pairs are activatable.
 
 One owner/scope/trigger counts as one logical watchlist rule, shared across channels,
 irrespective of watchlist size. Specific-follow rules remain separate slots.
@@ -2759,7 +2759,7 @@ and alert-event cursor versions are unchanged.
 
 The legacy HTML page hides resume controls for unsupported watchlist pairs.
 Email and in-app filing notices capture membership evidence and deduplicate by
-rule/filing/channel; other watchlist triggers remain drafts. No migration replays historical events.
+rule/filing/channel; transaction and cluster support is described below. Watchlist 13f_change and news remain drafts. No migration replays historical events.
 
 ### Watchlist filing notice evidence
 
@@ -2801,3 +2801,20 @@ Amendments suppress pending original transaction alerts without deleting history
 Email and in-app reuse bounded matched_entities evidence and existing transaction
 DTOs; private email line-key columns are not exposed as new reported values.
 See [identity, migration and verification notes](watchlist-transaction-alerts.md).
+
+
+### Watchlist cluster rules
+
+Watchlist cluster rules support email and in_app with the existing direction,
+min_insiders and min_value conditions. Both channels share immutable cluster
+snapshots and capture qualifying issuer/person memberships atomically. The event
+key is rule plus snapshot; retries never append witnesses. Joint reporting owners
+may match without changing the first-listed-insider cluster definition.
+
+Pending delivery/publication rechecks captured membership epochs, rule revision,
+plan/consent timing and every constituent source. Delayed ingestion uses the
+snapshot primary filing for accession, membership evidence, enqueue and instant
+publication. Responses reuse cluster and matched_entities DTOs, bounded at 20
+identities with totals. Email history remains a delivery audit; in-app visibility
+requires valid sources. Watchlist 13f_change and news remain draft-only. See
+[cluster behavior and migration notes](watchlist-cluster-alerts.md).

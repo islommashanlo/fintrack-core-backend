@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe WatchlistFilingEmailMatcher do
   self.use_transactional_tests = false
 
-  %w[new_filing insider_transaction].each do |event_type|
+  %w[new_filing insider_transaction cluster].each do |event_type|
     it "defers #{event_type} jobs to commit and recovers queue outages without rewriting witnesses" do
       user = create(:user, email_address: "email-commit@example.com")
       consent_email(user)
@@ -13,8 +13,18 @@ RSpec.describe WatchlistFilingEmailMatcher do
       rule = user.alert_rules.create!(scope: "watchlist", event_type:, channel: "email", active: true)
       rule.setting.update!(frequency: "instant", enabled_at: 1.day.ago)
       filing = create(:filing, issuer_ticker: "ACME", filed_at: Time.current)
-      transaction_row = create(:insider_transaction, filing:) if event_type == "insider_transaction"
-      capture = -> { event_type == "new_filing" ? described_class.call(filing) : WatchlistTransactionMatcher.call(filing, channel: "email") }
+      transaction_rows = case event_type
+      when "insider_transaction" then [ create(:insider_transaction, filing:) ]
+      when "cluster" then 3.times.map { |i| create(:insider_transaction, filing:, insider_cik: format("%010d", 901 + i)) }
+      else []
+      end
+      capture = lambda do
+        case event_type
+        when "new_filing" then described_class.call(filing)
+        when "insider_transaction" then WatchlistTransactionMatcher.call(filing, channel: "email")
+        when "cluster" then WatchlistClusterMatcher.call(filing, channel: "email")
+        end
+      end
       allow(SendAlertJob).to receive(:perform_later).and_return(true)
       ApplicationRecord.transaction do
         capture.call
@@ -43,7 +53,8 @@ RSpec.describe WatchlistFilingEmailMatcher do
         AccountNotificationCleanup.call(user)
         user.destroy!
       end
-      transaction_row&.destroy!
+      InsiderClusterSnapshot.where(primary_filing_id: filing.id).delete_all if filing
+      transaction_rows&.each(&:destroy!)
       filing&.destroy!
     end
   end

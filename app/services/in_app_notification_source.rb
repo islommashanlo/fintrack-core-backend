@@ -10,7 +10,7 @@ class InAppNotificationSource
         SELECT 1 FROM alert_rules source_rule WHERE source_rule.id = in_app_notifications.alert_rule_id
           AND (source_rule.scope = 'follow' OR (
             source_rule.scope = 'watchlist' AND source_rule.channel = 'in_app'
-            AND in_app_notifications.event_type IN ('new_filing', 'insider_transaction') AND EXISTS (
+            AND in_app_notifications.event_type IN ('new_filing', 'insider_transaction', 'cluster') AND EXISTS (
               SELECT 1 FROM watchlist_filing_memberships witness
               WHERE witness.in_app_notification_id = in_app_notifications.id
                 AND witness.user_id = source_rule.user_id AND witness.alert_rule_id = source_rule.id
@@ -44,25 +44,9 @@ class InAppNotificationSource
             AND source.txn_seq = in_app_notifications.txn_seq
         )
       ) OR (
-        in_app_notifications.event_type = 'cluster' AND EXISTS (
-          SELECT 1 FROM insider_cluster_snapshots snapshot
-          WHERE snapshot.id = in_app_notifications.insider_cluster_snapshot_id
-            AND snapshot.primary_filing_id = in_app_notifications.filing_id
-            AND snapshot.observed_at <= #{now}
-            AND snapshot.filing_ids @> ARRAY[in_app_notifications.filing_id]::bigint[]
-            AND NOT EXISTS (
-              SELECT 1 FROM unnest(snapshot.filing_ids) sources(id)
-              WHERE sources.id NOT IN (#{effective})
-            )
-            AND NOT EXISTS (
-              SELECT 1 FROM unnest(snapshot.transaction_ids) members(id)
-              LEFT JOIN insider_transactions source ON source.id = members.id
-              WHERE source.id IS NULL OR NOT (source.filing_id = ANY(snapshot.filing_ids))
-                OR source.owner_seq <> 1 OR source.security_table <> 'non_derivative'
-                OR source.transaction_code IS DISTINCT FROM snapshot.transaction_code
-                OR source.issuer_cik IS DISTINCT FROM snapshot.issuer_cik
-            )
-        )
+        in_app_notifications.event_type = 'cluster' AND #{ClusterAlertValidity.sql(
+          snapshot_column: "in_app_notifications.insider_cluster_snapshot_id",
+          filing_column: "in_app_notifications.filing_id", as_of:, max_filing_id:)}
       ) OR (
         in_app_notifications.event_type = '13f_change' AND EXISTS (
           SELECT 1 FROM institutional_change_snapshots snapshot

@@ -5,15 +5,17 @@ class ClusterAlertMatcher
     insider_count transaction_count total_value known_value_subtotal transactions_without_usable_price
     transaction_ids insider_ciks filing_ids primary_filing_id insiders].freeze
 
-  def self.call(filing, as_of: Time.current, channel: "email")
+  def self.call(filing, as_of: Time.current, channel: "email", scope: "follow")
     raise ArgumentError, "Unsupported channel" unless AlertRule::CHANNELS.include?(channel)
+    raise ArgumentError, "Unsupported scope" unless AlertRule::SCOPES.include?(scope)
+    return [] unless filing&.parse_status == "parsed"
     return [] unless filing.form_type.in?(Filing::FORM4_TYPES) && filing.filed_at && filing.filed_at <= as_of
-    return [] unless AlertRule.active.where(event_type: "cluster", channel:).exists?
-    new(filing:, as_of:, channel:).call
+    return [] unless AlertRule.active.where(event_type: "cluster", channel:, scope:).exists?
+    new(filing:, as_of:, channel:, scope:).call
   end
 
-  def initialize(filing:, as_of:, channel:)
-    @filing, @as_of, @channel = filing, as_of, channel
+  def initialize(filing:, as_of:, channel:, scope:)
+    @filing, @as_of, @channel, @scope = filing, as_of, channel, scope
     @max_filing = Filing.maximum(:id) || 0
     @max_transaction = InsiderTransaction.maximum(:id) || 0
   end
@@ -40,9 +42,10 @@ class ClusterAlertMatcher
       .where(issuer_cik: InsiderTransaction.where(filing_id: @filing.id).select(:issuer_cik))
       .where("filings.filed_at > ?", from - ActivityMethodology.window_days.days)
     windows = InsiderClusterWindows.sql(source:, from:, to:)
-    ApplicationRecord.sanitize_sql([ <<~SQL, filing_id: @filing.id, filed_at: from, channel: @channel ])
-      WITH windows AS (#{windows})
-      SELECT rules.id, settings.frequency, settings.revision AS rule_revision, windows.*
+    sql = ApplicationRecord.sanitize_sql([ <<~SQL, filing_id: @filing.id, filed_at: from, channel: @channel, scope: @scope, now: @as_of ])
+      WITH windows AS (CLUSTER_WINDOWS)
+      SELECT rules.id, settings.frequency, settings.revision AS rule_revision, rules.user_id, follows.id AS follow_id,
+        follows.followed_at, follows.target_type, follows.target_key, preferences.time_zone, windows.*
       FROM windows INNER JOIN follows ON (
         (follows.target_type = 'Ticker' AND follows.target_key = UPPER(windows.issuer_ticker))
         OR (follows.target_type = 'Insider' AND EXISTS (
@@ -51,10 +54,15 @@ class ClusterAlertMatcher
           WHERE canonical.id = ANY(windows.transaction_ids) AND owners.id <= #{@max_transaction} AND owners.insider_cik = follows.target_key
         ))
       )
-      INNER JOIN alert_rules rules ON rules.follow_id = follows.id
+      INNER JOIN alert_rules rules ON #{ @scope == "watchlist" ? "rules.user_id = follows.user_id" : "rules.follow_id = follows.id" }
       INNER JOIN alert_rule_settings settings ON settings.alert_rule_id = rules.id
-      WHERE rules.active AND rules.event_type = 'cluster' AND rules.channel = :channel
+      LEFT JOIN notification_preferences preferences ON preferences.user_id = rules.user_id
+      WHERE rules.scope = :scope AND rules.active AND rules.event_type = 'cluster' AND rules.channel = :channel
         AND follows.removed_at IS NULL AND settings.archived_at IS NULL
+        AND (:scope <> 'watchlist' OR (
+          (settings.frequency = 'instant' OR preferences.time_zone IS NOT NULL)
+          AND (:channel <> 'email' OR (preferences.email_enabled AND preferences.email_enabled_at <= :now
+            AND preferences.time_zone IS NOT NULL))))
         AND :filed_at >= follows.followed_at AND :filed_at >= settings.enabled_at
         AND windows.filing_ids @> ARRAY[:filing_id]::bigint[]
         AND windows.insider_count >= COALESCE((settings.conditions->>'min_insiders')::integer, #{ActivityMethodology.minimum_insiders})
@@ -62,5 +70,6 @@ class ClusterAlertMatcher
           CASE windows.transaction_code WHEN 'P' THEN 'purchase' ELSE 'sale' END)
         AND (settings.conditions->>'min_value' IS NULL OR windows.total_value >= (settings.conditions->>'min_value')::numeric)
     SQL
+    sql.sub("CLUSTER_WINDOWS") { windows }
   end
 end

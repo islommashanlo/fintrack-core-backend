@@ -6,7 +6,7 @@ This design covers the existing five triggers and email/in-app channels. It does
 not add global rules, push delivery, unsupported filing forms or scoring. The
 ownership foundation, reader refactor and paused watchlist draft API are implemented.
 Watchlist new_filing matching is implemented for email and in_app with independent
-destinations and shared logical quotas. Watchlist insider_transaction is also implemented in both channels. Clusters,
+destinations and shared logical quotas. Watchlist insider_transaction and cluster are also implemented in both channels.
 13F changes and news remain draft-only.
 
 Rules now store user_id, inferred from the follow on normal creation. A user FK,
@@ -228,7 +228,7 @@ insider_transaction is implemented in both channels, with shared predicate SQL,
 line-level deduplication, eligible-owner evidence and captured membership epochs.
 Email adds sparse private line identity without changing old follow-specific keys.
 See docs/watchlist-transaction-alerts.md for source/amendment behavior, migration
-costs and regression evidence. Clusters are the next unsupported watchlist trigger.
+costs and regression evidence. Clusters are now supported; 13F changes are the next unsupported watchlist trigger.
 
 ## Cluster query prerequisite
 
@@ -238,5 +238,17 @@ is preserved as data rather than interpreted again. Five database regressions
 cover collisions with window bind names, quotes and backslashes, and verify
 that unrelated transactions remain excluded. All five fail against the former
 builder. Window definitions, snapshot identities and activation support are
-unchanged. Watchlist cluster capture, membership evidence and delivery remain
-the next increment; cluster rules are still draft-only for watchlist scope.
+unchanged. Watchlist cluster capture, membership evidence and delivery are now implemented
+in the subsequent increment described below.
+
+
+## Watchlist cluster extension
+
+cluster is implemented in both channels through the shared window matcher and
+immutable snapshots. Destination/witness capture is atomic, keyed by rule and
+snapshot, with all matching issuer/person epochs preserved on first capture.
+Both channels use shared constituent-source validity, and delayed windows enqueue
+and publish by their primary filing. No cluster definition, source identity or
+cursor version changes. The activation-constraint migration ran only in the test
+database. See docs/watchlist-cluster-alerts.md for behavior, migration costs and
+verification. Watchlist 13f_change and news remain inactive.

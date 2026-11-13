@@ -13,7 +13,7 @@ module Api
           rule_quota: { used: AlertRuleQuota.count(user), shared_across_channels: true },
           limits: { alert_rules: PlanCatalog.limit_for(user, :alert_rules) },
           supported_scopes: AlertRule::SCOPES, watchlist_activation: true,
-          watchlist_in_app_supported_triggers: %w[new_filing insider_transaction], watchlist_email_supported_triggers: %w[new_filing insider_transaction],
+          watchlist_in_app_supported_triggers: %w[new_filing insider_transaction cluster], watchlist_email_supported_triggers: %w[new_filing insider_transaction cluster],
           supported_triggers: AlertRule::EVENT_TYPES, supported_channels: %w[email in_app], in_app_supported_triggers: AlertRule::IN_APP_EVENT_TYPES,
           transaction_condition_fields: TransactionAlertConditions::ENUMS.keys + %w[codes min_value],
           cluster_condition_fields: ClusterAlertConditions::FIELDS,

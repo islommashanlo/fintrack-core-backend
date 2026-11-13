@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.61.0
+  version: 1.62.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -10014,12 +10014,12 @@ components:
           type: array
           items:
             type: string
-            enum: [new_filing, insider_transaction]
+            enum: [new_filing, insider_transaction, cluster]
         watchlist_email_supported_triggers:
           type: array
           items:
             type: string
-            enum: [new_filing, insider_transaction]
+            enum: [new_filing, insider_transaction, cluster]
         capabilities:
           type: object
           required:
@@ -10187,7 +10187,7 @@ components:
     FilingAlertRuleCreate:
       type: object
       description: Legacy follow_id requests default to follow scope. Watchlist
-        rules require scope=watchlist and no follow_id. Only new_filing and insider_transaction in email or in_app
+        rules require scope=watchlist and no follow_id. Only new_filing, insider_transaction and cluster in email or in_app
         support watchlist activation; other trigger pairs remain draft-only.
         Scope cannot be changed by PATCH.
       oneOf:
