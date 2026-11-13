@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe "Reported portfolio weights in fund comparisons" do
+RSpec.describe "Reported portfolio weights and ranks in fund comparisons" do
   include InstitutionalReadHelpers
   around { |example| travel_to(Time.utc(2026, 11, 12, 12)) { example.run } }
   let(:first) { create(:institutional_filer) }
@@ -38,6 +38,8 @@ RSpec.describe "Reported portfolio weights in fund comparisons" do
     report(second, rows: [ {}, { cusip: "02079K305", value_reported: 100 } ])
     body = compare(scope: "shared", cusip: "037833100")
     entry = weights(body).sole
+    expect(entry).to include("rank" => 2, "prior_rank" => 2)
+    expect(weights(body, cik: second.cik).sole).to include("rank" => 1, "prior_rank" => 1)
     expect(BigDecimal(entry.fetch("weight_percent"))).to eq(40)
     expect(BigDecimal(entry.fetch("prior_weight_percent"))).to eq(25)
     expect(BigDecimal(weights(body, cik: second.cik).sole.fetch("weight_percent"))).to eq(50)
@@ -46,35 +48,48 @@ RSpec.describe "Reported portfolio weights in fund comparisons" do
       "current_portfolio_value_usd" => "500.0", "prior_portfolio_value_usd" => "400.0")
   end
 
+  it "uses competition ties independently per fund and quarter without ranking absent keys" do
+    report(first, rows: [ { value_reported: 200 }, { cusip: "594918104", value_reported: 200 },
+      { cusip: "02079K305", value_reported: 0 } ])
+    report(first, quarter: prior, rows: [ { value_reported: 100 }, { cusip: "594918104", value_reported: 200 } ])
+    report(second, rows: [ { value_reported: 100 }, { cusip: "02079K305", value_reported: 200 } ])
+    body = compare(sort: "cusip")
+    entries = body.dig("data", "positions").index_by { |row| row["cusip"] }
+    expect(weights(body).pluck("rank")).to eq([ 3, 1, 1 ])
+    expect(entries.fetch("037833100").fetch("funds").find { |row| row["cik"] == first.cik }).to include("rank" => 1, "prior_rank" => 2)
+    expect(weights(body, cik: second.cik).pluck("rank")).to eq([ 1, 2, nil ])
+    expect(weights(body, cik: second.cik).pluck("prior_rank")).to all(be_nil)
+  end
+
   it "withholds the incomplete side including normalization errors outside the displayed filter" do
     previous = report(first, quarter: prior)
     report(first, rows: [ {}, { cusip: "594918104", value_usd: nil } ])
     report(second, quarter: prior)
     report(second)
     body = compare(cusip: "037833100")
-    expect(weights(body).sole).to include("weight_percent" => nil, "current_value_complete" => false, "prior_value_complete" => true)
+    expect(weights(body).sole).to include("weight_percent" => nil, "rank" => nil, "prior_rank" => 1, "current_value_complete" => false, "prior_value_complete" => true)
     expect(BigDecimal(weights(body).sole.fetch("prior_weight_percent"))).to eq(100)
     state = body.dig("data", "funds").find { |row| row["cik"] == first.cik }
     expect(state).to include("current_available" => true, "current_value_complete" => false, "current_portfolio_value_usd" => nil)
     previous.update!(suspect: true)
-    expect(weights(compare(cusip: "037833100")).sole.fetch("prior_weight_percent")).to be_nil
+    expect(weights(compare(cusip: "037833100")).sole).to include("prior_weight_percent" => nil, "prior_rank" => nil)
   end
 
   it "checks cover totals, units, row integrity and missing originals with the shared strict policy" do
     source = report(first)
     report(second)
     source.update!(table_entry_total: 2)
-    expect(weights(compare).sole.fetch("weight_percent")).to be_nil
+    expect(weights(compare).sole).to include("weight_percent" => nil, "rank" => nil)
     source.update!(table_entry_total: 1)
     holding = source.institutional_holdings.sole
     holding.update!(value_usd: 1000)
-    expect(weights(compare).sole.fetch("weight_percent")).to be_nil
+    expect(weights(compare).sole).to include("weight_percent" => nil, "rank" => nil)
     holding.update!(value_usd: 100, shares: 0)
-    expect(weights(compare).sole.fetch("weight_percent")).to be_nil
+    expect(weights(compare).sole).to include("weight_percent" => nil, "rank" => nil)
     holding.update!(shares: 10)
     source.update!(amendment_type: "RESTATEMENT", submission_type: "13F-HR/A")
     source.filing.update!(form_type: "13F-HR/A")
-    expect(weights(compare).sole.fetch("weight_percent")).to be_nil
+    expect(weights(compare).sole).to include("weight_percent" => nil, "rank" => nil)
   end
 
   it "resolves restatements and additions while grouping repeated keys and separating options/principal" do
@@ -88,6 +103,8 @@ RSpec.describe "Reported portfolio weights in fund comparisons" do
     expect(state).to include("current_value_complete" => true, "current_portfolio_value_usd" => "250.0")
     entries = weights(body)
     plain = entries.find { |entry| entry["row_count"] == 2 }
+    expect(plain.fetch("rank")).to eq(1)
+    expect(entries.pluck("rank").sort).to eq([ 1, 2, 2 ])
     expect(BigDecimal(plain.fetch("weight_percent"))).to eq(60)
     expect(entries.filter_map { |entry| entry["weight_percent"] }.map { |value| BigDecimal(value) }.sum).to eq(100)
   end
@@ -102,6 +119,9 @@ RSpec.describe "Reported portfolio weights in fund comparisons" do
     expect(weights(body).pluck("weight_percent")).to all(be_nil)
     expect(weights(body, cik: second.cik).pluck("weight_percent")).to all(be_nil)
     exited = body.dig("data", "positions").find { |row| row["cusip"] == "037833100" }.fetch("funds").find { |row| row["cik"] == first.cik }
+    expect(exited).to include("rank" => nil, "prior_rank" => 1)
+    zero = weights(body, cik: second.cik).find { |entry| entry["present"] }
+    expect(zero).to include("rank" => 1, "prior_rank" => nil)
     expect(exited.fetch("weight_percent")).to be_nil
     expect(BigDecimal(exited.fetch("prior_weight_percent"))).to eq(100)
     expect(body.dig("data", "funds").find { |row| row["cik"] == second.cik }.fetch("prior_value_complete")).to be(false)
@@ -114,6 +134,8 @@ RSpec.describe "Reported portfolio weights in fund comparisons" do
     report(first, amendment_type: "RESTATEMENT", filed_at: Time.current, rows: [ { value_reported: 999 } ])
     create(:institutional_holding, institutional_report: source, value_reported: 999)
     continued = compare(sort: "cusip", limit: 1, cursor: first_page.dig("meta", "next_cursor"))
+    expect(weights(first_page).sole.fetch("rank")).to eq(2)
+    expect(weights(continued).sole.fetch("rank")).to eq(1)
     expect(BigDecimal(weights(continued).sole.fetch("weight_percent"))).to eq(75)
     expect(continued.dig("data", "funds").find { |row| row["cik"] == first.cik }.fetch("current_portfolio_value_usd")).to eq("400.0")
     expect(WebMock).not_to have_requested(:any, /./)

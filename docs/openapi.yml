@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.48.0
+  version: 1.49.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -5169,7 +5169,7 @@ components:
       allOf:
       - "$ref": "#/components/schemas/ComparisonProvenance"
       - type: object
-        required: [cik, present, shares, value_usd, prior_shares, prior_value_usd, shares_delta, value_usd_delta, change_type, suspect, prior_suspect, row_count, current_available, prior_available, current_value_complete, prior_value_complete, weight_percent, prior_weight_percent, current_sources, prior_sources]
+        required: [cik, present, shares, value_usd, prior_shares, prior_value_usd, shares_delta, value_usd_delta, change_type, suspect, prior_suspect, row_count, current_available, prior_available, current_value_complete, prior_value_complete, weight_percent, prior_weight_percent, rank, prior_rank, current_sources, prior_sources]
         properties:
           cik:
             "$ref": "#/components/schemas/Cik"
@@ -5214,6 +5214,16 @@ components:
           prior_weight_percent:
             "$ref": "#/components/schemas/NullableDecimal"
             description: Independently computed adjacent-quarter weight using the full prior fund total; same null semantics as weight_percent.
+          rank:
+            type: integer
+            nullable: true
+            minimum: 1
+            description: Descending grouped reported-value competition rank within the full current fund portfolio before filtering or pagination; null for incomplete values or an absent position. Zero values can rank.
+          prior_rank:
+            type: integer
+            nullable: true
+            minimum: 1
+            description: Independent adjacent-quarter competition rank with the same completeness and absence rules as rank.
           current_sources:
             "$ref": "#/components/schemas/ComparisonSources"
           prior_sources:

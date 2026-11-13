@@ -68,8 +68,10 @@ limits and unsupported formats.
 common quarter, with pairwise key overlap, a paginated positions matrix and
 adjacent-quarter change classifications. Current/prior reported-value weights use
 full fund totals before filtering/pagination, with independent strict completeness
-flags; incomplete values remain unknown. Free comparisons enforce two funds and
-four quarters; missing coverage stays unknown. See `docs/api-v1.md` for source and
+flags; incomplete values remain unknown. Current/prior competition ranks also
+use the full fund portfolios, with ties and zero-value positions preserved.
+Free comparisons enforce two funds and four quarters; missing coverage stays
+unknown. See `docs/api-v1.md` for source and
 amendment semantics. No provider calls or schema change are needed.
 
 Fund holdings/changes/report history and company institutional ownership share the

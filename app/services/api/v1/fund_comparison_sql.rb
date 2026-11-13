@@ -65,6 +65,7 @@ module Api
                 'prior_value_usd', prior_value_usd::text, 'shares_delta', shares_delta::text,
                 'value_usd_delta', value_usd_delta::text, 'change_type', change_type,
                 'weight_percent', weight_percent::text, 'prior_weight_percent', prior_weight_percent::text,
+                'rank', position_rank, 'prior_rank', prior_position_rank,
                 'suspect', suspect, 'prior_suspect', prior_suspect, 'row_count', row_count)
                 ORDER BY cik) AS funds,
               jsonb_build_array(cusip, put_call_key, share_type)::text AS event_key,
@@ -108,6 +109,10 @@ module Api
             FROM effective r INNER JOIN institutional_holdings h ON h.institutional_report_id = r.id
             WHERE h.id <= #{@page.bound('holdings')} AND #{VALID_KEY}
             GROUP BY r.institutional_filer_id, r.period_of_report, h.cusip, COALESCE(h.put_call, ''), h.share_type
+          ), ranked_lines AS (
+            SELECT lines.*, RANK() OVER (
+              PARTITION BY institutional_filer_id, period_of_report ORDER BY value_usd DESC NULLS LAST
+            ) AS position_rank FROM lines
           ), invalid AS (
             SELECT r.institutional_filer_id, r.period_of_report, COUNT(*) AS rows
             FROM effective r INNER JOIN institutional_holdings h ON h.institutional_report_id = r.id
@@ -149,6 +154,8 @@ module Api
               k.*, COALESCE(c.issuer_name, p.issuer_name) AS issuer_name,
               CASE WHEN c.cusip IS NOT NULL THEN true WHEN s.current_available THEN false END AS current_present,
               c.shares, c.value_usd, p.shares AS prior_shares, p.value_usd AS prior_value_usd,
+              CASE WHEN s.current_value_complete THEN c.position_rank END AS position_rank,
+              CASE WHEN s.prior_value_complete THEN p.position_rank END AS prior_position_rank,
               CASE WHEN s.current_value_complete AND s.current_portfolio_value_usd > 0 AND c.cusip IS NOT NULL
                 THEN c.value_usd * 100 / s.current_portfolio_value_usd END AS weight_percent,
               CASE WHEN s.prior_value_complete AND s.prior_portfolio_value_usd > 0 AND p.cusip IS NOT NULL
@@ -162,9 +169,9 @@ module Api
                 WHEN d.change_type = 'new' THEN 'new' WHEN d.change_type = 'add' THEN 'added'
                 WHEN d.change_type = 'trim' THEN 'reduced' WHEN d.change_type = 'exit' THEN 'exited' ELSE 'unchanged' END AS change_type
             FROM fund_state s CROSS JOIN keys k
-            LEFT JOIN lines c ON c.institutional_filer_id = s.id AND c.period_of_report = #{quote(@period)}
+            LEFT JOIN ranked_lines c ON c.institutional_filer_id = s.id AND c.period_of_report = #{quote(@period)}
               AND c.cusip = k.cusip AND c.put_call_key = k.put_call_key AND c.share_type = k.share_type
-            LEFT JOIN lines p ON p.institutional_filer_id = s.id AND p.period_of_report = #{quote(@prior)}
+            LEFT JOIN ranked_lines p ON p.institutional_filer_id = s.id AND p.period_of_report = #{quote(@prior)}
               AND p.cusip = k.cusip AND p.put_call_key = k.put_call_key AND p.share_type = k.share_type
             LEFT JOIN changes d ON d.institutional_filer_id = s.id AND d.cusip = k.cusip
               AND COALESCE(d.put_call, '') = k.put_call_key AND d.share_type = k.share_type

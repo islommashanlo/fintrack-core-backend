@@ -160,6 +160,15 @@ Existing availability, overlap and `meta.complete` flags retain their position-k
 coverage meaning and can be true while value completeness is false. Weights share
 the existing source bounds and history gates; no stored reported values change.
 
+Matrix entries also expose nullable integer `rank` and `prior_rank`, ordered by
+grouped normalized reported value descending within each fund and quarter. These
+use competition ties (1, 1, 3), matching the holdings API, and include the full
+portfolio before any scope/security filter or pagination. The two quarters are
+independent: incomplete values suppress every rank on that side only, and absent
+positions have no rank. Valid reported zero values can rank, including a portfolio
+with zero total value whose weights are null. Ranking does not change position
+ordering, overlap calculations, availability, source bounds or history gates.
+
 `shared_by_all` is null if any current portfolio is unavailable. `differing_moves`
 is null unless every selected fund has a known classification for that key; when
 known, it tests whether classifications differ (not whether change magnitudes
