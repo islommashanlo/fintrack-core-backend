@@ -1,0 +1,10 @@
+# Transport is opt-in through IN_APP_REALTIME=on. PostgreSQL uses the existing pg
+# dependency and shares hints across web/worker processes; no new Redis gem.
+development:
+  adapter: postgresql
+  channel_prefix: filingsintel_development
+test:
+  adapter: test
+production:
+  adapter: postgresql
+  channel_prefix: filingsintel_production

@@ -104,3 +104,11 @@ Notification cursor version 4 adds news item/mention ceilings and passes the exi
 The forward-only local migration makes filing_id nullable only for the news shape, adds both news FKs, and introduces the rule/story unique index. It does not alter raw filing/news content or rewrite prior notices. Automatic rollback is intentionally unavailable: news records cannot satisfy the prior filing-only requirement. Any reversal needs a separate data-preserving migration plan. Account deletion removes owned notifications while retaining public source items/snapshots.
 
 Regressions cover typed API rules and plan gating, all canonical follow types, email independence, snapshot sharing, uniqueness/retries, daily timing, source and provider revocation, future/suppressed/pre-activation stories, identity changes and cursor bounds, private/idempotent reads, account deletion and source-shape rejection. Existing email-news and filing-derived notifications remain in the suite. No new scheduler, gem, provider, seed data, real email/push delivery or deployment is activated.
+
+## Real-time inbox refresh hints
+
+An opt-in authenticated Action Cable channel now emits content-free refresh hints
+for committed publication/read-state changes. Transport defaults off; persistent
+REST reads retain source validation and recover missed hints. See
+[the protocol and activation boundary](realtime-inbox.md). No live delivery or
+frontend integration was activated.

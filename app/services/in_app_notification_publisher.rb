@@ -10,7 +10,11 @@ class InAppNotificationPublisher
       scope = scope.where(news_item_id:) if news_item_id
       ids = scope.order(:available_at, :id).limit(BATCH_SIZE)
         .lock("FOR UPDATE OF alert_rules SKIP LOCKED").pluck("in_app_notifications.id")
-      InAppNotification.where(id: ids, published_at: nil).update_all(published_at: as_of, updated_at: as_of)
+      changed = InAppNotification.where(id: ids, published_at: nil)
+      users = changed.joins(alert_rule: :follow).distinct.pluck("follows.user_id") if InAppInboxRealtime.enabled?
+      count = changed.update_all(published_at: as_of, updated_at: as_of)
+      InAppInboxRealtime.after_commit(users) if users.present?
+      count
     end
   end
 end

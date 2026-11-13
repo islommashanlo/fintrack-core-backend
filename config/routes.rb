@@ -7,6 +7,8 @@ require "sidekiq/cron/web"
 Sidekiq::Web.use(Rack::Auth::Basic, "FilingsIntel ops") { |user, password| OpsAuth.valid?(user, password) }
 
 Rails.application.routes.draw do
+  mount ActionCable.server => "/cable"
+
   get "email/unsubscribe/:token" => "api/v1/email_subscriptions#show", as: :email_unsubscribe
   post "email/unsubscribe/:token" => "api/v1/email_subscriptions#destroy"
   namespace :api do

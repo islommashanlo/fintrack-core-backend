@@ -248,3 +248,7 @@ Fund profiles now include the same reported-portfolio summary and coverage as th
 directory, with plan-aware no-store metadata. `latest_report` remains raw cover
 evidence and can differ from the effective holdings total; its existing older
 cover visibility is preserved. See the [fund profile contract](docs/api-v1.md#reported-portfolio-on-fund-profiles).
+
+Authenticated real-time inbox refresh hints are implemented behind the default-off
+IN_APP_REALTIME flag. See [the protocol](docs/realtime-inbox.md) for authentication,
+missed-hint recovery, the PostgreSQL adapter and activation boundaries.

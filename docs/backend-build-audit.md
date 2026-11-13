@@ -31,7 +31,7 @@ adapters and draft calculators do not count as activated product features.
 | Dashboard/activity/scoring | Partial: dashboard summaries, deadlines, watchlist activity and supported-source feed exist. Draft point-in-time assessments live in activity_scoring; config/activity_methodology.yml keeps scoring unavailable. | Scale/liquidity inputs, complete factor coverage, reviewed activation, active levels/reasons, price movers and /activity/unusual remain missing. Unsupported source tokens do not implement 13D/G or 144 events. Never fill missing factors with zero to activate a score. |
 | Accounts/preferences/OAuth | Password sessions/recovery, CSRF/origin controls, private preferences, Google linking and already-linked sign-in exist; Google flags default off. | No automatic Google account creation, authorization-code exchange or redirect receiver. Live provider interoperability is unverified. |
 | Watchlist/search/screener | Typed watchlists, ranked SQL search, whitelist compilation and Pro saved screens exist. Fund filters share coverage/history gates. ScreenerCapabilities exposes fields/operators/enums/sorts/windows and shared precision-safe input constraints. | Sector/AUM/scoring filters remain unsupported. Metadata does not grant access or activate absent data. Address a larger functional gap before adding more screener metadata. |
-| Alerts/inboxes | Five triggers (new_filing, insider_transaction, cluster, 13f_change, news) support separate email/in-app rules, dedupe, revisions, source invalidation, logical quotas, plan timing and read APIs. See docs/in-app-notifications.md. | Rules are follow-scoped; arbitrary global/watchlist-wide rules and unusual/13D-G/144 triggers are absent. In-app publication is persistent and API-readable but has no real-time transport. Delivery within two minutes is unmeasured. |
+| Alerts/inboxes | Five triggers (new_filing, insider_transaction, cluster, 13f_change, news) support separate email/in-app rules, dedupe, revisions, source invalidation, logical quotas, plan timing and read APIs. See docs/in-app-notifications.md. | Rules are follow-scoped; arbitrary global/watchlist-wide rules and unusual/13D-G/144 triggers are absent. In-app publication is persistent and API-readable; authenticated Action Cable refresh hints now exist behind the default-off IN_APP_REALTIME flag (docs/realtime-inbox.md). Browser/cross-process activation remains unverified. Delivery within two minutes is unmeasured. |
 | Web push | Registration, consent and encrypted storage exist. PushChannelEligibility always includes delivery_disabled. | VAPID sender and service-worker integration are missing. Registration is not functioning delivery. |
 | Explain Filing | Cached normalized facts, factual templates, validation and provider-selection/fallback tests exist. | No external model adapter. The interface selects validated fact IDs rather than publishing arbitrary model prose. |
 | News/prices | Immutable headline/link storage, mentions, local feeds/news alerts, OHLCV ingestion, gap planning and company price reads exist. | News::Provider::Disabled and MarketData::Provider::Disabled are defaults. Vendor adapters/rights, authoritative calendars/identity and scheduled refresh/gap-fill orchestration are incomplete. |
@@ -60,35 +60,22 @@ prove all OpenAPI keywords or all responses conform. See docs/api-contract-check
 
 ## Recommended next implementation
 
-Build **authenticated real-time in-app inbox invalidation**, retaining the
-persistent REST inbox as the source of truth. This closes an explicit alert gap
-without requiring new filing formats, market data, external provider accounts
-or real sends.
+Authenticated real-time inbox refresh hints are now implemented using Rails'
+PostgreSQL adapter and the existing pg dependency. Signed sessions, exact origins,
+private stream selection, per-hint/periodic revocation checks and after-commit
+publication/read hints have local regressions. Transport defaults off. See
+docs/realtime-inbox.md for recovery, visibility and deployment limitations.
 
-Action Cable is installed through Rails in Gemfile.lock, but its engine is
-commented out in config/application.rb; there are no cable/channel files.
-Installation is not configuration or activation. A first reviewable increment should:
-
-1. Authenticate using the existing signed session cookie and active Session row;
-   enforce trusted origins and prevent clients from selecting another user's stream.
-2. Publish a small refresh hint only after committed publication/read-state changes.
-   Fetch bodies through existing authenticated, source-validating REST APIs; never
-   broadcast raw filing data, rule secrets or account-wide payloads.
-3. Define session expiry/revocation, reconnect and missed-hint handling. REST
-   inbox/summary reads remain the recovery path; do not promise exactly-once delivery.
-4. Test user isolation, untrusted origins, expired/revoked sessions, rollback,
-   duplicate/missed hints and continued Free digest/Pro instant timing.
-   Separate adapter configuration from live worker/deployment activation.
-
-This is recommended work, not completed transport. Source invalidation and stored
-notification history must remain intact. Publication does not establish recipient
-receipt or latency compliance.
+Next, design watchlist-wide alert rules against the existing follow-scoped matcher,
+logical quota and revision model. Preserve account ownership, source checks, daily
+Free timing, Pro instant timing and deduplication when watchlist membership changes.
+The current transport must not be described as activated browser/push delivery.
 
 ## Follow-on priorities and dependencies
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Authenticated real-time inbox updates | Reuse Rails/Redis and REST visibility; no deployment, worker start or real delivery activation. |
+| Next | Watchlist-wide alert scope | Review schema/matching boundaries and preserve quotas, revisions, source checks and membership semantics. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Dependency/security CI checks | Select tools and confirm new gems before adding them. No scanner/database was fetched in this audit. |
 | High | Score input storage and point-in-time coverage | Reviewed factor applicability and supported scale/liquidity inputs before activation. |

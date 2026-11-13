@@ -2710,3 +2710,11 @@ patterns. Scalar constraints apply independently to every list/range entry.
 nondecreasing bounds for `between` (equal bounds are valid); null operators require
 omitted/null values; page sizes 1–100 (default 50); cursor length at most 8192 bytes.
 Pagination limits describe request size, not plan entitlements or total results.
+
+### Real-time inbox hints
+
+The optional /cable Action Cable endpoint provides authenticated account-scoped
+refresh hints. It defaults off and is documented separately in
+[realtime-inbox.md](realtime-inbox.md); notification bodies and read mutations
+remain on the existing REST APIs. This is not a web-push sender. HTTP response
+schemas and notification cursor version 4 are unchanged.

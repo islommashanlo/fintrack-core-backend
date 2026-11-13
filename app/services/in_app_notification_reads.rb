@@ -4,7 +4,10 @@ class InAppNotificationReads
   def self.mark(user:, id:, as_of: Time.current)
     user.with_lock do
       record = user.in_app_notifications.visible_at(as_of).find(id)
-      record.update!(read_at: as_of) unless record.read_at
+      unless record.read_at
+        record.update!(read_at: as_of)
+        InAppInboxRealtime.after_commit([ user.id ])
+      end
       record
     end
   end
@@ -23,6 +26,7 @@ class InAppNotificationReads
         SELECT (SELECT COUNT(*) FROM updated) AS updated_count,
           (SELECT COALESCE(MAX(id), 0) FROM visible) AS through_id
       SQL
+      InAppInboxRealtime.after_commit([ user.id ]) if row.fetch("updated_count").positive?
       { updated_count: row.fetch("updated_count"), through_id: row.fetch("through_id"), as_of: }
     end
   end
