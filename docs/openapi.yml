@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.51.0
+  version: 1.52.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1167,6 +1167,8 @@ paths:
           - "-portfolio_value_usd"
           - position_count
           - "-position_count"
+          - reported_allocation_turnover_percent
+          - "-reported_allocation_turnover_percent"
           default: name
       - "$ref": "#/components/parameters/TransactionLimit"
       - "$ref": "#/components/parameters/TransactionCursor"
@@ -1197,6 +1199,21 @@ paths:
         schema:
           type: string
           pattern: "^[0-9]{1,12}$"
+      - name: min_reported_allocation_turnover_percent
+        in: query
+        description: Inclusive percentage bound from 0 to 100, up to twelve fractional
+          digits. Requires complete positive-value adjacent-quarter portfolios. Missing
+          values never match zero; includes valuation and reporting-scope effects.
+        schema:
+          type: string
+          pattern: "^[0-9]{1,3}(\\.[0-9]{1,12})?$"
+      - name: max_reported_allocation_turnover_percent
+        in: query
+        description: Inclusive percentage bound from 0 to 100, with the same coverage
+          and precision rules as the minimum. Minimum cannot exceed maximum.
+        schema:
+          type: string
+          pattern: "^[0-9]{1,3}(\\.[0-9]{1,12})?$"
       - name: report_type
         in: query
         description: 'Matches any contributing stored cover label: holdings = 13F HOLDINGS
@@ -1258,6 +1275,10 @@ paths:
         filters use any contributing cover and preserve per-source labels; with no effective
         holdings, the latest visible cover supplies type evidence. Changing type/coverage
         filters invalidates cursor context; existing version-2 contexts remain compatible.
+        Turnover summaries and numeric ranges/sorts share batched SQL with the standalone
+        endpoint, using each selected quarter and its adjacent baseline. Unknown values
+        sort last in both directions. Default restricted turnover has no period or source
+        evidence; no per-fund calculation or provider call occurs.
   "/funds/{cik}":
     get:
       operationId: getFund
@@ -4454,9 +4475,12 @@ components:
         required:
         - reported_portfolio
         - portfolio_unavailable_reason
+        - reported_allocation_turnover
         properties:
           reported_portfolio:
             "$ref": "#/components/schemas/FundDirectoryPortfolio"
+          reported_allocation_turnover:
+            "$ref": "#/components/schemas/FundTurnoverSummary"
           portfolio_unavailable_reason:
             type: string
             nullable: true
@@ -4475,7 +4499,15 @@ components:
         - portfolio_history_limited
         - value_is_aum
         - disclaimer
+        - turnover_baseline_policy
+        - turnover_methodology_version
         properties:
+          turnover_baseline_policy:
+            type: string
+            enum: [adjacent_calendar_quarter]
+          turnover_methodology_version:
+            type: string
+            enum: [reported-allocation-turnover-v1]
           portfolio_period:
             type: string
             description: Selected quarter date, otherwise latest_per_fund.
@@ -4659,11 +4691,12 @@ components:
       - "$ref": "#/components/schemas/ComparisonProvenance"
       - type: object
         required: [period_of_report, prior_period_of_report, status, unavailable_reason, reported_allocation_turnover_percent, methodology_version, baseline_policy, current_complete, prior_complete, current_source_scope, prior_source_scope, current_sources, prior_sources]
-        description: Profile summary of the standalone reported allocation change calculation.
+        description: Profile/directory summary of the standalone reported allocation change calculation.
           Valuation and reporting-scope effects remain included. History-restricted summaries
-          retain only the already-visible current cover period and methodology context;
+          retain methodology context and, on profiles, the already-visible raw cover period;
           percentage, prior period, completeness, source scopes and provenance are null,
-          with empty source arrays. The existing raw latest cover remains compatible.
+          with empty source arrays. Directory restricted summaries also have a null current
+          period. The existing profile raw latest cover remains compatible.
         properties:
           period_of_report:
             type: string

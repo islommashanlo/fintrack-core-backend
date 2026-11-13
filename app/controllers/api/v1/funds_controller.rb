@@ -11,7 +11,8 @@ module Api
         query = FundDirectoryQuery.new(parameters: values, history: history_window, as_of:)
         result = query.call
         sources = FundDirectoryQuery.sources(result.records)
-        render json: { data: result.records.map { |fund| FundDirectorySerializer.render(fund, sources:, as_of: query.page.as_of) }, meta: result.meta }
+        turnover_context = { baseline_policy: result.meta.fetch(:turnover_baseline_policy), methodology_version: result.meta.fetch(:turnover_methodology_version) }
+        render json: { data: result.records.map { |fund| FundDirectorySerializer.render(fund, sources:, as_of: query.page.as_of, turnover_context:) }, meta: result.meta }
       end
 
       def show

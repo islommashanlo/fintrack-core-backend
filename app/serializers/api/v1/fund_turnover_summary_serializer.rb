@@ -15,11 +15,10 @@ module Api
           current_sources: current.fetch("sources"), prior_sources: prior.fetch("sources"))
       end
 
-      def self.history_restricted(period:)
+      def self.history_restricted(period:, context: FundTurnoverSerializer.context)
         FIELDS.index_with { nil }.merge(period_of_report: period, status: "unavailable", unavailable_reason: "history_restricted",
-          methodology_version: ActivityMethodology.definition.fetch("reported_allocation_turnover").fetch("version"),
-          baseline_policy: "adjacent_calendar_quarter", current_complete: nil, prior_complete: nil,
-          current_source_scope: nil, prior_source_scope: nil, current_sources: [], prior_sources: [])
+          current_complete: nil, prior_complete: nil,
+          current_source_scope: nil, prior_source_scope: nil, current_sources: [], prior_sources: []).merge(context)
       end
     end
   end

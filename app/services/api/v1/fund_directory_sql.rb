@@ -3,11 +3,31 @@
 module Api
   module V1
     class FundDirectorySql
-      def initialize(page:, history:, period:, fund_id: nil)
+      def initialize(page:, history:, period:, fund_id: nil, include_turnover: false)
         @page, @history, @period, @fund_id = page, history, period, fund_id
+        @include_turnover = include_turnover
       end
 
       def to_sql
+        return portfolio_sql unless @include_turnover
+
+        targets = if @period
+          "SELECT id AS institutional_filer_id, #{quote(@period)}::date AS period_of_report FROM directory"
+        else
+          "SELECT id AS institutional_filer_id, period_of_report FROM directory WHERE period_of_report IS NOT NULL"
+        end
+        bounds = InstitutionalHoldingsQuery::BOUNDS.keys.index_with { |key| @page.bound(key) }
+        turnover = FundTurnoverSql.new(periods: targets, bounds:, as_of: @page.as_of)
+        <<~SQL
+          WITH directory AS (#{portfolio_sql}), turnover AS (#{turnover.to_sql})
+          SELECT d.*, t.turnover_percent AS reported_allocation_turnover_percent, (TO_JSONB(t) || JSONB_BUILD_OBJECT('turnover_percent', t.turnover_percent::text)) AS turnover_record
+          FROM directory d LEFT JOIN turnover t ON t.institutional_filer_id = d.id
+        SQL
+      end
+
+      private
+
+      def portfolio_sql
         reports = InstitutionalReportScope.new(as_of: @page.as_of, max_report_id: @page.bound("reports"), max_filing_id: @page.bound("filings"))
         visible = reports.visible_reports.where("institutional_reports.institutional_filer_id <= ?", @page.bound("funds"))
         visible = visible.where(period_of_report: @period) if @period
@@ -53,8 +73,6 @@ module Api
           WHERE f.id <= #{@page.bound('funds')} #{@fund_id ? "AND f.id = #{quote(@fund_id)}" : ''}
         SQL
       end
-
-      private
 
       def quote(value) = ApplicationRecord.connection.quote(value)
     end

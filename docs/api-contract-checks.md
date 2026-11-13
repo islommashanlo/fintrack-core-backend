@@ -112,7 +112,9 @@ The reported allocation turnover feature also checks successful and unavailable
 `/funds/{cik}/turnover` bodies against its contract, plus 400/402/404/429/503 cases.
 Fund profile bodies also validate their turnover summary, including history-restricted
 redaction, incomplete inputs, source evidence and shared snapshot bounds.
-Its new methodology section is declared separately from the inactive draft score.
+The fund directory also validates turnover summaries, percentage filters/sorts and
+methodology metadata; existing portfolio fields retain their contract. Its new
+methodology section is declared separately from the inactive draft score.
 No existing response schema was weakened to admit the feature.
 
 Existing request specs retain their behavioral, history-gate and account-isolation
@@ -169,7 +171,8 @@ bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
   spec/requests/api/v1/fund_directory_filters_spec.rb \
   spec/requests/api/v1/company_history_spec.rb \
   spec/requests/api/v1/fund_turnover_spec.rb \
-  spec/requests/api/v1/fund_profile_turnover_spec.rb
+  spec/requests/api/v1/fund_profile_turnover_spec.rb \
+  spec/requests/api/v1/fund_directory_turnover_spec.rb
 ```
 
 Comparison coverage remains in `fund_comparisons_spec.rb` and

@@ -14,8 +14,10 @@ portfolio coverage and source bounds. These local additions do not complete push
 real-time transport, vendor activation or additional filing forms. Reported allocation
 turnover is now exposed independently, with a versioned adjacent-quarter formula,
 strict coverage and source evidence; profiles now expose its compact summary using
-shared bounds and plan-aware redaction. It does not establish transaction-based turnover.
-OpenAPI 1.51.0 now documents 84 operations, including reported allocation turnover.
+shared bounds and plan-aware redaction. The directory now supports reported-allocation
+turnover ranges/sorts with batched SQL and source evidence. This does not establish
+transaction-based turnover.
+OpenAPI 1.52.0 now documents 84 operations, including reported allocation turnover.
 The pre-checker baseline passed
 1,284 examples with 626 Ruby files clean; it does not establish remote CI status.
 
@@ -42,9 +44,9 @@ external requests. The original route inventory and counts below remain historic
 | SEC access, queues and backfill | `sec_client.rb`, `sec_rate_limiter.rb`, queue config; `backfill.rb`, `form13f_backfill.rb` and task specs. Shared five-per-second cap and lane reservations exist. | The newer prompt describes Atom and market-hours-dependent polling; implementation uses EFTS minute polling and daily reconciliation. Do not silently replace it. Historical backfills remain separately authorized operations. |
 | Raw archive | `filing_archive.rb` and write-once archive specs. | Current adapter is local disk. SQL path coverage and bounded read-only file metadata verification now exist (`docs/archive-health.md`); content/checksum verification, production object storage, backup/restore and retention validation remain separate. |
 | Security mapping | `openfigi_enrichment.rb`, mapping ingestion, `Security`, `CusipSecurityMapping`; synthetic/stubbed specs. | Mapping code exists, but enrichment is not being run. Effective-dated ticker/name history and richer issuer metadata are incomplete; latest mappings are not a complete historical security master. |
-| Company, fund, insider APIs | Controllers, read queries, serializers and request specs under `api/v1`. Holdings, changes, comparisons, company history, insider transactions/companies and filing details exist. | Fund directory now supports reported portfolio-value and grouped-position ranges/sorts plus stored report-type/coverage filters with history gates; profiles expose the same derived summary while preserving raw-cover metadata; requested AUM/type/turnover/sector-focus filters remain unsupported. Sector/industry/market-cap coverage and full fund analytics are incomplete. Existing Filer/InstitutionalFiler structures intentionally differ from the prompt's entity names. |
+| Company, fund, insider APIs | Controllers, read queries, serializers and request specs under `api/v1`. Holdings, changes, comparisons, company history, insider transactions/companies and filing details exist. | Fund directory now supports reported portfolio-value and grouped-position ranges/sorts plus stored report-type/coverage filters with history gates; profiles expose the same derived summary while preserving raw-cover metadata; reported allocation-turnover ranges/sorts are now supported; requested AUM/manager-type/sector-focus filters remain unsupported. Sector/industry/market-cap coverage and full fund analytics are incomplete. Existing Filer/InstitutionalFiler structures intentionally differ from the prompt's entity names. |
 | Insider aggregates and clusters | `api/v1/insider_profile.rb` has 30/90/365-day summaries; `insider_cluster_windows.rb`, cluster read/matching specs and methodology define 14-day purchase/sale clusters. | Company profiles now expose 30/90/365-day summaries while retaining the legacy 90-day shape. Cluster output is filing-acceptance-based and first-listed-owner-based; that choice is documented, not proof of full coverage. |
-| Institutional analytics | Effective report SQL, `institutional_position_diff_query.rb`, materializer and comparison/history APIs with source evidence. | Fund holdings and changes now expose full-portfolio reported-value weights, competition ranks and independent integrity coverage for each period; Fund position history now exposes grouped shares, weights/ranks, independent period coverage and source evidence; comparisons also expose full-fund weights/ranks with independent current/prior completeness. Reported allocation turnover now has an adjacent-quarter API and published methodology. Directory turnover filters and richer fund classifications remain incomplete; executed transactions are not inferred. Changes in reported value must not be presented as transaction values or capital flows. |
+| Institutional analytics | Effective report SQL, `institutional_position_diff_query.rb`, materializer and comparison/history APIs with source evidence. | Fund holdings and changes now expose full-portfolio reported-value weights, competition ranks and independent integrity coverage for each period; Fund position history now exposes grouped shares, weights/ranks, independent period coverage and source evidence; comparisons also expose full-fund weights/ranks with independent current/prior completeness. Reported allocation turnover now has an adjacent-quarter API and published methodology. Directory reported-allocation turnover ranges/sorts are implemented with shared batched SQL; richer fund classifications remain incomplete and executed transactions are not inferred. Changes in reported value must not be presented as transaction values or capital flows. |
 | Activity Score and reasons | `activity_scoring/`, calculator/assessment specs and `config/activity_methodology.yml`. Draft diagnostics implement several point-in-time factors. | Score status is unavailable. Scale/liquidity inputs remain missing; draft factor diagnostics are not an active score, level or public reasons feed. No automatic zero filling or activation is justified. |
 | Unusual activity | Dashboard explicitly reports scoring_not_active. Activity accepts score/level filters with availability metadata. | `/activity/unusual` is absent. Empty filtered results are not equivalent to an implemented unusual-activity feed. Activation needs complete inputs, reviewed methodology, coverage and plan gates. |
 | Auth/account/preferences | Password auth/recovery, cookie/CSRF controls, private preferences and generated-key OAuth tests. Google linking and already-linked sign-in have independent default-off flags. | No automatic Google account creation, code exchange or redirect receiver. Frontend/provider interoperability and live configuration remain separate. |
@@ -73,12 +75,12 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Add reported allocation-turnover ranges/sorts to the fund directory with batched
-SQL and the same formula, source bounds, completeness and history policy. The
-standalone endpoint and fund profile summary are implemented; do not compute each
-directory fund separately in Ruby or label the metric as executed transactions.
-Filing/activity response-schema coverage remains useful follow-up validation
-rather than the next missing product feature.
+Add reported allocation turnover as a whitelisted fund screener field, reusing the
+batched calculation and its history/completeness rules. Directory, profile and
+standalone routes now share one SQL builder and common serialization. Keep this
+reported-allocation metric distinct from executed transactions and preserve unknowns
+when applying screener conditions. Filing/activity response-schema coverage remains
+useful follow-up validation rather than the next missing product feature.
 
 Independent in-app alerts, the original recommendation, are implemented for the
 five existing triggers; real-time transport and push remain separate work.
@@ -87,9 +89,9 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Add reported allocation-turnover ranges/sorts to the fund directory | Use batched SQL with the existing formula, completeness/history gates and source bounds; keep valuation effects explicit. |
+| Next | Add reported allocation turnover to the fund screener whitelist | Reuse batched SQL, completeness/history gates and source bounds; keep unknowns and valuation effects explicit. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
-| High | Extend reported allocation turnover to fund directory filters and remaining analytics | The v1 metric is implemented; directory filters need batched SQL and the same coverage/history semantics. No vendor activation is required. |
+| High | Extend fund analytics beyond reported allocation turnover | Standalone, profiles and directory filters/sorts are implemented. Richer manager/sector classifications still need supported data; no such classification is inferred from holdings. |
 | High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |
 | Later | Complete scale/liquidity input storage and queries, then score/unusual activation | Point-in-time market identity and coverage, approved methodology and provider rights/selection; do not activate incomplete scores. |
 | Later | Form 3/5, Schedule 13D/G and Form 144 | Real-file format evidence first; separate ingestion/schema/parser increments. |

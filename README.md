@@ -86,7 +86,9 @@ an explicit unavailable reason when report/value coverage is insufficient and
 retains source evidence and Free/Pro history gates. This includes valuation effects
 and does not measure executed transactions. The versioned formula is published
 through `/methodology`. Fund profiles also include a compact turnover summary with
-the same source bounds, plus explicit history redaction for old Free periods. See
+the same source bounds, plus explicit history redaction for old Free periods. The
+fund directory now supports turnover percentage ranges and sorting using batched
+SQL, with source evidence and unknown values preserved. See
 [the API contract](docs/api-v1.md#reported-allocation-turnover).
 
 Fund holdings/changes/report history and company institutional ownership share the

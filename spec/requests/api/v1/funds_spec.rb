@@ -22,7 +22,8 @@ RSpec.describe "API v1 funds" do
     create(:institutional_filer, name: "Other Fund")
     get api_v1_funds_path, params: { q: "example", limit: 1 }
     expect_documented_response(path: "/funds")
-    expect(data).to eq([ { "cik" => first.cik, "name" => first.name, "reported_portfolio" => nil, "portfolio_unavailable_reason" => "no_report" } ])
+    expect(data.map { |row| row.except("reported_allocation_turnover") }).to eq([ { "cik" => first.cik, "name" => first.name, "reported_portfolio" => nil, "portfolio_unavailable_reason" => "no_report" } ])
+    expect(data.sole.fetch("reported_allocation_turnover")).to include("unavailable_reason" => "no_current_report", "reported_allocation_turnover_percent" => nil)
     cursor = meta.fetch("next_cursor")
     create(:institutional_filer, name: first.name)
 

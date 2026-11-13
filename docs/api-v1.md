@@ -153,7 +153,8 @@ HTTP 402 with feature `history_quarters` and limit 4. The adjacent baseline rema
 calculation context even just outside that window. Verified Pro has full history.
 Invalid inputs return 400, unknown funds 404, shared rate limiting 429 and limiter
 unavailability 503. Reads perform no writes, fetches, job enqueueing or reprocessing.
-The directory's requested turnover filter remains unsupported in this increment.
+The fund directory also exposes this metric with inclusive ranges and sorting,
+as described below.
 Production-scale latency for the new calculation remains unbenchmarked.
 
 ## Fund comparison
@@ -706,7 +707,7 @@ fund profiles and embedded fund identities retain their existing shape.
 | `coverage` | `complete`, `incomplete_report_set`, `no_effective_holdings`, `no_report` or `history_restricted` |
 | `min_portfolio_value_usd`, `max_portfolio_value_usd` | Inclusive normalized reported-value range; nonnegative decimal strings, up to 30 integer and 12 fractional digits |
 | `min_position_count`, `max_position_count` | Inclusive grouped-position range; nonnegative integers up to 12 digits |
-| `sort` | `name` (default), `cik`, `portfolio_value_usd`, `position_count`; prefix `-` for descending |
+| `sort` | `name` (default), `cik`, `portfolio_value_usd`, `position_count`, `reported_allocation_turnover_percent`; prefix `-` for descending |
 | `limit`, `cursor` | Standard signed pagination, default 50, maximum 100 |
 
 Unknown numeric values sort last in either direction; fund ID breaks ties in the
@@ -783,9 +784,57 @@ not removed solely because a portfolio is unavailable; `truncated` is false,
 while history-limited metric fields are identified by their per-row reason.
 Default latest portfolios can use different quarters across funds.
 
+Directory rows now also include `reported_allocation_turnover`, with the same
+summary fields and independent coverage/source evidence as fund profiles. This
+uses the shared `reported-allocation-turnover-v1` formula over each selected
+quarter and its immediately preceding calendar quarter. Missing quarters are
+never bridged. `coverage=complete` still describes the current portfolio only;
+it does not guarantee a complete prior turnover baseline.
+
+New query options:
+
+| Parameter | Meaning |
+| --- | --- |
+| `min_reported_allocation_turnover_percent` | Inclusive lower bound, from 0 to 100 |
+| `max_reported_allocation_turnover_percent` | Inclusive upper bound, from 0 to 100 |
+| `sort=reported_allocation_turnover_percent` | Ascending percentage, unknowns last |
+| `sort=-reported_allocation_turnover_percent` | Descending percentage, unknowns last |
+
+Bounds are plain decimal strings with at most three integer and twelve fractional
+digits; numeric value must be 0–100 and minimum cannot exceed maximum. Scientific
+notation, signs, nonfinite values, arrays and objects are rejected with 400.
+Known unchanged allocations can match zero. Missing, incomplete, empty/zero-value
+or future-period comparisons have null percentages and cannot match numeric ranges.
+All existing name, period, portfolio, report-type and coverage filters combine
+with these bounds using AND. Prior-quarter report labels do not supply a current
+report-type match. Filters never remove holdings from either denominator.
+
+For omitted `period`, each fund uses its latest observed quarter independently.
+An explicit period applies to every comparison; a fund missing that current period
+can retain prior source evidence while its percentage stays unavailable. The
+selected-period history gate still applies. Default old Free summaries are redacted:
+no percentage, period, completeness or source evidence. A Pro request can read older
+comparisons, with the same adjacent-baseline context policy as the standalone route.
+
+`meta` adds `turnover_baseline_policy: adjacent_calendar_quarter` and
+`turnover_methodology_version: reported-allocation-turnover-v1`. Each row retains
+current/prior source scopes and source lists. Sources are preloaded for the returned
+page, not fetched per fund. Old Free identities remain browsable, and matching
+counts are calculated after numeric filters. Cursor account/plan, sort/filter and
+source-ID bounds cover both quarters; later inserted baselines or amendments cannot
+enter continuation pages. Changing turnover filters requires a new cursor. Existing
+version-2 cursors with unchanged context remain compatible.
+
+Standalone, profile and directory turnover now share one SQL builder and common
+serialization. Directory comparisons group all candidate funds in SQL before
+filtering/sorting/pagination; no per-fund query loop is introduced. A regression
+checks constant database round trips as the fund count grows. This does not prove
+production p95 latency; total SQL work still grows with candidate holdings.
+
 These numbers describe reported 13F information-table values, not AUM, current
-market prices, trading flows or investment performance. AUM/type/turnover/sector
-focus filters remain unsupported. No enrichment, provider request, derived write
+market prices, trading flows or investment performance. AUM, manager type and sector
+focus filters remain unsupported. Reported allocation turnover includes valuation
+and reporting-scope effects and does not infer executed transactions. No enrichment, provider request, derived write
 or migration is needed. Production directory latency has not been benchmarked.
 
 ### Reported portfolio on fund profiles
