@@ -75,7 +75,7 @@ class InAppNotificationMatcher
       FROM (#{source_sql}) matched
       INNER JOIN alert_rules rules ON rules.id = matched.id
       INNER JOIN follows ON follows.id = rules.follow_id
-      LEFT JOIN notification_preferences ON notification_preferences.user_id = follows.user_id
+      LEFT JOIN notification_preferences ON notification_preferences.user_id = rules.user_id
       WHERE matched.frequency = 'instant' OR notification_preferences.time_zone IS NOT NULL
       ON CONFLICT (#{key}) WHERE event_type = #{connection.quote(event_type)} DO NOTHING
     SQL

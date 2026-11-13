@@ -4,7 +4,7 @@
 
 This design covers the existing five triggers and email/in-app channels. It does
 not add global rules, push delivery, unsupported filing forms or scoring. The
-current increment implements direct AlertRule ownership only. Watchlist-wide
+ownership foundation and reader refactor are implemented. Watchlist-wide
 creation/matching is proposed below and is not yet exposed as a working feature.
 
 Rules now store user_id, inferred from the follow on normal creation. A user FK,
@@ -13,15 +13,18 @@ for writes bypassing validations. Existing ownership metadata is copied from
 follows in the migration; raw filings, snapshots, delivery/read history, consent,
 rule configuration and activity timestamps are unchanged.
 
-The existing User.alert_rules through-follows association remains for compatibility
-because queries still rely on its implicit follows join. This increment does not
-make follow_id nullable, create fake follows or enable watchlist scope.
+User.alert_rules now uses direct ownership. Rule/event lists and digest planning
+join follows explicitly where entity filters, cursor bounds or pending eligibility
+still need them. Inbox ownership/read state, quota owner correlation, mail
+recipients, publication preferences, realtime audiences and legacy rule controls
+use the persisted rule owner. Cleanup/deletion retains existing account isolation.
+This does not make follow_id nullable, create fake follows or enable watchlist scope.
 
 ## Findings and alternatives
 
-Ownership currently comes from follows in AlertRule, User, rule CRUD, quota SQL,
-all five matchers, pending policies, digest planning, inbox/read queries, mailers,
-serializers, account cleanup and realtime hint routing. Changing only the matcher
+Before the ownership increments, follows supplied ownership in AlertRule, User,
+rule CRUD, quota SQL, all five matchers, pending policies, digest planning,
+inbox/read queries, mailers, serializers, cleanup and realtime hint routing. Changing only the matcher
 would strand rules outside ownership/history queries.
 
 The existing unique key is (follow_id, event_type, channel). The quota counts
@@ -64,9 +67,9 @@ Version rule/event cursors if scope ordering, ownership or membership changes.
 
 ## Ownership and quotas
 
-Switch User.alert_rules to direct ownership only after every reader has explicit
-joins and scope-aware policy. Update cleanup, mailers, jobs and realtime audience
-selection together. Server and database ownership checks must agree.
+The direct ownership reader refactor is complete for current follow-only rules.
+Future scope-aware policies still need membership witnesses before watchlist
+activation. Server and database ownership checks must continue to agree.
 
 Count logical keys (scope, target, trigger), where target is follow_id for follow
 rules and the owner's watchlist for watchlist rules. Channels share a slot; paused
@@ -117,8 +120,8 @@ records in dependency order without deleting public filing/source data.
 
 1. **Done:** direct owner column/association and database integrity; preserve all
    follow-only behavior and API contracts.
-2. Refactor ownership readers and policies to explicit joins, with unchanged
-   responses/quota results. Keep watchlist creation disabled during this step.
+2. **Done:** direct user association and explicit ownership readers/policy joins,
+   with unchanged follow-only responses, quotas, cursor context and source checks.
 3. Add explicit scope, API validation/serialization and logical quota behavior;
    expose watchlist drafts only if activation is rejected until matching exists.
 4. Implement membership evidence and deduplicated matching/publication, one trigger
@@ -161,3 +164,12 @@ Recommendations above are proposed semantics, not activated behavior:
   qualified at match time.
 - Preserve published history after unfollow while source-valid; pending delivery
   rechecks captured membership.
+
+## Ownership reader verification
+
+The reader increment adds regressions for two users watching the same ticker:
+filtered rule pagination, private event lists/counts, read-all isolation, retained
+removed-follow history, shared channel quota slots and account deletion preserving
+the other user's history. Existing digest, delivery, trigger, notification and
+realtime suites remain applicable. No migration or data replay is needed by this
+reader-only increment.

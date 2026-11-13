@@ -7,7 +7,7 @@ module Api
       BOUNDS = { "rules" => AlertRule, "follows" => Follow }.freeze
 
       def self.call(user:, page:, filters:)
-        scope = user.alert_rules.retained.where("alert_rules.id <= ? AND follows.id <= ? AND alert_rules.created_at <= ?",
+        scope = user.alert_rules.joins(:follow).retained.where("alert_rules.id <= ? AND follows.id <= ? AND alert_rules.created_at <= ?",
           page.bound("rules"), page.bound("follows"), page.as_of)
         scope = scope.where(active: filters["active"] == "true") if filters["active"]
         scope = scope.where(event_type: filters["trigger"]) if filters["trigger"]

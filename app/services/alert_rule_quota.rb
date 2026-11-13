@@ -4,9 +4,8 @@ class AlertRuleQuota
   COUNT_FOR_OWNER_SQL = <<~SQL.squish.freeze
     SELECT COUNT(DISTINCT (quota_rules.follow_id, quota_rules.event_type))
     FROM alert_rules quota_rules
-    INNER JOIN follows quota_follows ON quota_follows.id = quota_rules.follow_id
     LEFT JOIN alert_rule_settings quota_settings ON quota_settings.alert_rule_id = quota_rules.id
-    WHERE quota_follows.user_id = follows.user_id AND quota_settings.archived_at IS NULL
+    WHERE quota_rules.user_id = alert_rules.user_id AND quota_settings.archived_at IS NULL
   SQL
 
   def self.count(user)

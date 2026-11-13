@@ -13,7 +13,7 @@ class AlertDeliveryPolicy
     return AlertDelivery.none if frequency == "instant" && !PlanCatalog.limit_for(user, :instant_alerts)
 
     scope = AlertDelivery.joins(alert_rule: [ :setting, :follow ])
-      .where(frequency:, alert_rules: { active: true }, follows: { user_id: user.id, removed_at: nil },
+      .where(frequency:, alert_rules: { active: true, user_id: user.id }, follows: { removed_at: nil },
         alert_rule_settings: { archived_at: nil, frequency: })
       .where("alert_deliveries.created_at >= alert_rule_settings.enabled_at AND alert_deliveries.created_at >= ?", preference.email_enabled_at)
       .where("alert_deliveries.rule_revision = alert_rule_settings.revision")

@@ -6,8 +6,8 @@ class SendAlertJob < ApplicationJob
 
   def perform(delivery_id)
     delivery = AlertDelivery.includes(:filing, :insider_transaction, :insider_cluster_snapshot, :news_alert_snapshot,
-      institutional_change_snapshot: :institutional_filer, alert_rule: { follow: :user }).find(delivery_id)
-    user = delivery.alert_rule.follow.user
+      institutional_change_snapshot: :institutional_filer, alert_rule: [ :follow, :user ]).find(delivery_id)
+    user = delivery.alert_rule.user
     user.with_lock do
       delivery.with_lock do
         return if delivery.status == "sent" || !AlertDeliveryPolicy.eligible?(delivery, user:, frequency: "instant")

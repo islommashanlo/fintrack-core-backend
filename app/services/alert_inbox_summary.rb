@@ -8,9 +8,8 @@ class AlertInboxSummary
         COUNT(*) FILTER (WHERE state.read_at IS NOT NULL) AS read_count
       FROM alert_deliveries d
       INNER JOIN alert_rules r ON r.id = d.alert_rule_id
-      INNER JOIN follows f ON f.id = r.follow_id
       LEFT JOIN alert_event_states state ON state.alert_delivery_id = d.id AND state.user_id = :user
-      WHERE f.user_id = :user AND d.created_at <= :as_of
+      WHERE r.user_id = :user AND d.created_at <= :as_of
     SQL
     counts = ApplicationRecord.connection.select_one(sql).transform_values(&:to_i)
     counts.symbolize_keys.merge(as_of:)

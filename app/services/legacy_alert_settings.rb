@@ -19,9 +19,9 @@ class LegacyAlertSettings
   end
 
   def self.free_instant_rules
-    AlertRule.active.left_outer_joins(:setting).joins(:follow)
+    AlertRule.active.left_outer_joins(:setting)
       .where("alert_rule_settings.id IS NULL OR alert_rule_settings.frequency = 'instant'")
-      .where.not(follows: { user_id: Billing::Entitlements.pro_user_ids })
+      .where.not(user_id: Billing::Entitlements.pro_user_ids)
   end
   private_class_method :free_instant_rules
 end

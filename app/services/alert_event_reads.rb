@@ -19,8 +19,8 @@ class AlertEventReads
         WITH inserted AS (
           INSERT INTO alert_event_states (user_id, alert_delivery_id, read_at, created_at, updated_at)
           SELECT :user, d.id, :now, :now, :now FROM alert_deliveries d
-          INNER JOIN alert_rules r ON r.id = d.alert_rule_id INNER JOIN follows f ON f.id = r.follow_id
-          WHERE f.user_id = :user AND d.id <= :bound AND d.created_at <= :now
+          INNER JOIN alert_rules r ON r.id = d.alert_rule_id
+          WHERE r.user_id = :user AND d.id <= :bound AND d.created_at <= :now
           ON CONFLICT (user_id, alert_delivery_id) DO NOTHING RETURNING 1
         ) SELECT COUNT(*) FROM inserted
       SQL
