@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API v1 insider profiles" do
+  include OpenapiResponses
   let(:cik) { "0000000456" }
   around { |example| travel_to(Time.utc(2026, 11, 10, 12)) { example.run } }
 
@@ -25,6 +26,7 @@ RSpec.describe "API v1 insider profiles" do
            transaction_code: "A", price: nil)
 
     get api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}")
 
     expect(response).to have_http_status(:ok)
     expect(data).to include("cik" => cik, "name" => "Jane Example")
@@ -41,6 +43,7 @@ RSpec.describe "API v1 insider profiles" do
     filing = owner_filing
 
     get api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}")
     expect(data).to include("cik" => cik, "name" => "Jane Example")
     expect(data.dig("latest_filing", "accession")).to eq(filing.accession_no)
     expect(data.fetch("summaries")).to all(include("purchase_count" => 0, "counts_by_code" => {}))
@@ -56,6 +59,7 @@ RSpec.describe "API v1 insider profiles" do
   it "returns null rather than inventing a name when only an owner CIK is stored" do
     owner_filing
     get api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}")
     expect(data).to include("cik" => cik, "name" => nil)
   end
 
@@ -63,6 +67,7 @@ RSpec.describe "API v1 insider profiles" do
     filing = owner_filing
     transaction = create(:insider_transaction, filing:, insider_cik: cik, security_table: "derivative", transaction_code: "M")
     get api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}")
     expect(response).to have_http_status(:ok)
     expect(data.fetch("summaries")).to all(include("counts_by_code" => {}, "issuer_count" => 0))
     get transactions_api_v1_insider_path(cik)
@@ -81,6 +86,7 @@ RSpec.describe "API v1 insider profiles" do
     create(:insider_transaction, filing: recent, insider_cik: cik, transaction_code: nil, price: nil)
 
     get api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}")
     summaries = data.fetch("summaries")
     expect(summaries[0]).to include("purchase_count" => 1, "sale_count" => 1, "purchase_value" => "200.0",
       "sale_value" => "50.0", "net_open_market_value" => "150.0", "counts_by_code" => { "P" => 1, "S" => 1, "G" => 1, "unknown" => 1 })
@@ -94,6 +100,7 @@ RSpec.describe "API v1 insider profiles" do
     create(:insider_transaction, filing:, insider_cik: cik, transaction_code: "S", price: nil)
     create(:insider_transaction, filing:, insider_cik: cik, shares: 10, price: 20)
     get api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}")
     expect(data.fetch("summaries")).to all(include("purchase_count" => 2, "sale_count" => 1,
       "purchase_value" => "200.0", "transactions_without_usable_price" => 2, "net_open_market_value" => nil))
     expect(suspect.reload.price).to eq(100_000.to_d)
@@ -112,6 +119,7 @@ RSpec.describe "API v1 insider profiles" do
     get transactions_api_v1_insider_path(cik)
     expect(data.pluck("id")).to eq([ corrected.id ])
     get api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}")
     expect(data.fetch("summaries")).to all(include("purchase_count" => 1, "purchase_value" => "200.0"))
   end
 
@@ -122,6 +130,7 @@ RSpec.describe "API v1 insider profiles" do
     end
     create(:filer, cik:, name: "Jane Example")
     get api_v1_insider_path(cik)
+    expect_documented_response(path: "/insiders/{cik}")
     expect(response).to have_http_status(:not_found)
   end
 
@@ -204,8 +213,10 @@ RSpec.describe "API v1 insider profiles" do
     get companies_api_v1_insider_path("0000000789"), params: { cursor: }
     expect(response).to have_http_status(:bad_request)
     get api_v1_insider_path("456")
+    expect_documented_response(path: "/insiders/{cik}")
     expect(response).to have_http_status(:bad_request)
     get api_v1_insider_path("0000000001")
+    expect_documented_response(path: "/insiders/{cik}")
     expect(response).to have_http_status(:not_found)
     travel 25.hours
     get companies_api_v1_insider_path(cik), params: { cursor: }

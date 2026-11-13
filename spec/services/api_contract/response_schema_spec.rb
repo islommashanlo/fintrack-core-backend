@@ -38,6 +38,15 @@ RSpec.describe ApiContract::ResponseSchema do
     expect(errors([ { "rank" => 4 }, {}, {} ], **schema)).to include("$: above maxItems 2", "$[0].rank: above maximum 3")
   end
 
+  it "checks unique items by JSON value, including nested objects and equivalent numbers" do
+    expect(errors([ "holdings", "notice" ], type: "array", uniqueItems: true)).to be_empty
+    expect(errors([ "holdings", "holdings" ], type: "array", uniqueItems: true)).to eq([ "$: duplicate array items" ])
+    expect(errors([ { "a" => [ 1 ], "b" => false }, { "b" => false, "a" => [ 1.0 ] } ],
+      type: "array", uniqueItems: true)).to eq([ "$: duplicate array items" ])
+    expect(errors([ 1, 1.0 ], type: "array", uniqueItems: true)).not_to be_empty
+    expect(errors([ 1, 1 ], type: "array", uniqueItems: false)).to be_empty
+  end
+
   it "resolves shared schemas and checks every allOf branch" do
     document["components"]["schemas"]["Identity"] = { "type" => "object", "required" => [ "cik" ],
       "properties" => { "cik" => { "type" => "string", "pattern" => "^[0-9]{10}$" } } }

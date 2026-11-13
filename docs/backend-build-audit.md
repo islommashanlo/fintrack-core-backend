@@ -15,8 +15,9 @@ real-time transport, vendor activation, turnover or additional filing forms.
 OpenAPI 1.49.0 currently documents 83 operations. The pre-checker baseline passed
 1,284 examples with 626 Ruby files clean; it does not establish remote CI status.
 
-The next local validation increment adds selected response-body schema checks to
-RSpec, starting with successful fund comparisons. See `api-contract-checks.md` for
+Local validation now includes selected response-body schema checks in RSpec,
+covering successful fund comparisons and company/fund/insider profiles plus
+the profiles' documented 400/404/429/503 responses. See `api-contract-checks.md` for
 supported rules and limits. It introduces no runtime API or schema change and no
 external requests. The original route inventory and counts below remain historical.
 
@@ -64,12 +65,13 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Extend selected response-schema conformance checks to company, fund and insider
-profile responses, then their paginated lists and error cases. This adds local CI
-coverage without vendor activation or new dependencies. Keep field semantics,
+Extend selected response-schema conformance checks to paginated holdings, fund
+changes and insider transaction lists, then remaining error cases. Company, fund
+and insider profiles now have success and documented error conformance checks.
+This adds local CI coverage without vendor activation or new dependencies. Keep field semantics,
 source visibility, plan gates and latency tests separate: schema conformance alone
-does not establish any of them. The initial comparison coverage is deliberately
-bounded and fails explicitly on unsupported schema rules.
+does not establish any of them. The checker remains deliberately bounded and
+fails explicitly on unsupported schema rules.
 
 Independent in-app alerts, the original recommendation, are implemented for the
 five existing triggers; real-time transport and push remain separate work.
@@ -78,10 +80,10 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Extend response-schema checks beyond successful comparisons | Local request specs; support new schema constructs explicitly and retain behavioral tests. |
+| Next | Extend response-schema checks to paginated holdings, changes and insider transactions | Local request specs; support new schema constructs explicitly and retain behavioral tests. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Define reported turnover methodology and remaining fund analytics | Local SQL, coverage semantics and regression fixtures; no vendor activation needed for reported-data calculations. |
-| High | Add CI security/dependency checks and broaden response-schema validation | Initial comparison conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |
+| High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |
 | Later | Complete scale/liquidity input storage and queries, then score/unusual activation | Point-in-time market identity and coverage, approved methodology and provider rights/selection; do not activate incomplete scores. |
 | Later | Form 3/5, Schedule 13D/G and Form 144 | Real-file format evidence first; separate ingestion/schema/parser increments. |
 | Separate activation track | Real news/price/LLM/push providers, Google/Stripe configuration, archive adapter, monitoring and load testing | Keep external requests, licensing, deployment and real delivery separately authorized. |

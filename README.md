@@ -30,9 +30,10 @@ Validate the committed API contract locally with `bundle exec rake api:validate_
 (or `make rails T="api:validate_contract"`). CI runs this alongside lint and the
 language policy. It checks documented routes, references, operation IDs and path
 parameters without provider requests. See [API contract checks](docs/api-contract-checks.md)
-for scope and diagnostics. Separate comparison request specs now check actual JSON
-response bodies against the documented schema, including required fields and types.
-This initial conformance coverage does not extend to every API response.
+for scope and diagnostics. Separate comparison and company/fund/insider profile
+request specs check actual JSON response bodies against the documented schema,
+including required fields, types and profile error responses. This conformance
+coverage does not yet extend to every API response.
 
 Put your contact address in `.env` as `SEC_USER_AGENT_EMAIL`; the SEC requires one on every
 request. The EDGAR poller only runs when `EDGAR_POLLING=on`.

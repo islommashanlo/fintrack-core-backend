@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API v1 companies" do
+  include OpenapiResponses
   include InstitutionalReadHelpers
 
   around { |example| travel_to(Time.utc(2026, 11, 10, 12)) { example.run } }
@@ -25,14 +26,17 @@ RSpec.describe "API v1 companies" do
     issuer_filing(issuer_ticker: "ACME.A", issuer_name: "Different Share Class", filed_at: 1.day.ago)
 
     get api_v1_company_path("acme")
+    expect_documented_response(path: "/companies/{ticker}")
 
     expect(data).to include("ticker" => "ACME", "name" => "Example Company", "cik" => filing.issuer_cik)
     expect(data.fetch("latest_filing")).to include("accession" => filing.accession_no,
                                                   "sec_url" => filing.sec_url, "data_age_days" => 40)
     expect(data.fetch("insider_summary")).to include("purchase_count" => 0, "sale_count" => 0, "insider_count" => 0)
     get api_v1_company_path("ACME.A")
+    expect_documented_response(path: "/companies/{ticker}")
     expect(data).to include("ticker" => "ACME.A", "name" => "Different Share Class")
     get api_v1_company_path("ACM")
+    expect_documented_response(path: "/companies/{ticker}")
     expect(response).to have_http_status(:not_found)
   end
 
@@ -47,6 +51,7 @@ RSpec.describe "API v1 companies" do
     create(:insider_transaction, filing: issuer_filing(filed_at: 1.day.from_now))
 
     get api_v1_company_path("ACME")
+    expect_documented_response(path: "/companies/{ticker}")
     expect(data.fetch("insider_summary")).to include("window_days" => 90, "purchase_count" => 2,
       "sale_count" => 1, "insider_count" => 1, "purchase_value" => "200.0", "sale_value" => "50.0")
   end
@@ -88,6 +93,7 @@ RSpec.describe "API v1 companies" do
     map_security(cusip: "037833100", ticker: "ACME")
 
     get api_v1_company_path("ACME")
+    expect_documented_response(path: "/companies/{ticker}")
     expect(data).to include("ticker" => "ACME", "name" => "Example Company", "cik" => nil, "latest_filing" => nil)
     expect(data.fetch("insider_summary")).to include("purchase_count" => 0, "sale_count" => 0)
   end
@@ -147,6 +153,7 @@ RSpec.describe "API v1 companies" do
 
   it "returns JSON errors for unknown companies and invalid parameters" do
     get api_v1_company_path("UNKNOWN")
+    expect_documented_response(path: "/companies/{ticker}")
     expect(response).to have_http_status(:not_found)
     issuer_filing
     get filings_api_v1_company_path("ACME"), params: { form_type: "13F-HR" }
@@ -154,6 +161,7 @@ RSpec.describe "API v1 companies" do
     get institutional_api_v1_company_path("ACME"), params: { period: "2026-09-29" }
     expect(response).to have_http_status(:bad_request)
     get api_v1_company_path("ACME"), params: { q: "ignored" }
+    expect_documented_response(path: "/companies/{ticker}")
     expect(response).to have_http_status(:bad_request)
   end
 end

@@ -8,7 +8,7 @@ module ApiContract
   # An explicit OpenAPI subset for local response tests; never fetches references.
   class ResponseSchema
     ANNOTATIONS = %w[title description example default deprecated readOnly writeOnly].freeze
-    RULES = %w[$ref type nullable properties required items additionalProperties allOf enum minimum maximum minItems maxItems minLength maxLength pattern format].freeze
+    RULES = %w[$ref type nullable properties required items additionalProperties allOf enum minimum maximum minItems maxItems uniqueItems minLength maxLength pattern format].freeze
     TYPES = %w[object array string integer number boolean].freeze
     FORMATS = %w[date date-time uri].freeze
 
@@ -76,6 +76,9 @@ module ApiContract
       when Hash then validate_object(value, schema, path)
       when Array
         bounds(value.length, schema, path, "minItems", "maxItems")
+        if schema["uniqueItems"] == true && value.combination(2).any? { |left, right| left == right }
+          @errors << "#{path}: duplicate array items"
+        end
         value.each_with_index { |item, i| validate(item, schema["items"], "#{path}[#{i}]") } if schema.key?("items")
       when String
         bounds(value.length, schema, path, "minLength", "maxLength")

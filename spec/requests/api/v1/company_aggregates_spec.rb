@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "Company insider aggregate windows" do
+  include OpenapiResponses
   include InstitutionalReadHelpers
   around { |example| travel_to(Time.utc(2026, 11, 12, 12)) { example.run } }
 
@@ -13,6 +14,7 @@ RSpec.describe "Company insider aggregate windows" do
 
   def company
     get api_v1_company_path("ACME")
+    expect_documented_response(path: "/companies/{ticker}")
     expect(response).to have_http_status(:ok)
     response.parsed_body.fetch("data")
   end

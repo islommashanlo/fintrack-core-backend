@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "Reported portfolio summaries on fund profiles" do
+  include OpenapiResponses
   include InstitutionalReadHelpers
   include ApiAccounts
   around { |example| travel_to(Time.utc(2026, 11, 12, 12)) { example.run } }
@@ -20,6 +21,7 @@ RSpec.describe "Reported portfolio summaries on fund profiles" do
 
   def profile
     get api_v1_fund_path(fund.cik)
+    expect_documented_response(path: "/funds/{cik}")
     expect(response).to have_http_status(:ok)
     expect(response.headers["Cache-Control"]).to eq("no-store")
     response.parsed_body
@@ -124,8 +126,10 @@ RSpec.describe "Reported portfolio summaries on fund profiles" do
     expect(body.fetch("data")).to include("cik" => fund.cik, "reported_portfolio" => nil, "latest_report" => nil,
       "portfolio_unavailable_reason" => "no_report")
     get api_v1_fund_path(fund.cik), params: { period: "2026-06-30" }
+    expect_documented_response(path: "/funds/{cik}")
     expect(response).to have_http_status(:bad_request)
     get api_v1_fund_path("0000000001")
+    expect_documented_response(path: "/funds/{cik}")
     expect(response).to have_http_status(:not_found)
     expect(WebMock).not_to have_requested(:any, /./)
   end

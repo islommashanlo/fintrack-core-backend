@@ -72,25 +72,41 @@ type, and validates `response.parsed_body`. It runs within ordinary RSpec/CI;
 `api:validate_contract` remains the route/document check and does not send requests.
 There is no runtime response middleware or production behavior change.
 
-Initial coverage is successful `/funds/compare` responses in the comparison and
+Coverage includes successful `/funds/compare` responses in the comparison and
 weights/ranks request specs: populated, incomplete, absent/empty portfolios,
-amendments, independent prior coverage, filters, and cursor continuations. Existing
-request specs retain their behavioral, history-gate and account-isolation checks.
-A mutation regression proves that deleting a required rank or encoding a decimal
-as a JSON number fails against the committed schema. This does not yet cover every
-endpoint, error response, header, or possible source-data combination.
+amendments, independent prior coverage, filters, and cursor continuations. Company,
+fund and insider profile request specs also validate their successful bodies:
+company 30/90/365-day summaries and mapping-only identities; insider co-owners,
+derivative-only identities, missing names and incomplete values; fund notices,
+amendments, no reports, zero holdings and Free/Pro history visibility. Profile
+400/404 cases and all three profiles' 429/503 limiter failures use the documented
+shared error response definitions. Retry-After and private-error redaction retain
+separate behavioral assertions.
+
+Existing request specs retain their behavioral, history-gate and account-isolation
+checks. A mutation regression proves that deleting a required comparison rank or
+encoding a decimal as a JSON number fails against the committed schema. This does
+not yet cover every endpoint, error response, header, or possible source-data
+combination. Paginated lists remain outside this increment except comparisons.
 
 Supported rules are object/array/string/integer/finite-number/boolean types,
 required properties, explicit additional-property rules, items, allOf, nullable,
-enums, numeric bounds, array/string length bounds, patterns, and date/date-time/URI
-formats. Object properties remain open unless the schema explicitly closes them.
-Null is permitted where nullable is true, including nullable enums in this document.
-Date-time requires a timezone. URI validation is syntactic and never fetches links.
+enums, numeric bounds, array/string length bounds, unique array items, patterns,
+and date/date-time/URI formats. Object properties remain open unless the schema
+explicitly closes them.
+Unique items use JSON value equality, including equivalent integer/float numbers
+and objects with differing key order. Null is permitted where nullable is true,
+including nullable enums in this document. Date-time requires a timezone. URI validation is syntactic and never fetches links.
 Patterns use Ruby regular expressions; only compatible patterns should be used.
 A decimal-string schema without a pattern checks its JSON type, not decimal syntax.
 
-Only direct `#/components/schemas/Name` references are supported. External,
-missing or recursive references fail; reference annotations are allowed but
+The request helper selects the actual response status and accepts inline response
+definitions or direct `#/components/responses/Name` references. Undocumented
+statuses, missing definitions, external references and chained response references
+fail explicitly; they cannot fall back to a success schema. No references are
+fetched. Schema resolution then supports only direct
+`#/components/schemas/Name` references. External, missing or recursive references
+fail; reference annotations are allowed but
 validation siblings fail rather than being silently ignored. The checker inspects
 all reachable schema branches before data validation, so unsupported rules such
 as oneOf, unsupported formats and invalid patterns fail even for empty responses
@@ -99,10 +115,18 @@ not a full OpenAPI meta-schema validator: the committed document's declaration
 structure still needs the route/document checks and review. Extend the supported
 subset with focused tests before applying it to additional schema constructs.
 
-Run the initial coverage with:
+Run the schema checker, helper and profile coverage with:
 
 ```sh
 bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
-  spec/requests/api/v1/fund_comparisons_spec.rb \
-  spec/requests/api/v1/fund_comparison_weights_spec.rb
+  spec/services/api_contract/openapi_responses_spec.rb \
+  spec/requests/api/v1/companies_spec.rb \
+  spec/requests/api/v1/company_aggregates_spec.rb \
+  spec/requests/api/v1/funds_spec.rb \
+  spec/requests/api/v1/fund_profiles_spec.rb \
+  spec/requests/api/v1/insiders_spec.rb \
+  spec/requests/api/v1/profile_errors_spec.rb
 ```
+
+Comparison coverage remains in `fund_comparisons_spec.rb` and
+`fund_comparison_weights_spec.rb` under the same request-spec directory.

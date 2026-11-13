@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API v1 funds" do
+  include OpenapiResponses
   include InstitutionalReadHelpers
 
   around { |example| travel_to(Time.utc(2026, 11, 10, 12)) { example.run } }
@@ -41,6 +42,7 @@ RSpec.describe "API v1 funds" do
     create_13f(fund:, period: Date.new(2026, 9, 30), filed_at: 1.day.from_now)
 
     get api_v1_fund_path(fund.cik)
+    expect_documented_response(path: "/funds/{cik}")
 
     expect(data).to include("cik" => fund.cik, "name" => fund.name)
     expect(data.fetch("latest_report")).to include(
@@ -55,9 +57,11 @@ RSpec.describe "API v1 funds" do
   it "returns a fund with no reports and a JSON 404 for unknown funds" do
     fund = create(:institutional_filer)
     get api_v1_fund_path(fund.cik)
+    expect_documented_response(path: "/funds/{cik}")
     expect(data.fetch("latest_report")).to be_nil
 
     get api_v1_fund_path("0000000001")
+    expect_documented_response(path: "/funds/{cik}")
     expect(response).to have_http_status(:not_found)
     expect(response.parsed_body.dig("error", "code")).to eq("NOT_FOUND")
   end
