@@ -2718,3 +2718,44 @@ refresh hints. It defaults off and is documented separately in
 [realtime-inbox.md](realtime-inbox.md); notification bodies and read mutations
 remain on the existing REST APIs. This is not a web-push sender. HTTP response
 schemas and notification cursor version 4 are unchanged.
+
+### Watchlist-scoped alert drafts
+
+POST /api/v1/alert-rules now accepts scope=watchlist without follow_id. Existing
+follow_id requests default to scope=follow. Both channels and all five existing
+triggers support creating/editing paused watchlist drafts. Watchlist matching and
+delivery are not implemented yet: active=true returns 422
+ALERT_CONFIGURATION_REQUIRED, and database/model constraints also prohibit it.
+
+For example:
+
+~~~json
+{"scope":"watchlist","trigger":"insider_transaction","channels":["in_app"],"conditions":{"direction":"purchase"}}
+~~~
+
+Responses include scope. Watchlist drafts have follow_id=null and
+entity={type:"watchlist",key:null}; specific rules preserve their entity and follow
+ID. Metadata adds supported_scopes=[follow,watchlist] and watchlist_activation=false.
+These fields describe draft support, not an active delivery capability.
+
+One owner/scope/trigger counts as one logical watchlist rule, shared across channels,
+irrespective of watchlist size. Specific-follow rules remain separate slots.
+Paused drafts count toward Free's three-rule limit; instant timing still requires
+verified Pro even for a draft. Archive every channel to release a logical slot.
+Recreating an archived channel restores the same rule ID; normal idempotency and
+pause-before-configuration-change behavior remain.
+
+Reject scope=watchlist with any follow_id (including null), unknown scope/user_id,
+and scope changes on PATCH. The owner always comes from the session. Removing a
+follow does not archive the independent watchlist draft. No fake follow is created.
+Empty watchlists may retain drafts.
+
+GET /api/v1/alert-rules accepts scope=follow|watchlist. entity_type filters select
+specific-follow rules only; combining entity_type with scope=watchlist returns an
+empty list. entity_key sorting keeps null watchlist keys last. Rule cursor context
+is version 2; older rule-list tokens must restart with a fresh request. Notification
+and alert-event cursor versions are unchanged.
+
+The legacy HTML alerts page displays watchlist drafts without a resume control.
+Current pipelines cannot activate or match them, and this migration does not
+replay filings, materialize historical events or send any notification.

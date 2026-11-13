@@ -4,16 +4,21 @@ class AlertRuleControl
   Result = Data.define(:rule, :created)
   class InvalidConfiguration < StandardError; end
 
-  def self.create(user:, follow_id:, attributes:)
+  def self.create(user:, follow_id: nil, attributes:)
     user.with_lock do
-      follow = user.follows.current.find(follow_id)
+      target_scope = attributes.fetch(:scope, "follow")
+      unless AlertRule::SCOPES.include?(target_scope) && (target_scope == "follow" || follow_id.nil?)
+        raise InvalidConfiguration, "Invalid alert rule scope"
+      end
+      follow = user.follows.current.find(follow_id) if target_scope == "follow"
+      candidates = user.alert_rules.where(scope: target_scope, follow_id: follow&.id)
       trigger = attributes.fetch(:event_type, "new_filing")
       channel = attributes.fetch(:channel, "email")
-      rule = follow.alert_rules.find_by(event_type: trigger, channel:)
+      rule = candidates.find_by(event_type: trigger, channel:)
       existing = rule && rule.setting&.archived_at.nil?
-      same_logical_rule = follow.alert_rules.retained.where(event_type: trigger).exists?
+      same_logical_rule = candidates.retained.where(event_type: trigger).exists?
       assert_slot!(user) unless existing || same_logical_rule
-      rule ||= follow.alert_rules.create!(event_type: trigger, channel:, active: false)
+      rule ||= candidates.create!(event_type: trigger, channel:, active: false)
       ensure_setting!(rule)
       rule.setting.update!(frequency: "daily_digest") if !existing && !attributes.key?(:frequency)
       rule.setting.update!(archived_at: nil)
@@ -41,6 +46,12 @@ class AlertRuleControl
   end
 
   def self.apply(user:, rule:, attributes:)
+    if rule.scope == "watchlist" && attributes[:active]
+      raise InvalidConfiguration, "Watchlist-wide alerts cannot be activated yet"
+    end
+    if attributes[:scope] && attributes[:scope] != rule.scope
+      raise InvalidConfiguration, "Create a separate rule for another scope"
+    end
     if attributes[:channel] && attributes[:channel] != rule.channel
       raise InvalidConfiguration, "Create a separate rule for another channel"
     end

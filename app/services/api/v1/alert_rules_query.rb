@@ -7,8 +7,9 @@ module Api
       BOUNDS = { "rules" => AlertRule, "follows" => Follow }.freeze
 
       def self.call(user:, page:, filters:)
-        scope = user.alert_rules.joins(:follow).retained.where("alert_rules.id <= ? AND follows.id <= ? AND alert_rules.created_at <= ?",
+        scope = user.alert_rules.left_joins(:follow).retained.where("alert_rules.id <= ? AND (alert_rules.follow_id IS NULL OR follows.id <= ?) AND alert_rules.created_at <= ?",
           page.bound("rules"), page.bound("follows"), page.as_of)
+        scope = scope.where(scope: filters["scope"]) if filters["scope"]
         scope = scope.where(active: filters["active"] == "true") if filters["active"]
         scope = scope.where(event_type: filters["trigger"]) if filters["trigger"]
         scope = scope.where(follows: { target_type: WatchlistTarget::TYPES.fetch(filters["entity_type"]) }) if filters["entity_type"]

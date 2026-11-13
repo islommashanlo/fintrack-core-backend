@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.57.0
+  version: 1.58.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -3673,8 +3673,15 @@ paths:
       description: Owned unarchived filing/transaction/cluster/institutional email rules with typed conditions and stored frequency. Free
         supported frequencies contain daily_digest; paused rules count toward the
         three-rule limit. Legacy over-limit rules remain readable. Ownership and cursor
-        snapshots are enforced; current active state remains mutable.
+        snapshots are enforced; current active state remains mutable. Watchlist-scoped
+        drafts are included unless filtered. entity_type selects follow rules only.
+        Rule cursors use version 2; earlier tokens must restart.
       parameters:
+      - name: scope
+        in: query
+        schema:
+          type: string
+          enum: [follow, watchlist]
       - name: trigger
         in: query
         schema:
@@ -9724,6 +9731,7 @@ components:
       required:
       - id
       - follow_id
+      - scope
       - trigger
       - entity
       - conditions
@@ -9737,8 +9745,12 @@ components:
           type: integer
           format: int64
           minimum: 1
+        scope:
+          type: string
+          enum: [follow, watchlist]
         follow_id:
           type: integer
+          nullable: true
           format: int64
           minimum: 1
         trigger:
@@ -9761,8 +9773,11 @@ components:
               - issuer
               - fund
               - person
+              - watchlist
             key:
               type: string
+              nullable: true
+              description: Null only for watchlist scope.
         conditions:
           "$ref": "#/components/schemas/AlertRuleConditions"
         channels:
@@ -9775,7 +9790,7 @@ components:
           minItems: 1
           maxItems: 1
           description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster, 13f_change and news.
-            Channel changes require a separate record; same follow/trigger shares a logical
+            Channel changes require a separate record; same scope/target/trigger shares a logical
             quota slot.
         frequency:
           type: string
@@ -9916,6 +9931,8 @@ components:
       type: object
       required:
       - capabilities
+      - supported_scopes
+      - watchlist_activation
       - limits
       - supported_triggers
       - supported_channels
@@ -9927,6 +9944,15 @@ components:
       - rule_quota
       - in_app_supported_triggers
       properties:
+        supported_scopes:
+          type: array
+          items:
+            type: string
+            enum: [follow, watchlist]
+        watchlist_activation:
+          type: boolean
+          enum: [false]
+          description: Watchlist scope supports paused drafts only.
         capabilities:
           type: object
           required:
@@ -10087,15 +10113,31 @@ components:
           minItems: 1
           maxItems: 1
           description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster, 13f_change and news.
-            Channel changes require a separate record; same follow/trigger shares a logical
+            Channel changes require a separate record; same scope/target/trigger shares a logical
             quota slot.
         conditions:
           "$ref": "#/components/schemas/AlertRuleConditions"
     FilingAlertRuleCreate:
       type: object
-      required:
-      - follow_id
+      description: Legacy follow_id requests default to follow scope. Watchlist
+        drafts require scope=watchlist and no follow_id. active=true is rejected
+        for watchlist scope. Scope cannot be changed by PATCH.
+      oneOf:
+      - required: [follow_id]
+        properties:
+          scope:
+            enum: [follow]
+      - required: [scope]
+        properties:
+          scope:
+            enum: [watchlist]
+        not:
+          required: [follow_id]
       properties:
+        scope:
+          type: string
+          enum: [follow, watchlist]
+          default: follow
         active:
           type: boolean
         frequency:
@@ -10121,7 +10163,7 @@ components:
           minItems: 1
           maxItems: 1
           description: Exactly one channel per record. in_app supports new_filing, insider_transaction, cluster, 13f_change and news.
-            Channel changes require a separate record; same follow/trigger shares a logical
+            Channel changes require a separate record; same scope/target/trigger shares a logical
             quota slot.
         conditions:
           "$ref": "#/components/schemas/AlertRuleConditions"

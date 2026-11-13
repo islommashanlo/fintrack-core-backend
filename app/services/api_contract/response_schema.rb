@@ -8,7 +8,7 @@ module ApiContract
   # An explicit OpenAPI subset for local response tests; never fetches references.
   class ResponseSchema
     ANNOTATIONS = %w[title description example default deprecated readOnly writeOnly].freeze
-    RULES = %w[$ref type nullable properties required items additionalProperties allOf oneOf enum minimum maximum minItems maxItems uniqueItems minLength maxLength pattern format].freeze
+    RULES = %w[$ref type nullable properties required items additionalProperties allOf oneOf anyOf enum minimum maximum minItems maxItems uniqueItems minLength maxLength pattern format].freeze
     TYPES = %w[object array string integer number boolean].freeze
     FORMATS = %w[date date-time uri int64].freeze
 
@@ -57,7 +57,7 @@ module ApiContract
       end
       Regexp.new(schema.fetch("pattern")) if schema.key?("pattern")
       schema.fetch("properties", {}).each { |key, child| inspect_schema(child, "#{path}.#{key}", ancestors) }
-      %w[allOf oneOf].each do |composition|
+      %w[allOf oneOf anyOf].each do |composition|
         schema.fetch(composition, []).each_with_index { |child, i| inspect_schema(child, "#{path}.#{composition}[#{i}]", ancestors) }
       end
       inspect_schema(schema["items"], "#{path}.items", ancestors) if schema.key?("items")
@@ -75,6 +75,10 @@ module ApiContract
       if schema.key?("oneOf")
         matches = schema.fetch("oneOf").count { |child| self.class.new(document: @document).errors(value, schema: child).empty? }
         @errors << "#{path}: expected exactly one oneOf match, got #{matches}" unless matches == 1
+      end
+      if schema.key?("anyOf")
+        matches = schema.fetch("anyOf").any? { |child| self.class.new(document: @document).errors(value, schema: child).empty? }
+        @errors << "#{path}: expected at least one anyOf match" unless matches
       end
       if schema.key?("type") && !matches_type?(value, schema["type"])
         @errors << "#{path}: expected #{schema['type']}, got #{value.class}"

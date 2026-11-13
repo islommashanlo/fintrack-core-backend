@@ -24,14 +24,16 @@
         <% @rules.each do |rule| %>
           <article class="alert-rule-card">
             <div>
-              <p class="watchlist-card__type"><%= rule.follow.target_type.humanize %></p>
-              <h3><%= rule.follow.target_key %></h3>
+              <p class="watchlist-card__type"><%= rule.scope == "watchlist" ? "Watchlist" : rule.follow.target_type.humanize %></p>
+              <h3><%= rule.scope == "watchlist" ? "All watched entities" : rule.follow.target_key %></h3>
               <p class="watchlist-card__key"><%= rule.channel.humanize %> · <%= rule.setting&.frequency&.humanize || "Instant" %> · <%= rule.event_type.humanize %></p>
             </div>
             <div class="alert-rule-card__actions">
               <span class="alert-status alert-status--<%= rule.active? ? "active" : "paused" %>"><%= rule.active? ? "Active" : "Paused" %></span>
-              <%= button_to rule.active? ? "Pause" : "Resume", alert_rule_path(rule), method: :patch,
-                            params: { alert_rule: { active: !rule.active? } }, class: "follow-button follow-button--active" %>
+              <% unless rule.scope == "watchlist" %>
+                <%= button_to rule.active? ? "Pause" : "Resume", alert_rule_path(rule), method: :patch,
+                              params: { alert_rule: { active: !rule.active? } }, class: "follow-button follow-button--active" %>
+              <% end %>
             </div>
           </article>
         <% end %>

@@ -3,7 +3,7 @@
 module Api
   module V1
     class AlertParameters
-      RULES = %w[active trigger entity_type sort limit cursor].freeze
+      RULES = %w[scope active trigger entity_type sort limit cursor].freeze
       EVENTS = %w[status trigger rule_id entity_type date_from date_to unread sort limit cursor].freeze
 
       def self.normalize(values, kind:)
@@ -12,6 +12,7 @@ module Api
         if values["entity_type"]
           invalid! unless WatchlistTarget::TYPES.key?(values["entity_type"])
         end
+        invalid! if values["scope"] && !AlertRule::SCOPES.include?(values["scope"])
         invalid! if values["active"] && !%w[true false].include?(values["active"])
         invalid! if values["unread"] && !%w[true false].include?(values["unread"])
         invalid! if values["status"] && !AlertDelivery::STATUSES.include?(values["status"])

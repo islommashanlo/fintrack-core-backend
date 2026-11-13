@@ -5,7 +5,7 @@ module Api
     class AlertRulesController < ProtectedController
       def index
         filters = AlertParameters.normalize(read_parameters(allowed: AlertParameters::RULES), kind: :rules)
-        page = CursorPage.new(parameters: filters, context: { "resource" => "alert_rules", "user_id" => Current.user.id },
+        page = CursorPage.new(parameters: filters, context: { "resource" => "alert_rules", "version" => 2, "user_id" => Current.user.id },
           sorts: AlertRulesQuery::SORTS, default_sort: "-created_at", bounds: AlertRulesQuery::BOUNDS, as_of:)
         result = AlertRulesQuery.call(user: Current.user, page:, filters:)
         render json: { data: result.records.map { |rule| AlertRuleSerializer.render(rule) },

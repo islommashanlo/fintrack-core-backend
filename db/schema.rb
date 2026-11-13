@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_13_100000) do
+ActiveRecord::Schema[8.0].define(version: 2026_11_13_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -102,17 +102,21 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_100000) do
   end
 
   create_table "alert_rules", force: :cascade do |t|
-    t.bigint "follow_id", null: false
+    t.bigint "follow_id"
     t.string "event_type", default: "new_filing", null: false
     t.string "channel", default: "email", null: false
     t.boolean "active", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.string "scope", default: "follow", null: false
     t.index ["event_type", "follow_id"], name: "index_active_alert_rules_on_trigger_and_follow", where: "active"
     t.index ["follow_id", "event_type", "channel"], name: "index_alert_rules_on_follow_id_and_event_type_and_channel", unique: true
     t.index ["follow_id"], name: "index_alert_rules_on_follow_id"
+    t.index ["user_id", "event_type", "channel"], name: "index_watchlist_alert_rules_on_owner_trigger_channel", unique: true, where: "((scope)::text = 'watchlist'::text)"
     t.index ["user_id"], name: "index_alert_rules_on_user_id"
+    t.check_constraint "scope::text <> 'watchlist'::text OR NOT active", name: "alert_rule_watchlist_draft"
+    t.check_constraint "scope::text = 'follow'::text AND follow_id IS NOT NULL OR scope::text = 'watchlist'::text AND follow_id IS NULL", name: "alert_rule_scope_target"
   end
 
   create_table "backfill_runs", force: :cascade do |t|

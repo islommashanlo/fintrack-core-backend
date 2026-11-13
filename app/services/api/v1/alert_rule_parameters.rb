@@ -5,7 +5,7 @@ module Api
     class AlertRuleParameters
       def self.normalize(values, create: false, trigger: nil)
         allowed = %w[active frequency trigger channels conditions]
-        allowed << "follow_id" if create
+        allowed.concat(%w[follow_id scope]) if create
         invalid! unless (values.keys - allowed).empty? && values.any?
         invalid! if values.key?("active") && ![ true, false ].include?(values["active"])
         invalid! if values.key?("frequency") && !AlertRuleSetting::FREQUENCIES.include?(values["frequency"])
@@ -16,7 +16,14 @@ module Api
         result[:event_type] = values["trigger"] if values.key?("trigger")
         if create
           result[:event_type] ||= "new_filing"
-          result[:follow_id] = AlertParameters.id!(values["follow_id"].to_s)
+          target_scope = values.fetch("scope", "follow")
+          invalid! unless AlertRule::SCOPES.include?(target_scope)
+          result[:scope] = target_scope
+          if target_scope == "watchlist"
+            invalid! if values.key?("follow_id")
+          else
+            result[:follow_id] = AlertParameters.id!(values["follow_id"].to_s)
+          end
         end
         selected_trigger = create ? result[:event_type] : trigger
         invalid! if result[:channel] == "in_app" && !AlertRule::IN_APP_EVENT_TYPES.include?(selected_trigger)

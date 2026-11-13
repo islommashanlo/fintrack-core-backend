@@ -75,7 +75,7 @@ RSpec.describe ApiContract::ResponseSchema do
     expect(errors(10, **schema)).to be_empty
     expect(errors(false, **schema)).to eq([ "$: expected exactly one oneOf match, got 0" ])
     expect(errors(1, oneOf: [ { "type" => "number" }, { "type" => "integer" } ])).to eq([ "$: expected exactly one oneOf match, got 2" ])
-    expect(errors([], type: "array", items: { "oneOf" => [ { "anyOf" => [] } ] }).join).to include("unsupported keyword anyOf")
+    expect(errors([], type: "array", items: { "oneOf" => [ { "not" => {} } ] }).join).to include("unsupported keyword not")
   end
 
   it "validates string length and supported formats without network access" do
@@ -99,7 +99,7 @@ RSpec.describe ApiContract::ResponseSchema do
   end
 
   it "rejects unsupported schema keywords and formats even on empty or absent data" do
-    expect(errors([], type: "array", items: { "anyOf" => [] }).join).to include("unsupported keyword anyOf")
+    expect(errors([], type: "array", items: { "not" => {} }).join).to include("unsupported keyword not")
     expect(errors({}, properties: { "absent" => { "format" => "email" } }).join).to include("unsupported format email")
     expect(errors(nil, type: "null").join).to include("unsupported type null")
     expect(errors({}, properties: { "absent" => { "pattern" => "[" } })).not_to be_empty
@@ -118,5 +118,14 @@ RSpec.describe ApiContract::ResponseSchema do
   it "resets diagnostics between calls" do
     expect(errors("bad", type: "integer")).not_to be_empty
     expect(errors(1, type: "integer")).to be_empty
+  end
+  it "accepts one or more anyOf matches and still inspects every branch" do
+    schema = { anyOf: [ { "type" => "integer" }, { "type" => "number" } ] }
+    expect(errors(1, **schema)).to be_empty
+    expect(errors(1.5, **schema)).to be_empty
+    expect(errors("1", **schema)).to eq([ "$: expected at least one anyOf match" ])
+    document["components"]["schemas"]["Object"] = { "type" => "object" }
+    expect(errors({}, anyOf: [ { "$ref" => "#/components/schemas/Object" }, { "type" => "string" } ])).to be_empty
+    expect(errors({}, anyOf: [ { "type" => "object" }, { "not" => {} } ]).join).to include("unsupported keyword not")
   end
 end

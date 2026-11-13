@@ -132,7 +132,7 @@ and shared history metadata. Nullable source counts apply to restricted fund
 results; company/insider source counts retain their existing behavior.
 
 Supported rules are object/array/string/integer/finite-number/boolean types,
-required properties, explicit additional-property rules, items, allOf, oneOf, nullable,
+required properties, explicit additional-property rules, items, allOf, oneOf, anyOf, nullable,
 enums, numeric bounds, array/string length bounds, unique array items, patterns,
 and date/date-time/URI formats. The integer `int64` format additionally enforces
 the signed range -2^63 through 2^63 - 1, requires an integer schema type, and
@@ -154,7 +154,7 @@ fetched. Schema resolution then supports only direct
 fail; reference annotations are allowed but
 validation siblings fail rather than being silently ignored. The checker inspects
 all reachable schema branches before data validation, so unsupported rules such
-as anyOf, unsupported formats and invalid patterns fail even for empty responses
+as not, unsupported formats and invalid patterns fail even for empty responses
 or absent optional properties. Diagnostics identify JSON response paths. This is
 not a full OpenAPI meta-schema validator: the committed document's declaration
 structure still needs the route/document checks and review. Extend the supported
@@ -199,3 +199,9 @@ against execution validation. Metadata is public and contains no SQL or user dat
 Capabilities response checks now cover scalar constraints and container limits.
 Boundary regressions exercise count/percentage endpoints, Gregorian dates,
 whole-string formats, Unicode character limits and numeric/cursor byte limits.
+
+Watchlist-draft request specs validate rule response bodies and scope metadata.
+The checker supports anyOf with one or more successful branches (unlike oneOf's
+exactly-one semantics), including overlapping empty condition objects and local
+references. It inspects all branches before matching and still rejects unsupported
+nested keywords. Request-only not constraints are outside its response subset.
