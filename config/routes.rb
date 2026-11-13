@@ -17,6 +17,7 @@ Rails.application.routes.draw do
       get "auth/google/callback" => "google_sign_in#callback", as: :google_callback
       post "auth/google/start" => "google_sign_in#start", as: :google_sign_in_start
       post "auth/google/complete" => "google_sign_in#complete", as: :google_sign_in_complete
+      get "auth/capabilities" => "auth_capabilities#show", as: :auth_capabilities
       get "auth/csrf" => "auth#csrf"
       post "auth/signup" => "auth#signup"
       post "auth/login" => "auth#login"

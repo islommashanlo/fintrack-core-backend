@@ -27,6 +27,13 @@ module Oauth
       raise GoogleLinking::Unavailable
     end
 
+    def self.enabled?(flow:)
+      configuration(flow:)
+      true
+    rescue GoogleLinking::Unavailable
+      false
+    end
+
     def self.url(configuration:, state:, nonce:, verifier:)
       challenge = Base64.urlsafe_encode64(Digest::SHA256.digest(verifier), padding: false)
       query = URI.encode_www_form(client_id: configuration.client_id, redirect_uri: configuration.redirect_uri, response_type: "code",

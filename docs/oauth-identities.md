@@ -70,3 +70,13 @@ provider failure or database rollback. Missing gates fail closed. Legacy token
 completion cannot consume code intents, and code callbacks cannot consume legacy
 intents. Existing legacy linking semantics remain authoritative for that flow.
 See [configuration, migration and verification](google-code-linking.md).
+
+
+## Flow discovery
+
+Public GET /api/v1/auth/capabilities reports the four existing Google flows using
+their initiation configuration checks, local start/completion operations and fixed
+account policy. It does not expose linked identities or credentials, create a
+challenge or contact Google. Enabled means configuration availability only; the
+actual endpoints still enforce actor/password/CSRF/nonce/session requirements.
+See [the discovery contract](auth-capabilities.md).

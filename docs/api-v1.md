@@ -2898,3 +2898,20 @@ No frontend redirect, automatic account creation or email matching is added.
 Provider tokens/secrets are not returned or stored in database rows. Responses are
 no-store/no-referrer; authentication, password, source, parameter and rate-limit
 errors remain generic. See [full contract and test-only migration notes](google-code-linking.md).
+
+
+### OAuth flow discovery
+
+Public GET /api/v1/auth/capabilities returns data.google with availability set to
+configuration_only, fixed account-creation/email-matching policy, and separate
+sign_in/linking flow descriptors. Each id_token/authorization_code descriptor has
+enabled plus start/complete method/path objects. Paths are local API routes;
+no client credentials, registered hosts, account identities or challenge data are
+returned. Sign-in remains linked-account/signed-out only; linking still requires
+an authenticated session and current password.
+
+Availability reuses the initiation validators and is not provider health or actor
+eligibility. Invalid/partial configuration disables the affected flow immediately;
+ID-token and code requirements remain distinct. The endpoint is account-independent,
+no-store, parameter-free and subject to shared request limiting. It creates no
+session/challenge and sends no provider request. See [full contract and verification](auth-capabilities.md).

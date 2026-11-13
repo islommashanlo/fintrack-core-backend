@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.66.0
+  version: 1.67.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -210,6 +210,31 @@ paths:
           "$ref": "#/components/responses/AccountUnauthorized"
         '403':
           "$ref": "#/components/responses/InvalidCsrfToken"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+  "/auth/capabilities":
+    get:
+      operationId: getAuthCapabilities
+      summary: Discover locally configured OAuth flows without creating a challenge
+      description: Public, no-store and account-independent. No parameters. Enabled
+        means local configuration is valid, not provider health or current actor eligibility.
+        Uses the same validators as initiation; does not expose client IDs/secrets/registered
+        hosts, probe Google, mint state or modify accounts. Authentication, password
+        confirmation, CSRF and linked-subject policies remain enforced by the actual
+        endpoints. Shared IP/user API limiting applies.
+      security: []
+      responses:
+        '200':
+          description: Configuration availability, relative operation paths and existing
+            account policy
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AuthCapabilitiesResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
         '429':
           "$ref": "#/components/responses/RateLimited"
         '503':
@@ -4733,6 +4758,116 @@ paths:
     - "$ref": "#/components/parameters/FundCik"
 components:
   schemas:
+    OauthFlowOperation:
+      type: object
+      additionalProperties: false
+      required:
+      - method
+      - path
+      properties:
+        method:
+          type: string
+          enum:
+          - POST
+          - GET
+        path:
+          type: string
+          pattern: "^/api/v1/"
+    OauthFlow:
+      type: object
+      additionalProperties: false
+      required:
+      - enabled
+      - start
+      - complete
+      properties:
+        enabled:
+          type: boolean
+        start:
+          "$ref": "#/components/schemas/OauthFlowOperation"
+        complete:
+          "$ref": "#/components/schemas/OauthFlowOperation"
+    GoogleOauthFlows:
+      type: object
+      additionalProperties: false
+      required:
+      - id_token
+      - authorization_code
+      properties:
+        id_token:
+          "$ref": "#/components/schemas/OauthFlow"
+        authorization_code:
+          "$ref": "#/components/schemas/OauthFlow"
+    AuthCapabilitiesResponse:
+      type: object
+      additionalProperties: false
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required:
+          - google
+          properties:
+            google:
+              type: object
+              additionalProperties: false
+              required:
+              - availability
+              - account_creation
+              - email_matching
+              - sign_in
+              - linking
+              properties:
+                availability:
+                  type: string
+                  enum:
+                  - configuration_only
+                account_creation:
+                  type: boolean
+                  enum:
+                  - false
+                email_matching:
+                  type: boolean
+                  enum:
+                  - false
+                sign_in:
+                  type: object
+                  additionalProperties: false
+                  required:
+                  - signed_out_required
+                  - linked_accounts_only
+                  - flows
+                  properties:
+                    signed_out_required:
+                      type: boolean
+                      enum:
+                      - true
+                    linked_accounts_only:
+                      type: boolean
+                      enum:
+                      - true
+                    flows:
+                      "$ref": "#/components/schemas/GoogleOauthFlows"
+                linking:
+                  type: object
+                  additionalProperties: false
+                  required:
+                  - authentication_required
+                  - current_password_required
+                  - flows
+                  properties:
+                    authentication_required:
+                      type: boolean
+                      enum:
+                      - true
+                    current_password_required:
+                      type: boolean
+                      enum:
+                      - true
+                    flows:
+                      "$ref": "#/components/schemas/GoogleOauthFlows"
     FundProfileMeta:
       type: object
       required:
