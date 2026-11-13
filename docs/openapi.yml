@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.54.0
+  version: 1.55.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -8955,6 +8955,8 @@ components:
           - portfolio_value_usd
           - suspect
           - reported_allocation_turnover_percent
+          - coverage
+          - report_type
         operator:
           type: string
           enum:
@@ -8993,6 +8995,12 @@ components:
             reported_allocation_turnover_percent field accepts finite percentages from
             0 to 100, including every bound/list entry; decimal strings preserve precision.
             It supports decimal numeric/null operators and both sort directions.
+            Fund-only coverage and report_type support eq, not_eq and in.
+            Coverage accepts complete, incomplete_report_set, no_effective_holdings,
+            no_report and history_restricted. Report type accepts holdings, combination
+            and notice, matching contributing stored cover labels. Restricted labels
+            match neither positive nor negative membership. Coverage is sortable;
+            report_type is not sortable.
       additionalProperties: false
     ScreenerRequest:
       type: object
@@ -9220,6 +9228,22 @@ components:
             description: Present for fund screens only. Includes separate current/prior
               source evidence and coverage with the same value as the metrics field.
               Existing top-level provenance remains the latest-period identity filing.
+          coverage:
+            type: string
+            enum: [complete, incomplete_report_set, no_effective_holdings, no_report, history_restricted]
+            description: Fund-only current reported-portfolio coverage.
+          report_types:
+            type: array
+            nullable: true
+            items:
+              type: string
+            description: Fund-only original contributing cover labels, or latest observed
+              cover if no effective holdings exist. Null for restricted history.
+          report_type_sources:
+            type: array
+            items:
+              "$ref": "#/components/schemas/FundDirectorySource"
+            description: Fund-only evidence for report_types. Empty for restricted history.
           fund_metrics_unavailable_reason:
             type: string
             nullable: true

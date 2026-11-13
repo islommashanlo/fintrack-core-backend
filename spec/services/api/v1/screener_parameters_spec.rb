@@ -53,4 +53,26 @@ RSpec.describe Api::V1::ScreenerParameters do
       end.to raise_error(Api::V1::InvalidParameter)
     end
   end
+
+  it "accepts only fund coverage and report membership enums and scalar coverage sorts" do
+    filters = [
+      { "field" => "coverage", "operator" => "in", "value" => %w[complete history_restricted] },
+      { "field" => "report_type", "operator" => "not_eq", "value" => "notice" }
+    ]
+    expect(described_class.normalize({ "entity" => "funds", "filters" => filters, "sort" => "-coverage" }))
+      .to include("filters" => filters, "sort" => "-coverage")
+    [
+      { "field" => "coverage", "operator" => "eq", "value" => "COMPLETE" },
+      { "field" => "coverage", "operator" => "contains", "value" => "complete" },
+      { "field" => "report_type", "operator" => "in", "value" => [ "holdings", "unknown" ] },
+      { "field" => "report_type", "operator" => "eq", "value" => "holdings' OR TRUE --" },
+      { "field" => "report_type", "operator" => "is_null" }
+    ].each do |filter|
+      expect { described_class.normalize({ "entity" => "funds", "filters" => [ filter ] }) }.to raise_error(Api::V1::InvalidParameter)
+    end
+    expect { described_class.normalize({ "entity" => "funds", "sort" => "report_type" }) }.to raise_error(Api::V1::InvalidParameter)
+    %w[companies insiders].each do |entity|
+      expect { described_class.normalize({ "entity" => entity, "filters" => filters }) }.to raise_error(Api::V1::InvalidParameter)
+    end
+  end
 end

@@ -187,3 +187,7 @@ bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
 
 Comparison coverage remains in `fund_comparisons_spec.rb` and
 `fund_comparison_weights_spec.rb` under the same request-spec directory.
+
+Fund screener label request tests validate actual response bodies for contributing
+cover evidence, amendments, notices, unknown stored labels, restricted history and
+coverage-sorted pagination. Saved-screen tests preserve the typed conditions.

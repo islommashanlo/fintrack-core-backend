@@ -270,4 +270,20 @@ RSpec.describe "API v1 saved screens" do
     expect(SavedScreen.exists?(own.id)).to be(false)
     expect(SavedScreen.exists?(retained.id)).to be(true)
   end
+
+  it "round-trips fund reported-label conditions through saved definitions" do
+    grant_pro
+    api_login(user)
+    definition = { entity: "funds", sort: "coverage", filters: [
+      { field: "coverage", operator: "eq", value: "complete" },
+      { field: "report_type", operator: "in", value: %w[holdings combination] }
+    ] }
+    create_screen(name: "Reported cover types", definition:)
+    expect(response).to have_http_status(:created)
+    saved = response.parsed_body.dig("data", "definition")
+    expect(saved.fetch("filters")).to eq(definition.fetch(:filters).map(&:stringify_keys))
+    post api_v1_screener_run_path, params: saved, headers: api_headers, as: :json
+    expect(response).to have_http_status(:ok)
+    expect(response.parsed_body.fetch("data")).to eq([])
+  end
 end

@@ -76,6 +76,9 @@ module Api
 
       def scalar(value, type)
         case type
+        when :fund_coverage, :fund_report_type
+          invalid! unless value.is_a?(String) && ScreenerDefinition::ENUM_VALUES.fetch(type).include?(value)
+          value
         when :boolean
           invalid! unless value == true || value == false
           value

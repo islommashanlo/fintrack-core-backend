@@ -79,13 +79,12 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Add reported coverage and cover-report-type conditions to fund screens using the
-shared directory labels and quality policy. These conditions should describe filing
-evidence rather than inferred manager classifications, and should not expose hidden
-historical labels. The policy-3 alignment is complete: fund screens reuse directory
-integrity/history rules, preserve known empty zero versus unknown inputs and retain
-identity/provenance. Changing existing predicate results and invalidating old fund
-cursors are explicit compatibility changes documented in the API contract.
+Expose screener field/operator capabilities from the server whitelist so frontend
+clients can build valid conditions without duplicating validation rules. Coverage
+and report-type fund conditions are implemented, with contributing cover evidence,
+history gates, saved-screen compatibility and amendment-aware SQL membership.
+This additive extension keeps fund cursor policy 3; changing filters still requires
+a new pagination request.
 
 Independent in-app alerts, the original recommendation, are implemented for the
 five existing triggers; real-time transport and push remain separate work.
@@ -94,7 +93,7 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Add reported coverage/report-type conditions to fund screens | Reuse shared quality labels and stored cover evidence; do not infer manager type or expose restricted labels. |
+| Next | Expose typed screener capabilities | Reuse the server whitelist; publish supported fields, operators, enum values and sorts without provider or schema work. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
 | High | Extend fund analytics beyond reported allocation turnover | Standalone, profiles and directory filters/sorts are implemented. Richer manager/sector classifications still need supported data; no such classification is inferred from holdings. |
 | High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |

@@ -54,4 +54,17 @@ RSpec.describe Api::V1::ScreenerCompiler do
       expect { described_class.call(entity: "companies", filters: [ condition ]) }.to raise_error(Api::V1::InvalidParameter)
     end
   end
+
+  it "quotes cover membership and groups alternatives before combining conditions" do
+    sql = described_class.call(entity: "funds", filters: [
+      { "field" => "report_type", "operator" => "in", "value" => %w[holdings combination] },
+      { "field" => "report_type", "operator" => "not_eq", "value" => "notice" },
+      { "field" => "coverage", "operator" => "eq", "value" => "complete" }
+    ])
+    expect(sql).to eq("('13F HOLDINGS REPORT' = ANY(activity.report_type) OR '13F COMBINATION REPORT' = ANY(activity.report_type)) " \
+      "AND NOT ('13F NOTICE' = ANY(activity.report_type)) AND activity.coverage = 'complete'")
+    expect do
+      described_class.call(entity: "funds", filters: [ { "field" => "report_type", "operator" => "eq", "value" => "unknown" } ])
+    end.to raise_error(Api::V1::InvalidParameter)
+  end
 end

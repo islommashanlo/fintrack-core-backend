@@ -25,6 +25,10 @@ module Api
             CASE WHEN d.effective_report_count > 0 THEN NOT d.portfolio_complete END AS suspect,
             d.effective_report_count AS source_filing_count,
             d.portfolio_unavailable_reason AS fund_metrics_unavailable_reason,
+            COALESCE(d.portfolio_unavailable_reason, 'complete') AS coverage,
+            CASE WHEN d.portfolio_unavailable_reason = 'history_restricted' THEN NULL::varchar[]
+              ELSE d.portfolio_report_types END AS report_type,
+            d.source_report_ids AS fund_source_report_ids,
             d.reported_allocation_turnover_percent, d.turnover_record,
             d.portfolio_unavailable_reason IS NOT DISTINCT FROM 'history_restricted' AS turnover_history_restricted
           FROM directory d INNER JOIN latest l ON l.institutional_filer_id = d.id

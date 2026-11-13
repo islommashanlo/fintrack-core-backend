@@ -16,7 +16,7 @@ module Api
           "latest_is_ten_percent_owner" => :boolean, "latest_is_other" => :boolean).freeze,
         "funds" => COMMON.merge("period_of_report" => :date, "holding_row_count" => :count,
           "position_count" => :count, "portfolio_value_usd" => :decimal, "suspect" => :boolean,
-          "reported_allocation_turnover_percent" => :percentage).freeze
+          "reported_allocation_turnover_percent" => :percentage, "coverage" => :fund_coverage, "report_type" => :fund_report_type).freeze
       }.freeze
       OPERATORS = {
         text: %w[eq not_eq contains starts_with in is_null not_null],
@@ -24,11 +24,15 @@ module Api
         count: %w[eq not_eq gt gte lt lte between in is_null not_null],
         decimal: %w[eq not_eq gt gte lt lte between in is_null not_null],
         percentage: %w[eq not_eq gt gte lt lte between in is_null not_null],
+        fund_coverage: %w[eq not_eq in], fund_report_type: %w[eq not_eq in],
         date: %w[eq not_eq gt gte lt lte between in is_null not_null], boolean: %w[eq not_eq]
       }.transform_values(&:freeze).freeze
 
+      ENUM_VALUES = { fund_coverage: FundDirectoryQuery::COVERAGES,
+        fund_report_type: FundDirectoryQuery::REPORT_TYPES.keys.freeze }.freeze
+
       def self.sorts(entity)
-        FIELDS.fetch(entity).to_h do |field, type|
+        FIELDS.fetch(entity).reject { |_field, type| type == :fund_report_type }.to_h do |field, type|
           [ field, type == :text ? "LOWER(activity.#{field})" : "activity.#{field}" ]
         end.merge("last_filed_at" => "activity.last_filed_at")
       end

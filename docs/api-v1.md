@@ -2620,3 +2620,33 @@ and required path parameters. Export-dispatcher datasets and unsubscribe server
 overrides are included. See [API contract checks](api-contract-checks.md) for
 supported behavior and limits. Request specs remain responsible for observable
 API behavior; this task does not establish response-schema conformance.
+
+
+### Fund screener reported labels
+
+Fund screens additionally accept `coverage` and `report_type` conditions with
+`eq`, `not_eq` and `in`. Coverage values are `complete`,
+`incomplete_report_set`, `no_effective_holdings`, `no_report` and
+`history_restricted`. Report-type tokens are `holdings`, `combination` and
+`notice`, mapped to the original stored cover labels. Coverage supports ascending
+and descending sorting; report type does not.
+
+Membership considers all current effective covers, including additive amendments,
+without trimming portfolio totals. Superseded covers and noncontributing notices
+are excluded. When no effective holdings exist, the latest observed cover supplies
+the label, matching directory behavior. Unknown stored labels remain unchanged in
+responses and are not inferred into a supported token. Screens continue to require
+a parsed filing identity, so a filer with no report is not introduced by a
+`no_report` condition.
+
+Fund results include root-level `coverage`, `report_types` and
+`report_type_sources` with filing provenance and original cover labels. These are
+filing facts, not investment-style classifications. Restricted Free history returns
+null labels and empty label sources; neither positive nor negative report-type
+conditions can match those hidden labels. The public `history_restricted`
+coverage state remains filterable. Verified Pro access reveals eligible evidence.
+
+Pro saved screens preserve these typed conditions unchanged. Existing fund cursor
+policy remains version 3; unchanged definitions retain compatibility, while changing
+a condition or sort requires restarting pagination. No migration or provider call
+is required.
