@@ -96,3 +96,15 @@ score:
       - "Implement point-in-time factor queries and missing-input checks."
       - "Test factor bounds, level thresholds, late filings and amendment revisions."
       - "Version and publish the implemented methodology before returning scores."
+
+reported_allocation_turnover:
+  status: available
+  version: reported-allocation-turnover-v1
+  formula: "50 times the sum of absolute differences between current and prior normalized reported position weights (weights expressed as fractions)."
+  periods: "Selected report quarter and immediately preceding calendar quarter; never substitute an older available report."
+  security_key: [cusip, put_call, share_type]
+  coverage: "The selected period cannot be after the observation date. Both effective portfolios must pass the shared cover/row/unit/original-resolution checks and have positive normalized reported totals. Missing or incomplete inputs yield null, not zero."
+  amendments: "Use the latest effective base or restatement and subsequent NEW HOLDINGS additions for each quarter independently."
+  interpretation: "Change in reported portfolio allocations, including valuation effects and reporting-scope changes. It does not measure executed transactions, capital flows or investment performance."
+  zero_policy: "Unchanged reported weights produce zero; complete empty or zero-value portfolios have undefined weights and yield null."
+  history_policy: "The selected quarter follows Free/Pro history limits; its adjacent baseline remains source context even when just outside that window."

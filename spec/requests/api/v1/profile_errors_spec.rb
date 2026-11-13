@@ -14,6 +14,7 @@ RSpec.describe "Documented profile and list limiter failures" do
     "/insiders/{cik}/transactions" => "/api/v1/insiders/0000000001/transactions",
     "/companies/{ticker}/insiders" => "/api/v1/companies/EXMP/insiders",
     "/funds/{cik}/history" => "/api/v1/funds/0000000001/history",
+    "/funds/{cik}/turnover" => "/api/v1/funds/0000000001/turnover",
     "/companies/{ticker}/institutional" => "/api/v1/companies/EXMP/institutional",
     "/companies/{ticker}/history" => "/api/v1/companies/EXMP/history",
     "/funds" => "/api/v1/funds" }.each do |documented_path, request_path|
@@ -41,6 +42,7 @@ RSpec.describe "Documented profile and list limiter failures" do
     "/insiders/{cik}/transactions" => "/api/v1/insiders/0000000001/transactions",
     "/companies/{ticker}/insiders" => "/api/v1/companies/EXMP/insiders",
     "/funds/{cik}/history" => "/api/v1/funds/0000000001/history",
+    "/funds/{cik}/turnover" => "/api/v1/funds/0000000001/turnover",
     "/companies/{ticker}/institutional" => "/api/v1/companies/EXMP/institutional",
     "/companies/{ticker}/history" => "/api/v1/companies/EXMP/history" }.each do |documented_path, request_path|
     it "returns a documented missing-resource response for #{documented_path}" do

@@ -79,6 +79,83 @@ minute per account and 30 per minute per IP, sharing Redis; 429 includes
 The configured exact frontend origin can read the export headers and
 `Content-Disposition` through CORS; fetch with credentials enabled.
 
+## Reported allocation turnover
+
+`GET /api/v1/funds/:cik/turnover?period=2026-09-30` adds a public, read-only
+reported-allocation metric. Omit `period` to use the latest parsed report period
+known at the observation time, including notices. Only `period` is accepted;
+it must be an ISO quarter end. This endpoint has no position filters, pagination
+or cursor because it always compares the two full reported portfolios.
+
+The v1 formula is **50 × Σ |current fraction − prior fraction|**, over the union
+of CUSIP/put-call/share-type keys. Fractions are grouped normalized reported value
+divided by that quarter's full normalized total. Repeated keys combine; ordinary
+shares, principal and each option direction remain separate. An absent key has
+fraction zero only within an otherwise complete positive-value portfolio. SQL
+uses a common denominator before the final division to avoid accumulating rounded
+position weights. PostgreSQL numeric arithmetic preserves the computed decimal
+precision in a JSON string from 0 to 100.
+Unchanged weights produce 0, even if all reported values increase proportionally;
+disjoint positive-value portfolios produce 100.
+
+This measures changes in reported allocations, including valuation effects and
+reporting-scope changes. It does not measure executed transactions, capital flows,
+regulatory portfolio turnover, investment performance or AUM. No price, enrichment
+or external service is involved. `/methodology` publishes the formula, coverage
+rules and caveats under `reported_allocation_turnover`, with independent version
+`reported-allocation-turnover-v1`; draft scoring stays inactive and unchanged.
+
+The baseline is the **immediately preceding calendar quarter**. Missing quarters
+are never bridged to an older available report, unlike the existing changes route's
+preceding-available-period policy. Each side resolves effective restatements and
+subsequent NEW HOLDINGS additions independently. Both portfolios must pass shared
+row/cover/original-resolution/value-unit checks and have positive normalized totals.
+Future report periods cannot supply a metric. An empty or zero-value portfolio
+has undefined weights, so its turnover is null, not a reported zero change.
+
+Responses are `{ data, meta }`. `data` includes:
+
+- `fund`, selected `period_of_report` and adjacent `prior_period_of_report`.
+- `status` (`available` or `unavailable`), nullable `unavailable_reason`, and nullable
+  `reported_allocation_turnover_percent`.
+- `current_portfolio` and `prior_portfolio`: the shared portfolio metadata
+  (`complete`, effective report counts/IDs, incomplete IDs, row/key counts, known
+  subtotal and complete total), period, `sources` and `source_scope`. Missing inputs
+  retain false completeness, empty IDs/sources and null totals. No reports at all
+  also leave the selected and prior periods null.
+- Common filing provenance at the top level, pointing to the latest contributing
+  input filing across both sides; all contributing filings remain in source lists.
+  With no inputs, provenance fields are null.
+
+`source_scope` is `effective_holdings` when an effective report set exists. Otherwise
+it is `observed_reports`, retaining notice or unresolved-addition provenance without
+claiming holdings coverage. `report_ids` always identifies effective reports only.
+An observed latest notice with no effective holdings does not cause fallback to an
+older holdings period. A notice alongside a valid base does not replace that base.
+
+Unavailability is explicit: `no_current_report`, `future_report_period`,
+`no_prior_report`, `no_effective_current_holdings`, `no_effective_prior_holdings`,
+`incomplete_current_portfolio`, `incomplete_prior_portfolio`,
+`zero_current_portfolio_value`, or `zero_prior_portfolio_value`. Checks follow that
+order; independent portfolio metadata still identifies other missing inputs. These
+flags never correct stored reported values or claim complete EDGAR coverage.
+
+`meta` includes `as_of`, `period_selection` (`explicit` or `latest_report`),
+`baseline_policy: adjacent_calendar_quarter`, methodology version, history limit,
+earliest accessible quarter and the disclaimer. Source report/filing/holding ID
+ceilings are captured once, so later inserts cannot enter the calculation. Updates
+to existing source rows can still change a fresh result; this is not an immutable
+historical snapshot or backtest data set.
+
+Every response is `Cache-Control: no-store`. Free uses the same four-completed-quarter
+selected-period gate as holdings/changes; an older selected/default period returns
+HTTP 402 with feature `history_quarters` and limit 4. The adjacent baseline remains
+calculation context even just outside that window. Verified Pro has full history.
+Invalid inputs return 400, unknown funds 404, shared rate limiting 429 and limiter
+unavailability 503. Reads perform no writes, fetches, job enqueueing or reprocessing.
+The directory's requested turnover filter remains unsupported in this increment.
+Production-scale latency for the new calculation remains unbenchmarked.
+
 ## Fund comparison
 
 `GET /api/v1/funds/compare?ciks=0008000001,0008000002` compares locally stored

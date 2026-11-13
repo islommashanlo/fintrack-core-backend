@@ -108,6 +108,11 @@ checks; the three scoped routes have missing-resource 404 checks. Behavioral tes
 continue to establish ordering/counts, source bounds and query batching separately.
 No production API or schema change was needed to add this coverage.
 
+The reported allocation turnover feature also checks successful and unavailable
+`/funds/{cik}/turnover` bodies against its contract, plus 400/402/404/429/503 cases.
+Its new methodology section is declared separately from the inactive draft score.
+No existing response schema was weakened to admit the feature.
+
 Existing request specs retain their behavioral, history-gate and account-isolation
 checks. A mutation regression proves that deleting a required comparison rank or
 encoding a decimal as a JSON number fails against the committed schema. This does
@@ -160,7 +165,8 @@ bundle exec rspec spec/services/api_contract/response_schema_spec.rb \
   spec/requests/api/v1/history_limits_spec.rb \
   spec/requests/api/v1/fund_directory_spec.rb \
   spec/requests/api/v1/fund_directory_filters_spec.rb \
-  spec/requests/api/v1/company_history_spec.rb
+  spec/requests/api/v1/company_history_spec.rb \
+  spec/requests/api/v1/fund_turnover_spec.rb
 ```
 
 Comparison coverage remains in `fund_comparisons_spec.rb` and

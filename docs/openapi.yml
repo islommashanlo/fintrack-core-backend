@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.49.0
+  version: 1.50.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -1402,6 +1402,40 @@ paths:
           "$ref": "#/components/responses/LimiterUnavailable"
     parameters:
     - "$ref": "#/components/parameters/FundCik"
+  "/funds/{cik}/turnover":
+    parameters:
+    - "$ref": "#/components/parameters/FundCik"
+    get:
+      operationId: getFundTurnover
+      summary: Compare reported allocations across adjacent quarters
+      description: No-store read of locally stored effective reports. Returns half the
+        absolute portfolio-weight change across the full union of CUSIP/put-call/share-type
+        keys. This includes valuation effects and reporting-scope changes; it does not
+        measure executed transactions, capital flows or performance. Both periods require
+        complete normalized positive-value portfolios. Uses the latest observed report
+        period by default, including notices; missing quarters are never bridged. Free
+        selected periods follow the four-quarter history gate; the adjacent baseline
+        remains calculation context. No fetch, materialization or provider request.
+      parameters:
+      - "$ref": "#/components/parameters/Period"
+      responses:
+        '200':
+          description: Reported allocation change or an explicit unavailable reason,
+            with independent portfolio coverage and source evidence.
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/FundTurnoverResponse"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '402':
+          "$ref": "#/components/responses/ProRequired"
+        '404':
+          "$ref": "#/components/responses/NotFound"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
   "/funds/{cik}/changes":
     get:
       operationId: listFundChanges
@@ -4620,6 +4654,116 @@ components:
           minimum: 1
           description: Descending reported value competition rank (1, 1, 3). Null for
             incomplete portfolios.
+    FundTurnoverResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          allOf:
+          - "$ref": "#/components/schemas/ComparisonProvenance"
+          - type: object
+            required: [fund, period_of_report, prior_period_of_report, status, unavailable_reason, reported_allocation_turnover_percent, current_portfolio, prior_portfolio]
+            properties:
+              fund:
+                "$ref": "#/components/schemas/Fund"
+              period_of_report:
+                type: string
+                format: date
+                nullable: true
+              prior_period_of_report:
+                type: string
+                format: date
+                nullable: true
+              status:
+                type: string
+                enum: [available, unavailable]
+              unavailable_reason:
+                type: string
+                nullable: true
+                enum: [no_current_report, no_prior_report, future_report_period, no_effective_current_holdings, no_effective_prior_holdings, incomplete_current_portfolio, incomplete_prior_portfolio, zero_current_portfolio_value, zero_prior_portfolio_value]
+              reported_allocation_turnover_percent:
+                "$ref": "#/components/schemas/NullableDecimal"
+                description: Decimal string from 0 to 100 when both portfolios are complete
+                  and positive; otherwise null. 50 times the sum of absolute differences
+                  in normalized reported portfolio fractions, including new/exited keys.
+              current_portfolio:
+                "$ref": "#/components/schemas/FundTurnoverPortfolio"
+              prior_portfolio:
+                "$ref": "#/components/schemas/FundTurnoverPortfolio"
+        meta:
+          type: object
+          required: [as_of, period_selection, baseline_policy, methodology_version, history_quarters, earliest_period, disclaimer]
+          properties:
+            as_of:
+              type: string
+              format: date-time
+            period_selection:
+              type: string
+              enum: [explicit, latest_report]
+            baseline_policy:
+              type: string
+              enum: [adjacent_calendar_quarter]
+            methodology_version:
+              type: string
+              enum: [reported-allocation-turnover-v1]
+            history_quarters:
+              type: integer
+              nullable: true
+            earliest_period:
+              type: string
+              format: date
+              nullable: true
+            disclaimer:
+              type: string
+    FundTurnoverPortfolio:
+      allOf:
+      - "$ref": "#/components/schemas/FundPortfolio"
+      - type: object
+        required: [period_of_report, source_scope, sources]
+        properties:
+          period_of_report:
+            type: string
+            format: date
+            nullable: true
+          source_scope:
+            type: string
+            enum: [effective_holdings, observed_reports]
+            description: Sources are effective holdings reports when available;
+              otherwise observed reports such as notices or unresolved additions.
+              report_ids always identifies only effective reports.
+          sources:
+            type: array
+            items:
+              "$ref": "#/components/schemas/FilingProvenance"
+    ReportedAllocationTurnoverMethodology:
+      type: object
+      required: [status, version, formula, periods, security_key, coverage, amendments, interpretation, zero_policy, history_policy]
+      properties:
+        status:
+          type: string
+          enum: [available]
+        version:
+          type: string
+          enum: [reported-allocation-turnover-v1]
+        formula:
+          type: string
+        periods:
+          type: string
+        security_key:
+          type: array
+          items:
+            type: string
+            enum: [cusip, put_call, share_type]
+        coverage:
+          type: string
+        amendments:
+          type: string
+        interpretation:
+          type: string
+        zero_policy:
+          type: string
+        history_policy:
+          type: string
     FundPortfolio:
       type: object
       description: Full effective fund/period before filters or pagination, bounded by
@@ -8162,6 +8306,7 @@ components:
       - disclaimer
       - clusters
       - score
+      - reported_allocation_turnover
       properties:
         version:
           type: string
@@ -8169,6 +8314,8 @@ components:
           type: string
         disclaimer:
           type: string
+        reported_allocation_turnover:
+          "$ref": "#/components/schemas/ReportedAllocationTurnoverMethodology"
         clusters:
           type: object
           required:

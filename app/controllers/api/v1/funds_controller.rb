@@ -3,7 +3,7 @@
 module Api
   module V1
     class FundsController < BaseController
-      prepend_before_action :private_response!, only: %i[index show holdings history position_history changes news]
+      prepend_before_action :private_response!, only: %i[index show holdings history position_history changes turnover news]
 
       def index
         values = read_parameters(allowed: FundDirectoryQuery::PARAMETERS)
@@ -83,6 +83,12 @@ module Api
           meta: result.meta.merge(period_of_report: query.period, prior_period_of_report: query.prior_period,
             current_portfolio: portfolios.fetch(:current).meta, prior_portfolio: portfolios.fetch(:prior).meta)
         }
+      end
+
+      def turnover
+        values = read_parameters(allowed: %w[period], path_keys: [ :cik ])
+        period = period_parameter(values["period"])
+        render json: FundTurnoverQuery.new(fund: find_fund, history: history_window, as_of:, period:).call
       end
 
       def news

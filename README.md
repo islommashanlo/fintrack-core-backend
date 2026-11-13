@@ -80,6 +80,13 @@ Free comparisons enforce two funds and four quarters; missing coverage stays
 unknown. See `docs/api-v1.md` for source and
 amendment semantics. No provider calls or schema change are needed.
 
+`GET /api/v1/funds/:cik/turnover` now compares reported portfolio allocations
+across adjacent quarters, using half the total absolute weight change. It returns
+an explicit unavailable reason when report/value coverage is insufficient and
+retains source evidence and Free/Pro history gates. This includes valuation effects
+and does not measure executed transactions. The versioned formula is published
+through `/methodology`; see [the API contract](docs/api-v1.md#reported-allocation-turnover).
+
 Fund holdings/changes/report history and company institutional ownership share the
 four-quarter Free history window. Older selected periods require Pro; collection
 previews disclose hidden history in metadata. These responses are no-store and

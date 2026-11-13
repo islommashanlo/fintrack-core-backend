@@ -11,8 +11,11 @@ Source review through `8ef81b5` confirms the subsequent independent in-app model
 private notification APIs and all five existing trigger matchers are implemented.
 Fund directory/profile summaries and comparison weights/ranks now reuse reported
 portfolio coverage and source bounds. These local additions do not complete push,
-real-time transport, vendor activation, turnover or additional filing forms.
-OpenAPI 1.49.0 currently documents 83 operations. The pre-checker baseline passed
+real-time transport, vendor activation or additional filing forms. Reported allocation
+turnover is now exposed independently, with a versioned adjacent-quarter formula,
+strict coverage and source evidence; it does not establish transaction-based turnover.
+OpenAPI 1.50.0 now documents 84 operations, including reported allocation turnover.
+The pre-checker baseline passed
 1,284 examples with 626 Ruby files clean; it does not establish remote CI status.
 
 Local validation now includes selected response-body schema checks in RSpec,
@@ -40,7 +43,7 @@ external requests. The original route inventory and counts below remain historic
 | Security mapping | `openfigi_enrichment.rb`, mapping ingestion, `Security`, `CusipSecurityMapping`; synthetic/stubbed specs. | Mapping code exists, but enrichment is not being run. Effective-dated ticker/name history and richer issuer metadata are incomplete; latest mappings are not a complete historical security master. |
 | Company, fund, insider APIs | Controllers, read queries, serializers and request specs under `api/v1`. Holdings, changes, comparisons, company history, insider transactions/companies and filing details exist. | Fund directory now supports reported portfolio-value and grouped-position ranges/sorts plus stored report-type/coverage filters with history gates; profiles expose the same derived summary while preserving raw-cover metadata; requested AUM/type/turnover/sector-focus filters remain unsupported. Sector/industry/market-cap coverage and full fund analytics are incomplete. Existing Filer/InstitutionalFiler structures intentionally differ from the prompt's entity names. |
 | Insider aggregates and clusters | `api/v1/insider_profile.rb` has 30/90/365-day summaries; `insider_cluster_windows.rb`, cluster read/matching specs and methodology define 14-day purchase/sale clusters. | Company profiles now expose 30/90/365-day summaries while retaining the legacy 90-day shape. Cluster output is filing-acceptance-based and first-listed-owner-based; that choice is documented, not proof of full coverage. |
-| Institutional analytics | Effective report SQL, `institutional_position_diff_query.rb`, materializer and comparison/history APIs with source evidence. | Fund holdings and changes now expose full-portfolio reported-value weights, competition ranks and independent integrity coverage for each period; Fund position history now exposes grouped shares, weights/ranks, independent period coverage and source evidence; comparisons also expose full-fund weights/ranks with independent current/prior completeness. Turnover analytics and richer fund classification filters remain incomplete. Changes in reported value must not be presented as transaction values or capital flows. |
+| Institutional analytics | Effective report SQL, `institutional_position_diff_query.rb`, materializer and comparison/history APIs with source evidence. | Fund holdings and changes now expose full-portfolio reported-value weights, competition ranks and independent integrity coverage for each period; Fund position history now exposes grouped shares, weights/ranks, independent period coverage and source evidence; comparisons also expose full-fund weights/ranks with independent current/prior completeness. Reported allocation turnover now has an adjacent-quarter API and published methodology. Directory turnover filters and richer fund classifications remain incomplete; executed transactions are not inferred. Changes in reported value must not be presented as transaction values or capital flows. |
 | Activity Score and reasons | `activity_scoring/`, calculator/assessment specs and `config/activity_methodology.yml`. Draft diagnostics implement several point-in-time factors. | Score status is unavailable. Scale/liquidity inputs remain missing; draft factor diagnostics are not an active score, level or public reasons feed. No automatic zero filling or activation is justified. |
 | Unusual activity | Dashboard explicitly reports scoring_not_active. Activity accepts score/level filters with availability metadata. | `/activity/unusual` is absent. Empty filtered results are not equivalent to an implemented unusual-activity feed. Activation needs complete inputs, reviewed methodology, coverage and plan gates. |
 | Auth/account/preferences | Password auth/recovery, cookie/CSRF controls, private preferences and generated-key OAuth tests. Google linking and already-linked sign-in have independent default-off flags. | No automatic Google account creation, code exchange or redirect receiver. Frontend/provider interoperability and live configuration remain separate. |
@@ -69,14 +72,11 @@ Most recent full-suite evidence at the audited commit: 1,087 examples, zero fail
 
 ## Recommended next implementation
 
-Extend selected response-schema conformance checks to filing details and the
-activity feed/detail routes. Fund directory/report history, company institutional
-ownership/history, holdings, fund changes, insider transaction lists and profiles
-now have selected success and documented error conformance checks.
-This adds local CI coverage without vendor activation or new dependencies. Keep field semantics,
-source visibility, plan gates and latency tests separate: schema conformance alone
-does not establish any of them. The checker remains deliberately bounded and
-fails explicitly on unsupported schema rules.
+Expose the reported allocation-turnover summary on fund profiles using the same
+formula, source bounds and completeness/history policy. Directory filtering can
+follow with batched SQL; do not compute every fund's metric in Ruby or label it as
+executed transaction turnover. Filing/activity response-schema coverage remains
+useful follow-up validation rather than the next missing product feature.
 
 Independent in-app alerts, the original recommendation, are implemented for the
 five existing triggers; real-time transport and push remain separate work.
@@ -85,9 +85,9 @@ five existing triggers; real-time transport and push remain separate work.
 
 | Priority | Work | Dependency or constraint |
 | --- | --- | --- |
-| Next | Extend response-schema checks to filing details and activity feed/detail | Local request specs; support new schema constructs explicitly and retain behavioral tests. |
+| Next | Expose reported allocation turnover on fund profiles | Reuse the implemented formula, completeness/history gates and source bounds; keep valuation effects explicit. |
 | High | Close 13F unit-selection and real fixture evidence gaps | Explicit evidence-based policy; real filing inspection requires a separately scoped SEC request budget. Do not guess the cutoff or normalize mixed-era data using one global setting. |
-| High | Define reported turnover methodology and remaining fund analytics | Local SQL, coverage semantics and regression fixtures; no vendor activation needed for reported-data calculations. |
+| High | Extend reported allocation turnover to fund directory filters and remaining analytics | The v1 metric is implemented; directory filters need batched SQL and the same coverage/history semantics. No vendor activation is required. |
 | High | Add CI security/dependency checks and broaden response-schema validation | Comparison and profile conformance is covered locally; security tools may require approved dependencies and scanners were not run in this audit. |
 | Later | Complete scale/liquidity input storage and queries, then score/unusual activation | Point-in-time market identity and coverage, approved methodology and provider rights/selection; do not activate incomplete scores. |
 | Later | Form 3/5, Schedule 13D/G and Form 144 | Real-file format evidence first; separate ingestion/schema/parser increments. |
