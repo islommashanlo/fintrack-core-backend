@@ -2605,7 +2605,7 @@ Use the existing `/alert-events?unread=true` list for inbox entries and the exis
 
 ## Linked external identities
 
-Private `GET /api/v1/me/oauth-identities` lists metadata; password- and CSRF-protected `DELETE /api/v1/me/oauth-identities/:id` unlinks an owned identity and rotates all sessions. Google linking uses password-confirmed `POST /api/v1/me/oauth-identities/google/start` and CSRF-protected `POST /api/v1/me/oauth-identities/google/complete` with state and id_token. Linking defaults off. Separately default-off Google sign-in uses browser-bound `POST /api/v1/auth/google/start` and `/api/v1/auth/google/complete` and accepts already-linked subjects only; no automatic account creation or email matching. See [the identity lifecycle contract](oauth-identities.md).
+Private `GET /api/v1/me/oauth-identities` lists metadata; password- and CSRF-protected `DELETE /api/v1/me/oauth-identities/:id` unlinks an owned identity and rotates all sessions. Google linking uses password-confirmed `POST /api/v1/me/oauth-identities/google/start` and CSRF-protected `POST /api/v1/me/oauth-identities/google/complete` with state and id_token. Linking defaults off. Separately default-off Google sign-in uses browser-bound `POST /api/v1/auth/google/start` and `/api/v1/auth/google/complete` and accepts already-linked subjects only; no automatic account creation or email matching. A separately default-off POST /auth/google/authorize and GET /auth/google/callback add PKCE code sign-in for linked subjects; see [the code-flow contract](google-authorization-code.md). See [the identity lifecycle contract](oauth-identities.md).
 
 ## Independent in-app notifications
 
@@ -2854,3 +2854,25 @@ SEC provenance remains null. Free remains daily-only and verified Pro supports
 instant. All five advertised watchlist triggers now support both channels; push
 and arbitrary global scope remain unsupported. See [news behavior and migration
 notes](watchlist-news-alerts.md).
+
+
+### Google authorization-code sign-in
+
+POST /api/v1/auth/google/authorize requires an anonymous browser cookie and CSRF
+and returns data.authorization_url plus expires_at. It accepts no parameters and
+contacts no provider. Sign-in and code-flow flags both default off. Complete
+client ID/secret and an exact configured callback URI are required.
+
+GET /api/v1/auth/google/callback requires the original browser, state and exactly
+one of code/error. It claims state once before exchanging with the fixed Google
+endpoint using the original PKCE verifier, then reuses the verified nonce/subject
+policy. Success rotates session/CSRF and returns the standard JSON session envelope;
+there is no frontend redirect. Existing accounts must already have that subject
+linked. Account creation, email matching and code-based linking are not added.
+
+Unknown/duplicate/oversized parameters fail closed. Invalid challenges/claims return
+401, unavailable configuration/provider/cache returns 503, and signed-in browsers
+receive 409. Each action has a ten-attempt/three-minute IP limit. Responses are
+no-store/no-referrer; codes and provider error descriptions are filtered. Neither
+provider tokens nor verifiers/secrets appear in responses. See [configuration,
+failure behavior and verification](google-authorization-code.md).

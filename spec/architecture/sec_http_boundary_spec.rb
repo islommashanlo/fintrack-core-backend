@@ -7,7 +7,7 @@ require "rails_helper"
 RSpec.describe "SEC HTTP boundary" do
   HTTP_CLIENT_PATTERN = /\b(Faraday|Net::HTTP|HTTParty|RestClient|Typhoeus|Excon|URI\.open|open-uri|curl)\b/
   SEC_HOST_PATTERN = /(?:www|efts)\.sec\.gov/
-  EXTERNAL_CLIENT_FILES = %w[app/services/openfigi_client.rb app/services/billing/stripe_client.rb].freeze
+  EXTERNAL_CLIENT_FILES = %w[app/services/openfigi_client.rb app/services/billing/stripe_client.rb app/services/oauth/google_code_exchange.rb].freeze
 
   it "keeps SEC HTTP client code inside SecClient" do
     offenders = Rails.root.glob("{app,lib,config}/**/*.{rb,rake}").reject do |file|
@@ -19,7 +19,7 @@ RSpec.describe "SEC HTTP boundary" do
     expect(offenders).to be_empty
   end
 
-  it "keeps the external enrichment adapter away from SEC hosts" do
+  it "keeps external provider adapters away from SEC hosts" do
     EXTERNAL_CLIENT_FILES.each do |relative|
       expect(Rails.root.join(relative).read).not_to match(SEC_HOST_PATTERN)
     end

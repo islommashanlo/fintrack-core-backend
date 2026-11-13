@@ -10,7 +10,7 @@ module ApiContract
     ANNOTATIONS = %w[title description example default deprecated readOnly writeOnly].freeze
     RULES = %w[$ref type nullable properties required items additionalProperties allOf oneOf anyOf enum minimum maximum minItems maxItems uniqueItems minLength maxLength pattern format].freeze
     TYPES = %w[object array string integer number boolean].freeze
-    FORMATS = %w[date date-time uri int64].freeze
+    FORMATS = %w[email date date-time uri int64].freeze
 
     def initialize(document:)
       @document = document
@@ -143,6 +143,8 @@ module ApiContract
         value.match?(/\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})\z/) &&
           value[11, 2].to_i < 24 && value[14, 2].to_i < 60 && value[17, 2].to_i <= 60 &&
           Date.iso8601(value[0, 10]) && Time.iso8601(value)
+      when "email"
+        URI::MailTo::EMAIL_REGEXP.match?(value)
       when "uri"
         uri = URI.parse(value)
         uri.absolute? && (!%w[http https].include?(uri.scheme) || (uri.host && !uri.host.empty?))

@@ -29,13 +29,17 @@ module Oauth
       raise GoogleLinking::Unavailable
     end
 
-    def self.complete(intent:, state:, id_token:)
+    def self.complete(intent:, state:, id_token: nil, exchange: nil)
       require_enabled!
       raise ArgumentError, "Session creation block is required" unless block_given?
       raise GoogleLinking::Invalid unless state.is_a?(String) && state.match?(/\A[A-Za-z0-9_-]{43}\z/) && intent.is_a?(Hash) &&
         intent["expires_at"].is_a?(Integer) && intent["expires_at"] > Time.current.to_i && intent["state_digest"] == digest(state)
 
+      code_flow = intent["flow"] == "code"
+      raise GoogleLinking::Invalid unless (intent["flow"].nil? || code_flow) && code_flow == exchange.respond_to?(:call) && !(code_flow && id_token)
       expected_client = GoogleLinking.client_id
+      consume_state(intent, state) if code_flow
+      id_token = exchange.call if code_flow
       claims = GoogleTokenVerifier.verify(id_token, client_id: expected_client)
       raise GoogleLinking::Invalid unless intent["nonce_digest"].is_a?(String) &&
         ActiveSupport::SecurityUtils.secure_compare(intent["nonce_digest"], digest(claims.fetch(:nonce)))
@@ -54,9 +58,7 @@ module Oauth
 
         # Consume before session creation: a later failure requires a fresh start.
         # Missing Redis state (including after cache loss) always fails closed.
-        stored = FilingsIntel.redis.call("GETDEL", redis_key(state))
-        raise GoogleLinking::Invalid unless stored.is_a?(String) &&
-          ActiveSupport::SecurityUtils.secure_compare(stored, intent.fetch("nonce_digest"))
+        consume_state(intent, state) unless code_flow
 
         yield user
         user
@@ -64,6 +66,13 @@ module Oauth
     rescue RedisClient::Error
       raise GoogleLinking::Unavailable
     end
+
+    def self.consume_state(intent, state)
+      stored = FilingsIntel.redis.call("GETDEL", redis_key(state))
+      raise GoogleLinking::Invalid unless stored.is_a?(String) && intent["nonce_digest"].is_a?(String) &&
+        ActiveSupport::SecurityUtils.secure_compare(stored, intent.fetch("nonce_digest"))
+    end
+    private_class_method :consume_state
 
     def self.redis_key(state)
       "oauth:google_sign_in:intent:#{digest(state)}"

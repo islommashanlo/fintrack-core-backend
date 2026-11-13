@@ -83,6 +83,7 @@ RSpec.describe ApiContract::ResponseSchema do
     expect(errors("abc", type: "string", maxLength: 2)).not_to be_empty
     { "date" => [ "2026-11-12", "2026-02-30" ],
       "date-time" => [ "2026-11-12T12:00:00.000Z", "2026-11-12T12:00:00" ],
+      "email" => [ "person@example.com", "invalid address" ],
       "uri" => [ "https://example.com/filing", "/relative" ] }.each do |format, (valid, invalid)|
       expect(errors(valid, type: "string", format:)).to be_empty
       expect(errors(invalid, type: "string", format:)).to include("$: invalid #{format}")
@@ -100,7 +101,7 @@ RSpec.describe ApiContract::ResponseSchema do
 
   it "rejects unsupported schema keywords and formats even on empty or absent data" do
     expect(errors([], type: "array", items: { "not" => {} }).join).to include("unsupported keyword not")
-    expect(errors({}, properties: { "absent" => { "format" => "email" } }).join).to include("unsupported format email")
+    expect(errors({}, properties: { "absent" => { "format" => "unsupported" } }).join).to include("unsupported format unsupported")
     expect(errors(nil, type: "null").join).to include("unsupported type null")
     expect(errors({}, properties: { "absent" => { "pattern" => "[" } })).not_to be_empty
   end

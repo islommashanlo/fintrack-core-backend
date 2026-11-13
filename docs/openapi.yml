@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.64.0
+  version: 1.65.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -214,6 +214,166 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+  "/auth/google/authorize":
+    post:
+      operationId: authorizeGoogleSignIn
+      summary: Create a browser-bound Google authorization URL with PKCE
+      description: Signed-out browsers only; anonymous session cookie and CSRF required.
+        Requires default-off sign-in and code-flow flags, a client ID/secret and a fixed
+        configured callback URI. Returns an authorization URL and expiry without contacting
+        Google. Scope is openid; only already-linked subjects may sign in. Replaces
+        the prior browser challenge.
+      security:
+      - CsrfToken: []
+      responses:
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
+        '409':
+          description: 'ALREADY_SIGNED_IN: explicitly sign out before another sign-in'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          description: 'OAUTH_UNAVAILABLE: disabled/incomplete configuration, unavailable
+            keys or Redis; also shared limiter outage'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '200':
+          description: Private five-minute authorization URL; no client secret or verifier
+            returned
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    type: object
+                    required:
+                    - authorization_url
+                    - expires_at
+                    properties:
+                      authorization_url:
+                        type: string
+                        format: uri
+                      expires_at:
+                        type: string
+                        format: date-time
+  "/auth/google/callback":
+    get:
+      operationId: callbackGoogleSignIn
+      summary: Exchange a browser-bound authorization code and sign in a linked Google
+        subject
+      description: Top-level GET callback with original anonymous browser cookie and
+        one-use state. No CSRF header is required for this provider redirect; initiation
+        requires CSRF. Exactly one of code/error is required with state. Duplicate/unknown
+        parameters are rejected. Server exchanges at the fixed Google token endpoint
+        with PKCE and verifies the ID token nonce/signature/audience. State is burned
+        before exchange, including on failure. Success returns the standard JSON session
+        envelope and rotates session/CSRF. No frontend redirect, automatic account creation,
+        email matching or provider tokens in the response. Private/no-store and no-referrer.
+      security: []
+      responses:
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          description: 'OAUTH_INVALID: invalid/replayed challenge, failed token checks
+            or unlinked subject'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '409':
+          description: 'ALREADY_SIGNED_IN: explicitly sign out before another sign-in'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          description: 'OAUTH_UNAVAILABLE: disabled/incomplete configuration, unavailable
+            keys or Redis; also shared limiter outage'
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/AccountError"
+        '200':
+          description: Successful response.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - data
+                properties:
+                  data:
+                    "$ref": "#/components/schemas/AccountSession"
+      parameters:
+      - name: state
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: code
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: error
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: error_description
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: scope
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: authuser
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: prompt
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
+      - name: iss
+        in: query
+        required: false
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 4096
   "/auth/google/start":
     post:
       operationId: startGoogleSignIn
