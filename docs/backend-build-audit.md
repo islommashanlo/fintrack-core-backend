@@ -37,7 +37,7 @@ adapters and draft calculators do not count as activated product features.
 | News/prices | Immutable headline/link storage, mentions, local feeds/news alerts, OHLCV ingestion, gap planning and company price reads exist. | News::Provider::Disabled and MarketData::Provider::Disabled are defaults. Vendor adapters/rights, authoritative calendars/identity and scheduled refresh/gap-fill orchestration are incomplete. |
 | Billing/gating | Verified Stripe intake, durable receipts, entitlement expiry, hosted attempts/recovery and PlanCatalog limits exist with request/concurrency tests. | Live interoperability and unknown/unmatched outcome resolution remain operational concerns. No real customer/payment or entitlement activation occurred. Plan limits do not make absent features available. |
 | Deadlines | Form13fDeadline/tests implement adjusted Q3 2026 deadline Nov 16, contrasting the prompt's unadjusted Nov 14 example. | No general Form 4 two-business-day lateness engine. Calendar-day scoring staleness is not legal lateness. |
-| Operations/CI | Ingestion/archive/queue/notification metrics, bounded worker heartbeat observations, health review, readiness, tests, lint, language policy and API contract checks exist. | CI now runs Brakeman and refreshed bundler-audit with failing gates; baseline findings remain unresolved (docs/security-ci-plan.md). Production p95/load results, worker progress, external monitoring, recipient receipt and two-minute delivery targets are unverified. |
+| Operations/CI | Ingestion/archive/queue/notification metrics, bounded worker heartbeat observations, health review, readiness, tests, lint, language policy and API contract checks exist. | CI now runs Brakeman and refreshed bundler-audit with failing gates. Dependency findings are patched on Rails 8.1.4.1; 25 SQL false positives are individually reviewed (docs/security-ci-plan.md). Production p95/load results, worker progress, external monitoring, recipient receipt and two-minute delivery targets are unverified. |
 | Deliverables | Setup/env/task docs, migrations, real fixtures, OpenAPI and local tests exist. | Frontend integration, provider setup and rollout remain separate. Prototype seeds are intentionally absent under the owner's no-seeding instruction. |
 
 ## Current verification evidence
@@ -89,9 +89,9 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Security baseline remediation | Review the 26 static warnings and 63 initial advisory matches; verify framework lifecycle and upgrades with regression tests, without suppressing findings or deploying. |
+| Next | Score input coverage | Review supported factor inputs and point-in-time availability before extending storage or calculations; no provider activation or invented market inputs. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
-| High | Security gate verification | After remediation, verify hosted security jobs; local scans currently fail honestly on existing findings. |
+| High | Security gate verification | Local checks pass with reviewed SQL exceptions; verify hosted security jobs and branch protection separately. |
 | High | Score input storage and point-in-time coverage | Reviewed factor applicability and supported scale/liquidity inputs before activation. |
 | Later | Watchlist-wide alerts and web push | Preserve ownership, quotas, consent, source validity and plan timing; validate browser/sender integration separately. |
 | Later | Additional filing forms | Real evidence first, then isolated ingestion/schema/read/alert increments. |

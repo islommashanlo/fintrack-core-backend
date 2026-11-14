@@ -264,8 +264,8 @@ identity, eligible-owner evidence and amendment-aware membership checks. See
 ## CI security checks
 
 CI runs Brakeman and bundler-audit as independent jobs alongside specs, lint and
-API/language checks. Run `bundle exec brakeman --no-pager` and
+API/language checks. Run `bundle exec brakeman --no-pager --ensure-ignore-notes --ensure-no-obsolete-ignore-entries` and
 `bundle exec bundler-audit check --update` locally. Both fail on findings; the
 dependency check refreshes the public advisory database. Scanners are development-
-only gems and require no running application services. Existing security findings
-remain unresolved: see [the baseline and remediation notes](docs/security-ci-plan.md).
+only gems and require no running application services. The initial dependency findings are patched; reviewed SQL false positives have
+fingerprint-specific notes. See [the baseline and remediation notes](docs/security-ci-plan.md).

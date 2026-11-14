@@ -17,7 +17,7 @@ jobs:
         with:
           bundler-cache: true
           ruby-version: "3.4"
-      - run: bundle exec brakeman --no-pager
+      - run: bundle exec brakeman --no-pager --ensure-ignore-notes --ensure-no-obsolete-ignore-entries
 
   dependency_security:
     runs-on: ubuntu-latest
