@@ -1,4 +1,4 @@
-version: "1.2-draft"
+version: "1.3-draft"
 purpose: "Describe the relative significance and unusualness of reported filing activity."
 disclaimer: "Data from public SEC filings. Not investment advice."
 clusters:
@@ -13,6 +13,31 @@ clusters:
   missing_values: "Retain counts and a known-value subtotal; the full total is null if any member lacks a usable value."
 score:
   status: unavailable
+  market_input_requirements:
+    status: blocked
+    coverage_evaluated: false
+    applicability_status: unresolved
+    requirements:
+      - id: issuer_market_cap
+        storage_status: unavailable
+        scoring_status: unimplemented
+        time_policy: "Require a dated issuer value and a source knowledge timestamp no later than event evaluation; never substitute a current value."
+        blockers: [dated_market_cap_storage, currency_policy, issuer_security_identity]
+      - id: daily_dollar_volume
+        storage_status: partial
+        scoring_status: unimplemented
+        time_policy: "Stored session dates and observed_at must both precede evaluation; a session date alone does not establish when a bar was knowable."
+        blockers: [session_calendar, session_completion_time, averaging_window, minimum_session_coverage, price_volume_basis, currency_policy, provider_selection]
+      - id: issuer_security_identity
+        storage_status: partial
+        scoring_status: unimplemented
+        time_policy: "Require an unambiguous effective-dated identity and knowledge timestamp at evaluation; current ticker/CUSIP cache matches are insufficient."
+        blockers: [effective_dated_identity, issuer_security_link, option_and_principal_applicability]
+      - id: comparable_reported_magnitude
+        storage_status: partial
+        scoring_status: unimplemented
+        time_policy: "Use the reported magnitude known at event evaluation with a defined matching currency, unit and instrument basis."
+        blockers: [source_specific_formula, currency_policy, option_and_principal_applicability, institutional_valuation_effects]
   minimum: 0
   maximum: 100
   insider_factors:

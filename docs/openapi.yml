@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.68.0
+  version: 1.69.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -9106,7 +9106,10 @@ components:
           - proposal
           - insider_factors
           - institutional_factors
+          - market_input_requirements
           properties:
+            market_input_requirements:
+              "$ref": "#/components/schemas/MarketScoreInputRequirements"
             status:
               type: string
               enum:
@@ -9390,8 +9393,47 @@ components:
         inputs:
           type: object
           additionalProperties: true
-          description: Measured scalar inputs and comparison counts; decimal inputs
-            are strings, date/times use ISO 8601.
+          description: Measured inputs and comparison counts, or explicitly unevaluated
+            market-input requirements. Decimal inputs are strings; dates use ISO 8601.
+          properties:
+            requirements:
+              "$ref": "#/components/schemas/MarketScoreInputRequirements"
+    MarketScoreInputRequirements:
+      type: object
+      additionalProperties: false
+      required: [status, coverage_evaluated, applicability_status, requirements]
+      properties:
+        status:
+          type: string
+          enum: [blocked]
+        coverage_evaluated:
+          type: boolean
+          enum: [false]
+        applicability_status:
+          type: string
+          enum: [unresolved]
+        requirements:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, storage_status, scoring_status, time_policy, blockers]
+            properties:
+              id:
+                type: string
+                enum: [issuer_market_cap, daily_dollar_volume, issuer_security_identity, comparable_reported_magnitude]
+              storage_status:
+                type: string
+                enum: [unavailable, partial]
+              scoring_status:
+                type: string
+                enum: [unimplemented]
+              time_policy:
+                type: string
+              blockers:
+                type: array
+                items:
+                  type: string
     ActivityScoreCoverage:
       type: object
       required:

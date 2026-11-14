@@ -3,6 +3,7 @@
 require "rails_helper"
 
 RSpec.describe "API v1 activity scoring diagnostics" do
+  include OpenapiResponses
   include InstitutionalReadHelpers
   around { |example| travel_to(Time.utc(2026, 11, 10, 20)) { example.run } }
 
@@ -14,7 +15,7 @@ RSpec.describe "API v1 activity scoring diagnostics" do
     expect(response).to have_http_status(:ok)
     data = response.parsed_body.fetch("data")
     expect(data).to include("score" => nil, "level" => nil, "reasons" => [])
-    expect(data.fetch("scoring")).to include("status" => "incomplete", "methodology_version" => "1.2-draft",
+    expect(data.fetch("scoring")).to include("status" => "incomplete", "methodology_version" => "1.3-draft",
       "evaluated_at" => filing.filed_at.as_json)
     expect(data.dig("scoring", "coverage")).to include("available_weight" => 50, "required_weight" => 100,
       "missing_factors" => %w[own_history issuer_scale_and_liquidity])
@@ -50,6 +51,9 @@ RSpec.describe "API v1 activity scoring diagnostics" do
     expect(data.dig("scoring", "status")).to eq("ineligible")
     expect(data.dig("scoring", "eligibility_reason")).to eq("unsupported_transaction")
     expect(data.dig("transaction", "transaction_code")).to eq("A")
+    market = data.fetch("score_breakdown").find { |factor| factor.fetch("id") == "issuer_scale_and_liquidity" }
+    expect(market.fetch("unavailable_reason")).to eq("unsupported_transaction")
+    expect(market.dig("inputs", "requirements", "coverage_evaluated")).to be(false)
     expect(data.fetch("score_breakdown")).to all(include("value" => nil, "points" => nil))
   end
 
@@ -76,6 +80,7 @@ RSpec.describe "API v1 activity scoring diagnostics" do
     factors = data.fetch("score_breakdown").index_by { |factor| factor.fetch("id") }
     expect(factors.fetch("position_size_change")).to include("value" => "0.5", "points" => "10.0")
     expect(factors.fetch("issuer_scale_and_liquidity")).to include("value" => nil, "points" => nil)
+    expect(factors.dig("issuer_scale_and_liquidity", "inputs", "requirements", "coverage_evaluated")).to be(false)
     before = data.slice("scoring", "score_breakdown")
     restatement = create_13f(fund:, amendment_type: "RESTATEMENT", filed_at: 1.day.ago)
     create(:institutional_holding, institutional_report: restatement, shares: 5)
@@ -98,5 +103,25 @@ RSpec.describe "API v1 activity scoring diagnostics" do
     expect(data.dig("scoring", "source_coverage", "invalid_report_ids")).to eq([ current.id ])
     expect(data.dig("position_change", "shares_after")).to eq("150.0")
     expect(data.fetch("score_breakdown")).to all(include("value" => nil, "points" => nil))
+  end
+  it "keeps stored bars from implicitly activating market factors or querying price data" do
+    filing = create(:filing, filed_at: 1.day.ago)
+    transaction = create(:insider_transaction, filing:, transaction_date: 2.days.ago.to_date)
+    series = price_series(security: create(:security, ticker: filing.issuer_ticker))
+    PriceDaily.create!(**market_bars.first.to_h, price_series: series, observed_at: Time.current)
+    queries = []
+    observer = ->(_name, _start, _finish, _id, payload) { queries << payload.fetch(:sql) }
+    ActiveSupport::Notifications.subscribed(observer, "sql.active_record") do
+      get api_v1_activity_event_path("insider_#{transaction.id}")
+    end
+    expect(response).to have_http_status(:ok)
+    expect_documented_response(path: "/activity/{id}")
+    expect(queries.join(" ")).not_to match(/\b(?:prices_daily|price_series)\b/)
+    data = response.parsed_body.fetch("data")
+    expect(data).to include("score" => nil, "level" => nil, "reasons" => [])
+    market = data.fetch("score_breakdown").find { |factor| factor.fetch("id") == "issuer_scale_and_liquidity" }
+    expect(market).to include("status" => "unavailable", "value" => nil, "points" => nil)
+    expect(market.dig("inputs", "requirements")).to eq(ActivityMethodology.definition.dig("score", "market_input_requirements"))
+    expect(WebMock).not_to have_requested(:any, /./)
   end
 end

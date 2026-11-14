@@ -16,7 +16,8 @@ module ActivityScoring
       coverage = source_coverage
       reason = "incomplete_report_context" unless @inputs.fetch("event_eligible") && coverage[:reports_complete]
       factors = @definition.fetch("score").fetch("proposal").fetch("factors").to_h do |factor|
-        [ factor.fetch("id"), unavailable(reason || "market_inputs_unavailable") ]
+        inputs = factor.fetch("id") == "issuer_scale_and_liquidity" ? { "requirements" => @definition.fetch("score").fetch("market_input_requirements") } : {}
+        [ factor.fetch("id"), unavailable(reason || "market_inputs_unavailable", inputs:) ]
       end
       unless reason
         factors.merge!("own_history" => own_history, "reported_context" => reported_context,
