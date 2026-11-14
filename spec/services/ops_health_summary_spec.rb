@@ -31,7 +31,7 @@ RSpec.describe OpsHealthSummary do
     expect(Sidekiq).not_to receive(:redis)
     expect(FilingArchive).not_to receive(:default)
     result = summary
-    expect(result).to include("status" => "unknown", "policy_version" => "ops-health-v2")
+    expect(result).to include("status" => "unknown", "policy_version" => "ops-health-v3")
     expect(result.dig("counts", "attention")).to eq(0)
     expect(result.dig("counts", "unknown")).to eq(4)
     expect(Marshal.dump(snapshot)).to eq(original)
@@ -126,5 +126,18 @@ RSpec.describe OpsHealthSummary do
     expect(checks.fetch("notifications.digest_batches.failures").fetch("status")).to eq("attention")
     expect(checks.fetch("notifications.email").fetch("status")).to eq("unknown")
     expect(checks.fetch("workers").fetch("status")).to eq("unknown")
+  end
+  it "interprets consumer presence without treating partial scans as proof of absence" do
+    snapshot[:workers] = { complete: true, states: { stale: 0, future: 0, missing: 0, invalid: 0 },
+      queues: { alerts: { observed_active_consumers: 0, coverage_complete: true } } }
+    expect(checks.fetch("worker_queue.alerts")).to include("status" => "attention", "reason" => "no_recent_consumer")
+    snapshot[:workers][:complete] = false
+    snapshot[:workers][:queues][:alerts][:coverage_complete] = false
+    expect(checks.fetch("worker_queue.alerts").fetch("status")).to eq("unknown")
+    expect(checks.fetch("workers").fetch("status")).to eq("unknown")
+    snapshot[:workers][:queues][:alerts][:observed_active_consumers] = 1
+    expect(checks.fetch("worker_queue.alerts")).to include("status" => "ok", "reason" => "recent_consumer_observed")
+    snapshot[:workers][:states][:stale] = 1
+    expect(checks.fetch("workers")).to include("status" => "attention", "reason" => "heartbeat_records_require_review")
   end
 end

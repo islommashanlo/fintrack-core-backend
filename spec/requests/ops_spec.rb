@@ -95,10 +95,10 @@ RSpec.describe "Operator endpoints" do
         expect(metrics.dig("ingestion", "unclassified_parse_failures", "unresolved")).to eq(1)
         expect(metrics.dig("queues", "ready", "sec_live_form4")).to include("size" => 0, "latency_status" => "empty", "tail_age_seconds" => nil)
         expect(metrics.dig("queues", "sets", "retry")).to include("total_count" => 0, "sampled_count" => 0, "counts_complete" => true)
-        expect(metrics.dig("queues", "workers_checked")).to be(false)
+        expect(metrics.dig("queues", "workers_checked")).to be(true)
         expect(metrics.dig("notifications", "channels", "email")).to include("receipt_observed" => false, "failure_timestamp_recorded" => false)
         expect(metrics.dig("notifications", "channels", "in_app", "by_frequency", "instant", "completion_lag_seconds", "p95")).to be_nil
-        expect(metrics.dig("health", "policy_version")).to eq("ops-health-v2")
+        expect(metrics.dig("health", "policy_version")).to eq("ops-health-v3")
         expect(metrics.dig("health", "checks")).to include(include("id" => "notifications.email.receipt", "status" => "unknown"))
         expect(metrics.dig("health", "thresholds", "notification_instant_seconds")).to eq(120)
         expect(metrics.dig("health", "status")).to eq("attention")
@@ -108,13 +108,35 @@ RSpec.describe "Operator endpoints" do
       end
     end
 
+    it "exposes recent worker coverage only to operators without changing readiness" do
+      travel_to now do
+        Sidekiq.redis do |redis|
+          redis.call("SADD", "processes", "private-process")
+          redis.call("HSET", "private-process", "info", JSON.generate("queues" => %w[alerts default]),
+            "beat", now.to_f, "quiet", "false")
+        end
+        with_credentials do
+          get "/ops/metrics", headers: basic("ops", "correct horse")
+          expect(response).to have_http_status(:ok)
+          metrics = response.parsed_body
+          expect(metrics.dig("workers", "states", "active")).to eq(1)
+          expect(metrics.dig("health", "checks")).to include(include("id" => "worker_queue.alerts", "status" => "ok"),
+            include("id" => "worker_queue.sec_live_form4", "status" => "attention"))
+          expect(response.body).not_to include("private-process")
+        end
+        get "/health"
+        expect(response.parsed_body.fetch("checks").keys).to match_array(%w[database redis])
+      end
+    end
+
     it "copes with a poller that has never run" do
       metrics = OpsMetrics.new.to_h
 
       expect(metrics).to include(last_successful_poll_at: nil, seconds_since_last_successful_poll: nil)
       expect(metrics[:poller_lag_seconds]).to eq(filings: 0, median: nil, p95: nil)
       expect(metrics[:parse_failures][:rate]).to eq(0.0)
-      expect(metrics.dig(:health, :status)).to eq("unknown")
+      expect(metrics.dig(:health, :status)).to eq("attention")
+      expect(metrics.dig(:health, :checks)).to include(include(id: "worker_queue.alerts", reason: "no_recent_consumer"))
     end
   end
 end

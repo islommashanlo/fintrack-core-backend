@@ -28,6 +28,8 @@ class OpsMetrics
       notifications: NotificationMetrics.new(now: @now).to_h,
       billing: billing
     }
+    metrics[:workers] = WorkerMetrics.new(queues: metrics.fetch(:queues).fetch(:ready).keys, now: @now).to_h
+    metrics[:queues][:workers_checked] = true
     metrics.merge(health: OpsHealthSummary.new(metrics:).to_h)
   end
 

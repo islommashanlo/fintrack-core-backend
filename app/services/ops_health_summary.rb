@@ -10,12 +10,12 @@ class OpsHealthSummary
   end
 
   def to_h
-    checks = poll_checks + form_checks + queue_checks + coverage_checks + notification_checks
+    checks = poll_checks + form_checks + queue_checks + worker_checks + coverage_checks + notification_checks
     failures = @metrics.fetch("ingestion").fetch("unclassified_parse_failures")
     checks << count_check("unclassified_parse_failures", failures.fetch("unresolved"), failures)
     counts = %w[ok attention unknown].to_h { |status| [ status, checks.count { |check| check.fetch(:status) == status } ] }
     status = counts["attention"].positive? ? "attention" : (counts["unknown"].positive? ? "unknown" : "ok")
-    { policy_version: "ops-health-v2", status:, thresholds: THRESHOLDS.merge(OpsNotificationHealth::THRESHOLDS), counts:, checks: }
+    { policy_version: "ops-health-v3", status:, thresholds: THRESHOLDS.merge(OpsNotificationHealth::THRESHOLDS), counts:, checks: }
   end
 
   private
@@ -100,9 +100,24 @@ class OpsHealthSummary
     ready + sets
   end
 
+  def worker_checks
+    observed = @metrics["workers"]
+    return [ check("workers", "unknown", "not_checked", {}) ] unless observed
+
+    states = observed.fetch("states")
+    issues = states.values_at("stale", "future", "missing", "invalid").sum
+    status = issues.positive? ? "attention" : (observed.fetch("complete") ? "ok" : "unknown")
+    reason = issues.positive? ? "heartbeat_records_require_review" : (observed.fetch("complete") ? "heartbeat_scan_complete" : "partial_heartbeat_scan")
+    [ check("workers", status, reason, observed) ] + observed.fetch("queues").map do |name, data|
+      active = data.fetch("observed_active_consumers").positive?
+      status = active ? "ok" : (data.fetch("coverage_complete") ? "attention" : "unknown")
+      reason = active ? "recent_consumer_observed" : (data.fetch("coverage_complete") ? "no_recent_consumer" : "partial_heartbeat_scan")
+      check("worker_queue.#{name}", status, reason, data)
+    end
+  end
+
   def coverage_checks
     [ check("archive_files", "unknown", "not_checked", { filesystem_checked: @metrics.fetch("archives").fetch("filesystem_checked") }),
-      check("workers", "unknown", "not_checked", { workers_checked: @metrics.fetch("queues").fetch("workers_checked") }),
       check("unknown_ready_queues", "unknown", "not_checked",
         { unknown_ready_queues_checked: @metrics.fetch("queues").fetch("unknown_ready_queues_checked") }) ]
   end

@@ -37,7 +37,7 @@ adapters and draft calculators do not count as activated product features.
 | News/prices | Immutable headline/link storage, mentions, local feeds/news alerts, OHLCV ingestion, gap planning and company price reads exist. | News::Provider::Disabled and MarketData::Provider::Disabled are defaults. Vendor adapters/rights, authoritative calendars/identity and scheduled refresh/gap-fill orchestration are incomplete. |
 | Billing/gating | Verified Stripe intake, durable receipts, entitlement expiry, hosted attempts/recovery and PlanCatalog limits exist with request/concurrency tests. | Live interoperability and unknown/unmatched outcome resolution remain operational concerns. No real customer/payment or entitlement activation occurred. Plan limits do not make absent features available. |
 | Deadlines | Form13fDeadline/tests implement adjusted Q3 2026 deadline Nov 16, contrasting the prompt's unadjusted Nov 14 example. | No general Form 4 two-business-day lateness engine. Calendar-day scoring staleness is not legal lateness. |
-| Operations/CI | Ingestion/archive/queue/notification metrics, health review, readiness, tests, lint, language policy and API contract checks exist. | CI has no dependency/security scanner. Production p95/load results, worker heartbeats, external monitoring, recipient receipt and two-minute delivery targets are unverified. |
+| Operations/CI | Ingestion/archive/queue/notification metrics, bounded worker heartbeat observations, health review, readiness, tests, lint, language policy and API contract checks exist. | CI has no dependency/security scanner. Production p95/load results, worker progress, external monitoring, recipient receipt and two-minute delivery targets are unverified. |
 | Deliverables | Setup/env/task docs, migrations, real fixtures, OpenAPI and local tests exist. | Frontend integration, provider setup and rollout remain separate. Prototype seeds are intentionally absent under the owner's no-seeding instruction. |
 
 ## Current verification evidence
@@ -89,7 +89,7 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Worker heartbeat visibility | Inspect existing Sidekiq process data and expose truthful operations/health liveness without starting workers or inventing delivery guarantees. |
+| Next | CI dependency/security scanning | Add checks using existing tooling and review CI integration without deploying or activating external services. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Dependency/security CI checks | Select tools and confirm new gems before adding them. No scanner/database was fetched in this audit. |
 | High | Score input storage and point-in-time coverage | Reviewed factor applicability and supported scale/liquidity inputs before activation. |

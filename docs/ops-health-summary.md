@@ -12,7 +12,7 @@ legacy mixed-form ratios.
 
 ## Shape and rollup
 
-`health` has `policy_version: ops-health-v2`, `status`, `thresholds`, `counts`
+`health` has `policy_version: ops-health-v3`, `status`, `thresholds`, `counts`
 and `checks`. Each check has a stable `id`, `status`, machine-readable `reason`,
 `observed` evidence and nullable `threshold`. IDs use form, poll family or queue
 names, for example `form.13F-HR.latency` and `queue.sec_live_form4`.
@@ -26,10 +26,12 @@ Statuses mean:
 
 The rollup is `attention` if any check requires review, otherwise `unknown` if
 any check is unknown, otherwise `ok`. Counts include all three statuses, so
-known issues never erase missing coverage. At introduction worker health,
-physical archive files and unknown ready queues are always unchecked. The
+known issues never erase missing coverage. Physical archive files and unknown
+ready queues remain unchecked; worker heartbeats are now observed as described
+in [worker-heartbeats.md](worker-heartbeats.md). The
 rollup therefore cannot be globally `ok` with the current observation sources.
-An empty pipeline is unknown, not certified healthy.
+An empty pipeline retains unknown coverage; an empty worker registry also flags
+configured queues for review.
 
 ## Thresholds
 
@@ -69,7 +71,7 @@ does not infer or change that configuration.
 | `set.retry`, `set.dead` | Any retained jobs require review; malformed sampled payloads also require review; otherwise incomplete attribution stays unknown |
 | `set.scheduled` | Malformed sampled payloads require review; incomplete attribution is unknown; attributable scheduled jobs are expected, including currently due jobs |
 | `unclassified_parse_failures` | Any unattributed unresolved failure requires review |
-| `archive_files`, `workers`, `unknown_ready_queues` | Unknown because the collected metrics do not check those resources |
+| `archive_files`, `unknown_ready_queues` | Unknown because the collected metrics do not check those resources |
 
 Failure presence is an operator review trigger with threshold zero, independent
 of the numeric unresolved fraction. This does not reuse the historical 1%
@@ -96,7 +98,7 @@ does not catch infrastructure exceptions and fabricate healthy observations.
 The metrics are not an atomic cross-store snapshot. Notification observations
 are exposed separately in `notifications`; policy v2 interprets only the
 supported application outcome observations described below. Content verification,
-backup restoration, recipient receipt, worker heartbeats, unknown queues, external
+backup restoration, recipient receipt, worker progress, unknown queues, external
 receivers, production latency and complete SEC coverage remain separate work.
 Specs cover the pure policy, threshold boundaries, unknown coverage, mixed
 observations, input preservation, operator JSON and readiness compatibility.
@@ -148,5 +150,12 @@ metrics result, it produces an unknown observation rather than fabricated zero
 outcomes. Supported channel fields otherwise follow the collector's contract;
 missing required counters fail visibly rather than silently becoming healthy.
 The existing rollup prioritizes known attention conditions and preserves all
-unknown receipt, worker and filesystem checks. The summary remains pure, does
+unknown receipt and filesystem checks, and any incomplete worker observations. The summary remains pure, does
 not modify its input, and performs no new I/O or state changes.
+
+## Worker checks in policy v3
+
+Policy v3 adds bounded read-only Sidekiq heartbeat observations and configured
+queue consumer checks. See [worker-heartbeats.md](worker-heartbeats.md) for scan
+limits, uncertainty and review rules. Existing notification and ingestion rules
+remain unchanged. Worker presence does not establish delivery or job progress.
