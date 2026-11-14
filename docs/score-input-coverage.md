@@ -1,6 +1,6 @@
 # Activity Score market-input requirements
 
-Methodology 1.4-draft publishes score.market_input_requirements. Activity detail
+Methodology 1.5-draft publishes score.market_input_requirements. Activity detail
 responses include the same contract at the issuer_scale_and_liquidity factor's
 inputs.requirements. It describes system capabilities and unresolved policy;
 coverage_evaluated is always false. It is not a measurement of the event's local
@@ -13,7 +13,7 @@ remain unchanged. No overall score, level or overall reasons are activated.
 | --- | --- | --- |
 | Issuer market capitalization | Dated IssuerScaleObservation storage, with no populated or verified history | Need value/currency, effective time, source knowledge time and a verified issuer/security link |
 | Daily dollar volume | PriceDaily stores immutable OHLCV, session_date and observed_at; PriceSeries identifies security, provider, symbol, currency and adjustment | Need a session calendar/completion time, averaging window, minimum coverage, price/volume basis and provider/currency policy |
-| Issuer/security identity | Security, CUSIP mapping and issuer ticker data are present | Current cache matches are not an effective-dated, unambiguous issuer/security history |
+| Issuer/security identity | Historical IssuerSecurityEvidence assertions plus current Security/CUSIP/ticker caches are present | Source authority, populated history and revision/conflict resolution remain unverified; current cache matches do not prove historical identity |
 | Comparable reported magnitude | Reported transaction amounts and normalized institutional value changes are present when coverage permits | Need source/instrument-specific applicability, comparable currency/basis and a decision about valuation effects |
 
 Previous scoring documentation said volume was not stored. This was inaccurate:
@@ -48,9 +48,10 @@ The single contract is stored in config/activity_methodology.yml. Each assessmen
 uses its existing defensive copy of the methodology, attaching requirements only
 to the market factor. Publishing the diagnostic metadata performs no market-data
 query, write or HTTP request and starts no job/provider. The separate issuer-scale
-storage contract adds one table, as described above. The OpenAPI MarketScoreInputRequirements schema types the public
+storage contract and the historical identity evidence contract each add one
+table, as described above. The OpenAPI MarketScoreInputRequirements schema types the public
 methodology field and optional factor inputs.requirements. Contract version is
-1.69.0; the shared methodology version is 1.4-draft.
+1.69.0; the shared methodology version is 1.5-draft.
 
 Partial storage capability is not partial available score weight. The market
 factor remains unavailable with null value/points; missing_factors still lists it.
@@ -77,3 +78,7 @@ RuboCop checked 704 files without offenses; the 91-operation API contract,
 language-policy and whitespace checks passed. Brakeman passed with its existing
 25 reviewed exceptions and no new warnings; the dependency audit against the
 previously refreshed advisory database also passed. No dependency version changed.
+
+Historical identity source assertions now have a storage contract; see
+[historical-identity-evidence.md](historical-identity-evidence.md). Matching candidates
+remain unverified, including when only one source assertion is stored.

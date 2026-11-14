@@ -89,10 +89,10 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Historical identity evidence contract | Define effective/observed-time issuer/security identity records without inferring historical links from current ticker/CUSIP caches or activating providers. |
+| Next | Market-input readiness audit | Inventory the new dated scale/identity stores and unresolved prerequisites using read-only local observations; do not certify source authority or activate scoring. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Security gate verification | Local checks pass with reviewed SQL exceptions; verify hosted security jobs and branch protection separately. |
-| High | Score input storage and point-in-time coverage | Methodology 1.3-draft now publishes unevaluated market-input prerequisites (docs/score-input-coverage.md); dated issuer-scale storage exists, but source population/selection, historical identity and liquidity policy remain missing. |
+| High | Score input storage and point-in-time coverage | Methodology 1.5-draft publishes unevaluated market-input prerequisites (docs/score-input-coverage.md); dated issuer-scale storage exists, but source population/selection, historical identity verification/resolution and liquidity policy remain missing. Historical identity source assertion storage now exists (docs/historical-identity-evidence.md). |
 | Later | Watchlist-wide alerts and web push | Preserve ownership, quotas, consent, source validity and plan timing; validate browser/sender integration separately. |
 | Later | Additional filing forms | Real evidence first, then isolated ingestion/schema/read/alert increments. |
 | Later | Vendor adapters and refresh orchestration | Provider selection/rights, authoritative calendars/identity and explicit request authorization. |

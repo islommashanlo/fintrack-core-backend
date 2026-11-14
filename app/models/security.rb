@@ -5,6 +5,7 @@ class Security < ApplicationRecord
 
   has_many :cusip_security_mappings, dependent: :restrict_with_exception
   has_many :price_series, dependent: :restrict_with_exception
+  has_many :issuer_security_evidences, dependent: :restrict_with_exception
 
   validates :figi, presence: true, uniqueness: true
   validates :source, inclusion: { in: SOURCES }

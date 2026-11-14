@@ -15,7 +15,7 @@ RSpec.describe "API v1 activity scoring diagnostics" do
     expect(response).to have_http_status(:ok)
     data = response.parsed_body.fetch("data")
     expect(data).to include("score" => nil, "level" => nil, "reasons" => [])
-    expect(data.fetch("scoring")).to include("status" => "incomplete", "methodology_version" => "1.4-draft",
+    expect(data.fetch("scoring")).to include("status" => "incomplete", "methodology_version" => "1.5-draft",
       "evaluated_at" => filing.filed_at.as_json)
     expect(data.dig("scoring", "coverage")).to include("available_weight" => 50, "required_weight" => 100,
       "missing_factors" => %w[own_history issuer_scale_and_liquidity])

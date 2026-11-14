@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -562,6 +562,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
     t.check_constraint "source_record_id::text ~ '[^[:space:]]'::text AND char_length(source_record_id::text) <= 200 AND source_revision::text ~ '[^[:space:]]'::text AND char_length(source_revision::text) <= 100 AND measurement_basis::text ~ '[^[:space:]]'::text AND char_length(measurement_basis::text) <= 100", name: "issuer_scale_metadata"
   end
 
+  create_table "issuer_security_evidences", force: :cascade do |t|
+    t.bigint "security_id", null: false
+    t.string "issuer_cik", null: false
+    t.string "security_figi", null: false
+    t.string "cusip"
+    t.string "ticker"
+    t.string "source", null: false
+    t.string "source_record_id", null: false
+    t.string "source_revision", null: false
+    t.datetime "effective_from", null: false
+    t.datetime "effective_to"
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.index ["cusip", "effective_from", "observed_at"], name: "issuer_security_evidence_cusip"
+    t.index ["issuer_cik", "effective_from", "observed_at"], name: "issuer_security_evidence_time"
+    t.index ["issuer_cik", "security_id", "source", "source_record_id", "source_revision"], name: "issuer_security_evidence_identity", unique: true
+    t.index ["security_id"], name: "index_issuer_security_evidences_on_security_id"
+    t.check_constraint "(cusip IS NULL OR cusip::text ~ '^[0-9A-Z]{9}$'::text) AND (ticker IS NULL OR ticker::text ~ '[^[:space:]]'::text AND char_length(ticker::text) <= 40)", name: "issuer_security_evidence_aliases"
+    t.check_constraint "isfinite(effective_from) AND (effective_to IS NULL OR isfinite(effective_to) AND effective_to > effective_from) AND isfinite(observed_at) AND isfinite(created_at) AND observed_at <= created_at", name: "issuer_security_evidence_times"
+    t.check_constraint "issuer_cik::text ~ '^[0-9]{10}$'::text AND source::text ~ '^[a-z][a-z0-9_]{0,39}$'::text", name: "issuer_security_evidence_source"
+    t.check_constraint "security_figi::text ~ '[^[:space:]]'::text AND char_length(security_figi::text) <= 64 AND source_record_id::text ~ '[^[:space:]]'::text AND char_length(source_record_id::text) <= 200 AND source_revision::text ~ '[^[:space:]]'::text AND char_length(source_revision::text) <= 100", name: "issuer_security_evidence_metadata"
+  end
+
   create_table "news_alert_snapshots", force: :cascade do |t|
     t.bigint "news_item_id", null: false
     t.bigint "news_mention_id", null: false
@@ -926,6 +949,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
   add_foreign_key "institutional_report_other_managers", "institutional_reports"
   add_foreign_key "institutional_reports", "filings"
   add_foreign_key "institutional_reports", "institutional_filers"
+  add_foreign_key "issuer_security_evidences", "securities"
   add_foreign_key "news_alert_snapshots", "news_items"
   add_foreign_key "news_alert_snapshots", "news_mentions"
   add_foreign_key "news_mentions", "news_items"

@@ -1,4 +1,4 @@
-version: "1.4-draft"
+version: "1.5-draft"
 purpose: "Describe the relative significance and unusualness of reported filing activity."
 disclaimer: "Data from public SEC filings. Not investment advice."
 clusters:
@@ -32,7 +32,7 @@ score:
         storage_status: partial
         scoring_status: unimplemented
         time_policy: "Require an unambiguous effective-dated identity and knowledge timestamp at evaluation; current ticker/CUSIP cache matches are insufficient."
-        blockers: [effective_dated_identity, issuer_security_link, option_and_principal_applicability]
+        blockers: [source_population, source_rights, historical_identity_validation, revision_resolution, conflict_resolution, option_and_principal_applicability]
       - id: comparable_reported_magnitude
         storage_status: partial
         scoring_status: unimplemented

@@ -38,14 +38,14 @@ RSpec.describe "API v1 methodology" do
     get api_v1_methodology_path
     expect_documented_response(path: "/methodology")
     definition = response.parsed_body.fetch("data")
-    expect(definition.fetch("version")).to eq("1.4-draft")
+    expect(definition.fetch("version")).to eq("1.5-draft")
     inputs = definition.dig("score", "market_input_requirements")
     expect(inputs).to include("status" => "blocked", "coverage_evaluated" => false, "applicability_status" => "unresolved")
     requirements = inputs.fetch("requirements").index_by { |entry| entry.fetch("id") }
     expect(requirements.fetch("issuer_market_cap")).to include("storage_status" => "partial")
     expect(requirements.fetch("daily_dollar_volume")).to include("storage_status" => "partial", "scoring_status" => "unimplemented")
     expect(requirements.fetch("daily_dollar_volume").fetch("blockers")).to include("session_calendar", "minimum_session_coverage")
-    expect(requirements.fetch("issuer_security_identity").fetch("blockers")).to include("effective_dated_identity")
+    expect(requirements.fetch("issuer_security_identity").fetch("blockers")).to include("historical_identity_validation", "conflict_resolution")
     expect(WebMock).not_to have_requested(:any, /./)
   end
 end
