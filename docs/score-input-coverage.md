@@ -1,6 +1,6 @@
 # Activity Score market-input requirements
 
-Methodology 1.3-draft publishes score.market_input_requirements. Activity detail
+Methodology 1.4-draft publishes score.market_input_requirements. Activity detail
 responses include the same contract at the issuer_scale_and_liquidity factor's
 inputs.requirements. It describes system capabilities and unresolved policy;
 coverage_evaluated is always false. It is not a measurement of the event's local
@@ -11,7 +11,7 @@ remain unchanged. No overall score, level or overall reasons are activated.
 
 | Requirement | What exists | What prevents historical scoring |
 | --- | --- | --- |
-| Issuer market capitalization | No dated market-cap storage | Need value/currency, effective time, source knowledge time and a verified issuer/security link |
+| Issuer market capitalization | Dated IssuerScaleObservation storage, with no populated or verified history | Need value/currency, effective time, source knowledge time and a verified issuer/security link |
 | Daily dollar volume | PriceDaily stores immutable OHLCV, session_date and observed_at; PriceSeries identifies security, provider, symbol, currency and adjustment | Need a session calendar/completion time, averaging window, minimum coverage, price/volume basis and provider/currency policy |
 | Issuer/security identity | Security, CUSIP mapping and issuer ticker data are present | Current cache matches are not an effective-dated, unambiguous issuer/security history |
 | Comparable reported magnitude | Reported transaction amounts and normalized institutional value changes are present when coverage permits | Need source/instrument-specific applicability, comparable currency/basis and a decision about valuation effects |
@@ -46,10 +46,11 @@ or incomplete events retain their existing ineligible status and raw filing data
 
 The single contract is stored in config/activity_methodology.yml. Each assessment
 uses its existing defensive copy of the methodology, attaching requirements only
-to the market factor. No market-data query, write, HTTP request, job, provider or
-schema is added. The OpenAPI MarketScoreInputRequirements schema types the public
+to the market factor. Publishing the diagnostic metadata performs no market-data
+query, write or HTTP request and starts no job/provider. The separate issuer-scale
+storage contract adds one table, as described above. The OpenAPI MarketScoreInputRequirements schema types the public
 methodology field and optional factor inputs.requirements. Contract version is
-1.69.0; the shared methodology version is 1.3-draft.
+1.69.0; the shared methodology version is 1.4-draft.
 
 Partial storage capability is not partial available score weight. The market
 factor remains unavailable with null value/points; missing_factors still lists it.
@@ -59,8 +60,9 @@ rights or authorize access to a provider.
 
 ## Next design step
 
-Define a dated issuer-scale observation contract and historical identity evidence
-before implementing a market-factor query. Recommendations: immutable observations
+The dated issuer-scale storage contract now exists; see
+[issuer-scale-observations.md](issuer-scale-observations.md). Define source selection
+and historical identity evidence before implementing a market-factor query. Recommendations: immutable observations
 with source identifiers, effective/observed times, currency and exact decimals;
 unknown or ambiguous identity remains unavailable. Confirm source rights and
 calendar/formula policy before collecting data or activating scoring. No backfill,

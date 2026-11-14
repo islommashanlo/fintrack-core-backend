@@ -67,7 +67,7 @@ The initial proposed positive weights total 100:
 | Factor | Proposed weight | Current inputs |
 | --- | --- | --- |
 | Filer's own reported history | 25 | Draft observed-history comparisons require at least five usable observations |
-| Issuer scale and liquidity | 25 | Unavailable; dated market capitalization is missing and stored OHLCV is not yet suitable for scoring |
+| Issuer scale and liquidity | 25 | Unavailable; dated market-cap storage is unpopulated/unverified and stored OHLCV is not yet suitable for scoring |
 | Reported context | 15 | Draft role mapping for insiders and change-type mapping for institutions |
 | Position-size change | 20 | Draft ratios from reported insider lines or complete adjacent-quarter institutional comparisons |
 | Corroborating reported activity | 15 | Draft participation among first-listed insiders or reporting funds, at the event's evaluation time |
@@ -92,7 +92,7 @@ do not persist scores or change normalized source values.
 | Position change | Require positive shares, nonnegative following shares and P/A or S/D code/direction consistency. Infer preceding shares as following − changed for P, following + changed for S. Use min(changed / preceding, 1); zero preceding shares contributes 1. Missing or negative baselines remain unavailable. |
 | Participation | For the same issuer and direction, count distinct canonical first-listed owners accepted in (event time − 14 days, event time]. Use clamp((count − 1) / (3 − 1), 0, 1). Missing prices still count, as in the active cluster definition. |
 | Staleness | Use the Eastern acceptance date minus the reported transaction date, in calendar days. Penalty fraction is min(days / 30, 1), multiplied by the maximum 15-point penalty. Missing dates and future transaction dates remain unavailable. |
-| Issuer scale/liquidity | Unavailable: dated market capitalization and a validated daily-dollar-volume policy are missing. OHLCV storage exists but is not queried for scoring. No external lookup is performed. |
+| Issuer scale/liquidity | Unavailable: validated market-cap history and a daily-dollar-volume policy are missing. OHLCV storage exists but is not queried for scoring. No external lookup is performed. |
 
 These formulas are an implemented **draft**, not activated scoring policy. Role
 mapping, five-value sample size and the 30-day curve are explicit initial
@@ -196,3 +196,7 @@ from partial OHLCV and identity capabilities, and records time, currency, calend
 and instrument-applicability blockers. See [score-input-coverage.md](score-input-coverage.md).
 `coverage_evaluated: false` means no per-event market data was examined; the
 contract does not add available score weight or alter eligibility/formulas.
+
+Dated issuer-scale observations now have a storage contract (1.4-draft); source
+population, authority, historical security identity and scoring policy remain
+unverified. See [issuer-scale-observations.md](issuer-scale-observations.md).

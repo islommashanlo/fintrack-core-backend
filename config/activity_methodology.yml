@@ -1,4 +1,4 @@
-version: "1.3-draft"
+version: "1.4-draft"
 purpose: "Describe the relative significance and unusualness of reported filing activity."
 disclaimer: "Data from public SEC filings. Not investment advice."
 clusters:
@@ -19,10 +19,10 @@ score:
     applicability_status: unresolved
     requirements:
       - id: issuer_market_cap
-        storage_status: unavailable
+        storage_status: partial
         scoring_status: unimplemented
         time_policy: "Require a dated issuer value and a source knowledge timestamp no later than event evaluation; never substitute a current value."
-        blockers: [dated_market_cap_storage, currency_policy, issuer_security_identity]
+        blockers: [source_population, source_rights, validated_measurement_basis, currency_policy, issuer_security_identity]
       - id: daily_dollar_volume
         storage_status: partial
         scoring_status: unimplemented

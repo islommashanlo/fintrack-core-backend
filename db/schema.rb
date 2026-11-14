@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_11_13_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -540,6 +540,26 @@ ActiveRecord::Schema[8.0].define(version: 2026_11_13_180000) do
     t.index ["institutional_filer_id", "filed_at"], name: "index_institutional_reports_on_filer_and_filed_at"
     t.index ["institutional_filer_id", "period_of_report"], name: "index_institutional_reports_on_filer_and_period"
     t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'parsed'::character varying::text, 'failed'::character varying::text, 'skipped'::character varying::text])", name: "institutional_reports_status_check"
+  end
+
+  create_table "issuer_scale_observations", force: :cascade do |t|
+    t.string "issuer_cik", null: false
+    t.string "source", null: false
+    t.string "source_record_id", null: false
+    t.string "source_revision", null: false
+    t.decimal "market_cap", null: false
+    t.string "currency", null: false
+    t.string "measurement_basis", null: false
+    t.datetime "effective_at", null: false
+    t.datetime "observed_at", null: false
+    t.datetime "created_at", null: false
+    t.index ["issuer_cik", "effective_at", "observed_at", "created_at"], name: "issuer_scale_knowledge_time"
+    t.index ["issuer_cik", "source", "source_record_id", "source_revision"], name: "issuer_scale_source_identity", unique: true
+    t.check_constraint "isfinite(effective_at) AND isfinite(observed_at) AND isfinite(created_at) AND effective_at <= observed_at AND observed_at <= created_at", name: "issuer_scale_times"
+    t.check_constraint "issuer_cik::text ~ '^[0-9]{10}$'::text", name: "issuer_scale_cik"
+    t.check_constraint "market_cap >= 0::numeric AND (market_cap::text <> ALL (ARRAY['NaN'::text, 'Infinity'::text, '-Infinity'::text])) AND currency::text ~ '^[A-Z]{3}$'::text", name: "issuer_scale_amount"
+    t.check_constraint "source::text ~ '^[a-z][a-z0-9_]{0,39}$'::text", name: "issuer_scale_source"
+    t.check_constraint "source_record_id::text ~ '[^[:space:]]'::text AND char_length(source_record_id::text) <= 200 AND source_revision::text ~ '[^[:space:]]'::text AND char_length(source_revision::text) <= 100 AND measurement_basis::text ~ '[^[:space:]]'::text AND char_length(measurement_basis::text) <= 100", name: "issuer_scale_metadata"
   end
 
   create_table "news_alert_snapshots", force: :cascade do |t|
