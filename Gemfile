@@ -45,6 +45,10 @@ group :test do
 end
 
 group :development do
+  # CI security checks; not loaded by the application or installed in production.
+  gem "brakeman", "~> 8.1", require: false
+  gem "bundler-audit", "~> 0.9.3", require: false
+
   gem "web-console"
 end
 

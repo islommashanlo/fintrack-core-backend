@@ -260,3 +260,12 @@ live delivery is activated here. See [the contract](docs/watchlist-filing-notifi
 Watchlist insider transaction rules support email and in-app with reported-line
 identity, eligible-owner evidence and amendment-aware membership checks. See
 [the transaction alert contract](docs/watchlist-transaction-alerts.md).
+
+## CI security checks
+
+CI runs Brakeman and bundler-audit as independent jobs alongside specs, lint and
+API/language checks. Run `bundle exec brakeman --no-pager` and
+`bundle exec bundler-audit check --update` locally. Both fail on findings; the
+dependency check refreshes the public advisory database. Scanners are development-
+only gems and require no running application services. Existing security findings
+remain unresolved: see [the baseline and remediation notes](docs/security-ci-plan.md).

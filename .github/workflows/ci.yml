@@ -4,7 +4,32 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
+  static_security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: "3.4"
+      - run: bundle exec brakeman --no-pager
+
+  dependency_security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          ruby-version: "3.4"
+      - run: bundle exec bundler-audit check --update
+
   policy:
     runs-on: ubuntu-latest
     steps:
