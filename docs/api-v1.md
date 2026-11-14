@@ -2915,3 +2915,23 @@ eligibility. Invalid/partial configuration disables the affected flow immediatel
 ID-token and code requirements remain distinct. The endpoint is account-independent,
 no-store, parameter-free and subject to shared request limiting. It creates no
 session/challenge and sends no provider request. See [full contract and verification](auth-capabilities.md).
+
+
+### Pro screener CSV export
+
+POST /api/v1/screener/export requires authenticated cookies, CSRF and verified Pro
+CSV access. Send the same typed entity/filter/sort/window definition as /screener/run.
+Limit defaults to 1000 and is capped at 1000 for each export page; JSON screen limits
+and Free previews are unchanged. The CSV uses the same query and serializer,
+including fund coverage/history, turnover and source evidence.
+
+Continue by sending the same definition with X-Export-Next-Cursor as cursor. Actor,
+filters, entity, plan/history scope and export resource bind signed continuations;
+JSON and other export cursors cannot be interchanged. Later source inserts are
+excluded by the initial bounds. Existing export headers, no-store, formula
+protection, exact decimals, 10 MiB limit and credentialed CORS apply. Empty scalars
+represent unknowns, arrays/objects are quoted JSON, and every row has a disclaimer.
+
+All pages recheck Pro access. Authentication/CSRF/plan/input/size/throttle failures
+return JSON errors before attachment headers; Pro denial uses feature=csv_export.
+See [schemas, continuation and verification](screener-csv-exports.md).

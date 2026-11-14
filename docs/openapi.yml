@@ -2,7 +2,7 @@
 openapi: 3.0.3
 info:
   title: FilingsIntel JSON API
-  version: 1.67.0
+  version: 1.68.0
   description: Implemented account, watchlist, notification, plan-catalog and filing-data APIs.
     Cookie mutations require browser-session CSRF tokens. Other planned routes are
     still being built. Data from public SEC filings. Not investment advice.
@@ -3768,6 +3768,67 @@ paths:
           "$ref": "#/components/responses/RateLimited"
         '503':
           "$ref": "#/components/responses/LimiterUnavailable"
+  "/screener/export":
+    post:
+      operationId: exportScreener
+      summary: Export a Pro company, fund or insider screen as paginated CSV
+      description: Requires authenticated cookies, CSRF and verified Pro CSV access.
+        Accepts the same typed screen definition as /screener/run, with default/max
+        1000 rows per page. Reuses filtering, SQL source/history bounds and serialization.
+        Export cursors bind actor/entity/a normalized-filter digest/sort/plan context and cannot
+        be interchanged with JSON or other export cursors. Repeat the same screen with
+        the continuation cursor. Existing CSV formula escaping, decimal precision, 10
+        MiB cap, no-store errors and shared export throttles apply. Missing metrics
+        remain blank; arrays/objects are quoted JSON. Fund totals/turnover are reported
+        allocations, not executed transactions. No enrichment, data writes or provider
+        requests.
+      security:
+      - CookieSession: []
+        CsrfToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/ScreenerExportRequest"
+      responses:
+        '200':
+          "$ref": "#/components/responses/CsvExport"
+        '400':
+          "$ref": "#/components/responses/InvalidParameter"
+        '401':
+          "$ref": "#/components/responses/AccountUnauthorized"
+        '402':
+          description: Verified Pro CSV export access is required
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - code
+                - feature
+                - limit
+                properties:
+                  code:
+                    type: string
+                    enum:
+                    - PRO_REQUIRED
+                  feature:
+                    type: string
+                    enum:
+                    - csv_export
+                  limit:
+                    type: integer
+                    enum:
+                    - 0
+        '422':
+          "$ref": "#/components/responses/ExportTooLarge"
+        '429':
+          "$ref": "#/components/responses/RateLimited"
+        '503':
+          "$ref": "#/components/responses/LimiterUnavailable"
+        '403':
+          "$ref": "#/components/responses/InvalidCsrfToken"
   "/screener/run":
     post:
       operationId: runScreener
@@ -4758,6 +4819,60 @@ paths:
     - "$ref": "#/components/parameters/FundCik"
 components:
   schemas:
+    ScreenerExportRequest:
+      type: object
+      required:
+      - entity
+      properties:
+        entity:
+          type: string
+          enum:
+          - companies
+          - funds
+          - insiders
+        filters:
+          type: array
+          maxItems: 20
+          items:
+            "$ref": "#/components/schemas/ScreenerCondition"
+          default: []
+        sort:
+          type: string
+          maxLength: 64
+          default: name
+          description: Whitelisted entity field or last_filed_at, optionally prefixed
+            with -. Nulls last; CIK breaks ties.
+        window_days:
+          type: integer
+          enum:
+          - 30
+          - 90
+          - 365
+          default: 90
+          description: Companies and insiders only; funds reject this parameter.
+        page:
+          type: object
+          properties:
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 1000
+              default: 1000
+            cursor:
+              type: string
+              maxLength: 8192
+          additionalProperties: false
+          description: Cursor page object, not a number or offset. Nested/top-level pagination
+            keys cannot repeat.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 1000
+        cursor:
+          type: string
+          maxLength: 8192
+      additionalProperties: false
     OauthFlowOperation:
       type: object
       additionalProperties: false

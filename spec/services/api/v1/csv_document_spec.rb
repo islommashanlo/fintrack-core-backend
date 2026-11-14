@@ -38,4 +38,12 @@ RSpec.describe Api::V1::CsvDocument do
     stub_const("Api::V1::CsvDocument::MAX_BYTES", 1000)
     expect { document(insider_name: "x" * 1001) }.to raise_error(described_class::TooLarge)
   end
+
+  it "exports nested screener metrics with string keys while preserving typed zero, false and negative decimals" do
+    text = described_class.render(dataset: "screener-insiders", rows: [ {
+      metrics: { "purchase_count" => 0, "latest_is_director" => false, "net_open_market_value" => BigDecimal("-1.250000000001") },
+      latest_role: { "officer_title" => "=SUM(A1)" }
+    } ])
+    expect(text).to include('"0"', '"false"', '"-1.250000000001"', '"\'=SUM(A1)"')
+  end
 end

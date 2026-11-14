@@ -5,12 +5,12 @@ module Api
     class ScreenerParameters
       PARAMETERS = %w[entity filters sort window_days limit cursor page].freeze
 
-      def self.normalize(parameters)
-        new(parameters).normalize
+      def self.normalize(parameters, maximum_limit: ScreenerInputRules::PAGE_RANGE.end, default_limit: ScreenerInputRules::DEFAULT_PAGE_SIZE)
+        new(parameters, maximum_limit:, default_limit:).normalize
       end
 
-      def initialize(parameters)
-        @parameters = parameters
+      def initialize(parameters, maximum_limit: ScreenerInputRules::PAGE_RANGE.end, default_limit: ScreenerInputRules::DEFAULT_PAGE_SIZE)
+        @parameters, @maximum_limit, @default_limit = parameters, maximum_limit, default_limit
       end
 
       def normalize
@@ -40,8 +40,8 @@ module Api
         invalid! unless page.is_a?(Hash) && (page.keys - %w[limit cursor]).empty?
         invalid! if page.keys.any? { |key| @parameters.key?(key) }
         options = @parameters.slice("limit", "cursor").merge(page)
-        limit = options.fetch("limit", ScreenerInputRules::DEFAULT_PAGE_SIZE)
-        invalid! unless (limit.is_a?(Integer) || limit.is_a?(String)) && limit.to_s.match?(/\A\d{1,3}\z/) && ScreenerInputRules::PAGE_RANGE.cover?(limit.to_i)
+        limit = options.fetch("limit", @default_limit)
+        invalid! unless (limit.is_a?(Integer) || limit.is_a?(String)) && limit.to_s.bytesize <= @maximum_limit.to_s.length && limit.to_s.match?(/\A\d+\z/) && limit.to_i.between?(1, @maximum_limit)
         values["limit"] = limit.to_i.to_s
         if options.key?("cursor")
           cursor = options["cursor"]

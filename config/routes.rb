@@ -51,6 +51,7 @@ Rails.application.routes.draw do
       get "activity" => "activity#index", as: :activity
       get "activity/:id" => "activity#show", as: :activity_event
       get "methodology" => "methodology#show", as: :methodology
+      post "screener/export" => "exports#screener", as: :screener_export
       get "screener/capabilities" => "screener#capabilities", as: :screener_capabilities
       post "screener/run" => "screener#run", as: :screener_run
       get "saved-screens" => "saved_screens#index", as: :saved_screens
