@@ -77,9 +77,9 @@ The requirement blockers now identify source population/rights, historical
 validation, revision/conflict resolution and instrument applicability. No points,
 overall score, level, weights or existing eligibility rules change.
 
-A later read-only market-input readiness audit can inventory stored source
-assertions and missing prerequisites without certifying a source or activating
-scoring. Source selection, authorized data acquisition, identity resolution,
+The read-only market-input inventory now reports stored source assertions and
+missing prerequisites without certifying a source or activating scoring; see
+[market-input-readiness.md](market-input-readiness.md). Source selection, authorized data acquisition, identity resolution,
 market-factor formulas and liquidity/session policy remain separate work.
 
 ## Verification scope

@@ -82,3 +82,8 @@ previously refreshed advisory database also passed. No dependency version change
 Historical identity source assertions now have a storage contract; see
 [historical-identity-evidence.md](historical-identity-evidence.md). Matching candidates
 remain unverified, including when only one source assertion is stored.
+
+Operator metrics and `ops:market_inputs` now inventory recorded scale observations,
+identity assertions and observed bars with SQL aggregates; see
+[market-input-readiness.md](market-input-readiness.md). Inventory counts do not
+change per-event coverage_evaluated or establish complete historical inputs.

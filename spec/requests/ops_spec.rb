@@ -129,6 +129,19 @@ RSpec.describe "Operator endpoints" do
       end
     end
 
+    it "includes an unverified market-input inventory in authenticated metrics" do
+      with_credentials do
+        get "/ops/metrics", headers: basic("ops", "correct horse")
+        expect(response).to have_http_status(:ok)
+        report = response.parsed_body.fetch("market_inputs")
+        expect(report).to include("status" => "unverified", "readiness_certified" => false)
+        expect(report.dig("scale_observations", "candidate_count")).to eq(0)
+        expect(report.dig("identity_evidence", "candidate_count")).to eq(0)
+        expect(report.dig("requirements", "coverage_evaluated")).to be(false)
+        expect(response.parsed_body.dig("health", "checks")).not_to include(include("id" => "market_inputs"))
+      end
+    end
+
     it "copes with a poller that has never run" do
       metrics = OpsMetrics.new.to_h
 

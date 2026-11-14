@@ -26,7 +26,8 @@ class OpsMetrics
       ingestion: IngestionMetrics.new(now: @now).to_h,
       archives: ArchiveInventory.new.coverage,
       notifications: NotificationMetrics.new(now: @now).to_h,
-      billing: billing
+      billing: billing,
+      market_inputs: MarketInputReadiness.new(now: @now).to_h
     }
     metrics[:workers] = WorkerMetrics.new(queues: metrics.fetch(:queues).fetch(:ready).keys, now: @now).to_h
     metrics[:queues][:workers_checked] = true

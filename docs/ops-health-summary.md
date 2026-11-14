@@ -159,3 +159,11 @@ Policy v3 adds bounded read-only Sidekiq heartbeat observations and configured
 queue consumer checks. See [worker-heartbeats.md](worker-heartbeats.md) for scan
 limits, uncertainty and review rules. Existing notification and ingestion rules
 remain unchanged. Worker presence does not establish delivery or job progress.
+
+## Market-input inventory
+
+Operator metrics also include the read-only market_inputs inventory described in
+[market-input-readiness.md](market-input-readiness.md). Policy v3 does not interpret
+those counts or introduce a market readiness check. Unverified source assertions,
+identifier collisions and empty stores do not activate scoring or alter public
+readiness; the inventory carries its own explicit readiness_certified: false.
