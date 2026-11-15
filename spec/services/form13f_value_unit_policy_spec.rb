@@ -6,7 +6,7 @@ RSpec.describe Form13fValueUnitPolicy do
   let(:old_accession) { "0001172661-22-002493" }
   let(:new_accession) { "0001965819-23-000005" }
 
-  it "has no date cutoff or global default when evidence is absent" do
+  it "requires the official filing date when no accession assignment exists" do
     expect(described_class.load.unit_for(old_accession)).to eq("unresolved")
     expect(described_class.load.unit_for(new_accession)).to eq("unresolved")
   end

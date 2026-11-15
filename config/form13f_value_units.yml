@@ -1,2 +1,5 @@
-# Accession-scoped, reviewed assignments only. No inferred transition date.
-filings: {}
+# Reviewed exception: retain raw values; do not guess a corrective multiplier.
+filings:
+  0001725547-23-000003:
+    value_unit: unresolved
+    evidence: "2026-11-15 SecClient inspection: old-period RESTATEMENT retains the old raw per-share scale across 60 comparable positions. See spec/fixtures/13f/unit_transition and docs/13f-unit-transition-evidence.md; intended normalization remains unresolved."

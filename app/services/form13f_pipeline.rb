@@ -64,7 +64,7 @@ class Form13fPipeline
     return Form13fValueUnitPolicy.canonical_unit(@value_unit) unless @value_unit.nil?
     return report.cover_value_unit if report&.status == "parsed" && report.cover_value_unit.present?
 
-    Form13fValueUnitPolicy.load.unit_for(filing.accession_no)
+    Form13fValueUnitPolicy.load.unit_for(filing.accession_no, filed_on: filing.filed_on)
   end
 
   def archive_document(filing, filename, body)

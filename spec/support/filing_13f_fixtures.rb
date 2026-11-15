@@ -4,11 +4,13 @@ module Filing13fFixtures
   COVER_FIXTURES = %i[
     recent_2026_q1 amendment_2026_q1 notice_2026_q1 post_cutoff_2022_q4 post_cutoff_2023_q1
     pre_cutoff_2022_q3 combination_put_call_2024_q2
+    boundary_before_20221230 boundary_on_20230103 old_period_original_20220809 old_period_restatement_20230105
   ].freeze
 
   INFORMATION_FIXTURES = %i[
     recent_2026_q1 amendment_2026_q1 post_cutoff_2022_q4 post_cutoff_2023_q1
     pre_cutoff_2022_q3 combination_put_call_2024_q2
+    boundary_before_20221230 boundary_on_20230103 old_period_original_20220809 old_period_restatement_20230105
   ].freeze
 
   def form13f_fixture(kind, name)

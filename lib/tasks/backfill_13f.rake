@@ -21,7 +21,7 @@ namespace :backfill do
     next unless confirmed
 
     policy = Form13fValueUnitPolicy.load
-    value_units = plan.refs.reject { |ref| ref.form_type == "13F-NT" }.to_h { |ref| [ ref.accession_no, policy.unit_for(ref.accession_no) ] }
+    value_units = plan.refs.reject { |ref| ref.form_type == "13F-NT" }.to_h { |ref| [ ref.accession_no, policy.unit_for(ref.accession_no, filed_on: ref.filed_on) ] }
     runs = backfill.execute(plan, value_units:)
     puts "Executed #{runs.size} daily-index runs; queued #{runs.sum(&:filings_new)} new 13F filings."
   end

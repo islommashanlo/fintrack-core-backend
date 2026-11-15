@@ -46,8 +46,11 @@ class Form13fBackfill
     if value_unit.present? && holdings.size > 1
       raise ArgumentError, "Multiple holdings filings require per-accession value_units"
     end
+    raise ArgumentError, "Invalid per-accession units" unless value_units.is_a?(Hash)
+    policy = Form13fValueUnitPolicy.load
     units = holdings.to_h do |ref|
-      unit = Form13fValueUnitPolicy.canonical_unit(value_units.fetch(ref.accession_no, value_unit))
+      selected = value_units.fetch(ref.accession_no) { value_unit.presence || policy.unit_for(ref.accession_no, filed_on: ref.filed_on) }
+      unit = Form13fValueUnitPolicy.canonical_unit(selected)
       raise ArgumentError, "value_unit is required for each 13F holdings accession" if unit == "unresolved"
       [ ref.accession_no, unit ]
     end

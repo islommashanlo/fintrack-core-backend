@@ -30,7 +30,8 @@ RSpec.describe Form13fBackfill do
     expect(enqueued_jobs).to be_empty
   end
 
-  it "requires a unit before executing a holdings backfill" do
+  it "requires an explicit unit when the filing date is missing" do
+    refs[0] = refs.first.with(filed_on: nil)
     plan = described_class.new(index: PlanIndex.new({ day => refs })).plan(from: day, to: day)
 
     expect { described_class.new.execute(plan, value_unit: nil) }
@@ -52,13 +53,13 @@ RSpec.describe Form13fBackfill do
     plan = described_class.new(index: PlanIndex.new({ day => both })).plan(from: day, to: day)
     expect { described_class.new.execute(plan, value_unit: "whole_dollars") }.to raise_error(ArgumentError, /per-accession/)
     expect(Filing.count).to eq(0)
-    units = { old.accession_no => "thousands", refs.first.accession_no => "whole_dollars" }
-    described_class.new.execute(plan, value_units: units)
+    described_class.new.execute(plan)
     expect(ParseForm13fBackfillJob).to have_been_enqueued.with(old.accession_no, value_unit: "thousands")
     expect(ParseForm13fBackfillJob).to have_been_enqueued.with(refs.first.accession_no, value_unit: "whole_dollars")
   end
 
   it "validates every accession before creating runs or registering filings" do
+    refs[0] = refs.first.with(filed_on: nil)
     plan = described_class.new(index: PlanIndex.new({ day => refs })).plan(from: day, to: day)
     expect { described_class.new.execute(plan, value_units: {}) }.to raise_error(ArgumentError)
     expect(Filing.count).to eq(0)

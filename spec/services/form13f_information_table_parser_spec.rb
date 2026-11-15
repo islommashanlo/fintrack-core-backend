@@ -14,7 +14,9 @@ RSpec.describe Form13fInformationTableParser do
       post_cutoff_2022_q4: 23,
       post_cutoff_2023_q1: 56,
       pre_cutoff_2022_q3: 41,
-      combination_put_call_2024_q2: 1790
+      combination_put_call_2024_q2: 1790,
+      boundary_before_20221230: 122, boundary_on_20230103: 79,
+      old_period_original_20220809: 124, old_period_restatement_20230105: 60
     }
 
     expected_counts.each do |name, count|

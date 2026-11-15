@@ -272,8 +272,10 @@ fingerprint-specific notes. See [the baseline and remediation notes](docs/securi
 
 ## 13F unit safety
 
-13F jobs no longer use FORM13F_VALUE_UNIT as a global default. Reviewed accession
-assignments live in config/form13f_value_units.yml (empty by default); unknown
-units retain raw values with null USD and flags. Mixed-era execution needs per-
-accession units, and existing unit changes require authorized reprocessing. See
-[13F value-unit policy](docs/13f-value-unit-policy.md). No automatic cutoff is inferred.
+13F jobs use the official filing date: filings from January 3, 2023 use whole
+dollars; earlier filings use thousands, including amendments according to their
+own filing date. Reviewed accession exceptions override that convention; missing
+dates and unresolved exceptions retain raw values with null USD and flags.
+Existing stored units remain protected on replay. See
+[13F value-unit policy](docs/13f-value-unit-policy.md) and
+[transition evidence](docs/13f-unit-transition-evidence.md).

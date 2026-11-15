@@ -1,100 +1,66 @@
-# Accession-scoped 13F value units
+# Filing-date 13F value units with accession exceptions
 
-This increment removes a dangerous process-wide assumption; it does not establish
-an automatic historical transition date. Existing real fixtures show a thousands
-scale in the 2022 Q3 example and whole-dollar behavior in later examples. The
-exact cutoff, filing-date/period/format rule and amendment edge cases remain
-unverified. No date, share-price heuristic or XML marker is guessed.
+The verified SEC convention uses the official filing date: before January 3,
+2023, thousands; from that date, whole dollars. Amendments follow their own filing
+date even when their reporting period is older. See
+[transition evidence](13f-unit-transition-evidence.md) for sources, retained real
+filings and the 12-request collection ledger.
 
-## Live ingestion
+## Selection and unknown values
 
-ParseForm13fJob no longer defaults to FORM13F_VALUE_UNIT. Form13fPipeline selects:
+Form13fPipeline selects, in order:
 
-1. An explicit unit supplied for this accession's job, validated/canonicalized.
-2. The report's already stored unit on ordinary replay.
-3. A reviewed accession assignment from config/form13f_value_units.yml.
-4. Otherwise unresolved, with raw reported values retained and normalized USD null.
+1. An explicit validated unit for this accession's job.
+2. The already stored report unit on ordinary replay.
+3. A reviewed accession exception in `config/form13f_value_units.yml`.
+4. The official `filing.filed_on` date convention; absent dates stay unresolved.
 
-Checked-in policy is filings: {}. There are no shipped assignments or newly fetched
-filings. Assignment records require a valid accession, known value_unit and a
-nonblank bounded evidence note. Aliases canonicalize through the existing pure
-normalizer. Unknown/malformed configured units fail visibly; an absent assignment
-is different and safely remains unresolved. Evidence is operator-reviewed text,
-not proof supplied by a request or an automatic unit detector. The policy file and
-code review record the rationale; no durable per-row policy-version/evidence column
-is added in this increment. Explicit job arguments remain trusted per-accession
-operator inputs and must be backed by reviewed evidence outside the argument.
+The policy accepts Date values, not timestamps or date strings. Neither reporting
+period nor acceptance timestamp supplies a missing official filing date.
+FORM13F_VALUE_UNIT is ignored by the job and rejected for confirmed rake execution.
 
-The raw XML/archive, value_reported, cover total and shares are preserved. Unknown
-holdings use value_unit unresolved, value_usd null and unknown_value_unit flags.
-The report also carries that flag. Missing unit coverage is not malformed XML,
-so a fresh otherwise valid filing is parsed with warnings rather than recorded as
-a parser failure. Existing integrity flags and query coverage gates remain active;
-null normalized values do not become zeros or portfolio amounts. 13F-NT needs no
-unit; pre-XML handling remains skipped.
+The checked-in exception for 0001725547-23-000003 is intentionally unresolved:
+its old-quarter restatement retains approximately the original raw per-share
+scale across 60 comparable positions. The rule does not establish that all filers
+report correctly. No heuristic correction or generic anomaly detector is added.
+Exception entries require a valid accession, supported unit and bounded evidence
+note; unresolved is an explicit supported exception. Operators must review any
+explicit job unit; it remains a trusted per-accession input.
 
-## Stored data protection
+Raw reported values, shares, cover totals and archive XML remain unchanged.
+Unresolved units yield null normalized USD and unknown_value_unit flags, not zero.
+Otherwise valid fresh filings remain parsed with warnings. NT requires no unit;
+pre-XML handling remains skipped. Public response shapes are unchanged.
 
-The ingestor locks the filing inside its transaction, checks its parsed report
-and holding units before any upsert, and refuses a different normalization unit.
-A known-to-unknown or unknown-to-known change is also refused; a new policy entry
-does not silently fill or renormalize existing rows. Ordinary replay retains the
-stored unit even when the current policy has no assignment. Existing rows/counts
-remain unchanged in the replay regression.
+## Stored-data protection
 
-Stored-unit conflicts are deterministic ParseFailure records with no retry and do
-not mark an existing parsed filing failed. More generally a failed parse replay
-no longer changes a previously parsed filing's status; new pending failures still
-become failed. This preserves access to prior stored facts while surfacing review.
-Fixing existing normalized history needs separately authorized, audited reprocessing;
-no repair, deletion or reprocessing of actual stored filings was performed here.
-These guards concern unit changes; they are not a newly introduced general-purpose
-immutable upsert layer for every source field.
+The ingestor locks the filing and checks stored report/holding units before any
+upsert. A different unit, including known-to-unknown or unknown-to-known, produces
+a deterministic StoredUnitConflict parse failure without retry. Previously parsed
+filings keep their parsed status and stored rows. Ordinary replay uses the stored
+unit even if the policy changes. This does not introduce general immutability of
+every source field. Correcting existing normalized history requires separately
+authorized, audited reprocessing; none was performed here.
 
-## Mixed-era backfill registration
+## Backfill registration
 
-Form13fBackfill.execute accepts value_units keyed by accession and validates every
-holdings assignment before creating runs or registering/queuing filings. Missing,
-unresolved and unsupported units block execution. The legacy scalar value_unit
-is supported only for a single holdings accession; several holdings filings cannot
-receive one broadcast unit. FilingRegistrar applies the same broadcast guard and
-passes accession-specific values to jobs. Notices need no assignment.
+Form13fBackfill validates every holdings accession before creating runs or queuing
+filings. Explicit accession assignments take precedence; otherwise each reference's
+official filed_on supplies its unit. Missing dates and unresolved exceptions block
+execution unless an explicit reviewed known unit is supplied. A scalar unit is
+allowed only for one holdings filing; broadcasting across several is rejected.
+FilingRegistrar preserves that guard. Notices need no unit.
 
-The confirmed rake task reads the fixed reviewed policy and rejects the old
-FORM13F_VALUE_UNIT execution setting before discovery. It still defaults to a dry
-run and requires confirm for execution. Existing planning enumerates daily indexes
-through SecClient, so running even that planner makes SEC requests; no planner,
-backfill command or live SEC request was run during this work. Request-budget
-approval remains required for actual inspection/backfill. No source unit is
-inferred merely from a requested date range or report quarter.
-
-## Evidence still required
-
-To implement automatic unit selection, inspect authoritative transition material
-and real boundary filings/amendments through SecClient under a separately approved
-request budget. Record exact fixture/provenance evidence before selecting a rule.
-The currently retained examples bound the transition but cannot pin it. Real
-RESTATEMENT/FIGI fixture gaps and earliest XML coverage remain open as well.
-
-## Compatibility
-
-This deliberately changes unconfigured ingestion from parse failure to flagged raw
-storage with unknown USD and removes the global job default. Operators using a
-blanket environment unit must move to per-accession evidence; do not execute mixed
-history using the old setting. No schema/dependency/deployment changes are needed.
-The public data shape is unchanged; some newly ingested data can legitimately
-expose unavailable normalized amounts rather than incorrectly scaled USD.
+The rake task defaults to dry run and requires explicit confirmation to execute.
+Even planning fetches SEC daily indexes, so request authorization is required;
+no backfill or planner was run for this increment. There is no schema, dependency
+or deployment change. All specs use WebMock; actual inspection used the separately
+authorized 12-request budget and no remaining requests are authorized.
 
 ## Verification
 
-The final targeted ingestion/normalization/backfill/registrar set passed 44 examples;
-the full suite passed 1,781 examples with seed 82163. The mixed-era end-to-end test
-uses both retained real XML fixtures with accession-scoped test assignments,
-checks exact raw/normalized values, and replays without additional mocked document
-requests or row-count changes. Other regressions cover ignored global defaults,
-unknown-unit raw storage, stored-unit conflict protection and preflight rejection
-before registration. RuboCop checked 730 files without offenses; the 91-operation
-API contract, language-policy and whitespace checks passed. Brakeman passed with
-the existing 25 reviewed exceptions; the refreshed dependency audit passed. All
-SEC requests in tests were WebMock stubs. Actual SEC requests during this work: 0.
-No hosted CI result or proven transition date is claimed.
+The full local suite passed 1,793 examples with seed 22822. RuboCop inspected 731
+files without offenses; the API contract validated 91 operations. Language-policy
+and whitespace checks passed. Brakeman reported zero unreviewed warnings (25
+existing reviewed exceptions); the refreshed dependency audit found no
+vulnerabilities. Hosted CI and production behavior were not verified here.

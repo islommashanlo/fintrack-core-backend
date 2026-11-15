@@ -123,7 +123,8 @@ RSpec.describe ParseForm13fJob do
     expect(InstitutionalReport.find_by!(filing: old)).to have_attributes(status: "skipped")
     expect(ParseFailure.count).to eq(0)
   end
-  it "ignores a process-wide unit and preserves unresolved reported values without a parse failure" do
+  it "ignores a process-wide unit when the official filing date is unavailable" do
+    filing.update!(filed_on: nil)
     stub_filing(status: 200, body: form13f_information(:recent_2026_q1))
     previous = ENV["FORM13F_VALUE_UNIT"]
     ENV["FORM13F_VALUE_UNIT"] = "thousands"

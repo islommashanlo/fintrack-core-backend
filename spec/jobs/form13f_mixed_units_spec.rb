@@ -8,8 +8,6 @@ RSpec.describe "Mixed-era 13F ingestion" do
       [ :pre_cutoff_2022_q3, "0001172661-22-002493", "0001508097", Date.new(2022, 11, 14), "thousands", 1000 ],
       [ :post_cutoff_2022_q4, "0001965819-23-000005", "0001965819", Date.new(2023, 2, 14), "whole_dollars", 1 ]
     ]
-    assignments = examples.to_h { |name, accession, _cik, _day, unit, _multiplier| [ accession, { "value_unit" => unit, "evidence" => "Test policy from #{name} fixture inspection; not a transition-date inference" } ] }
-    allow(Form13fValueUnitPolicy).to receive(:load).and_return(Form13fValueUnitPolicy.new(assignments:))
     filings = examples.map do |name, accession, cik, day, _unit, _multiplier|
       filing = create(:filing, :pending, accession_no: accession, cik:, form_type: "13F-HR", filed_on: day,
         filed_at: day.to_time.utc + 20.hours)
@@ -31,5 +29,31 @@ RSpec.describe "Mixed-era 13F ingestion" do
     filings.each { |filing| ParseForm13fJob.perform_now(filing.accession_no) }
     expect([ InstitutionalReport.count, InstitutionalHolding.count ]).to eq(counts)
     expect(a_request(:get, %r{https://www\.sec\.gov/Archives/.*})).to have_been_requested.times(6)
+  end
+
+  [
+    [ :boundary_on_20230103, "0001104659-23-000314", "0001452208", Date.new(2023, 1, 3), "whole_dollars" ],
+    [ :old_period_restatement_20230105, "0001725547-23-000003", "0001898282", Date.new(2023, 1, 5), "unresolved" ]
+  ].each do |name, accession, cik, day, unit|
+    it "ingests the real #{name} restatement using the default filing-date policy and exceptions" do
+      filing = create(:filing, :pending, accession_no: accession, cik:, form_type: "13F-HR/A", filed_on: day,
+        filed_at: day.to_time.utc)
+      base = "https://www.sec.gov/Archives/edgar/data/#{Cik.path_segment(cik)}/#{accession.delete('-')}"
+      stub_request(:get, "#{base}/index.html").to_return(body: '<table><tr><td><a href="primary_doc.xml">primary_doc.xml</a></td><td>13F-HR/A</td></tr><tr><td><a href="infotable.xml">infotable.xml</a></td><td>INFORMATION TABLE</td></tr></table>')
+      stub_request(:get, "#{base}/primary_doc.xml").to_return(body: form13f_cover(name))
+      stub_request(:get, "#{base}/infotable.xml").to_return(body: form13f_information(name))
+      ParseForm13fJob.perform_now(accession)
+      expect(ParseFailure.count).to eq(0)
+      report = filing.reload.institutional_report
+      expect(report.cover_value_unit).to eq(unit)
+      raw = Form13fInformationTableParser.parse(form13f_information(name)).first.value_reported
+      holding = report.institutional_holdings.order(:row_seq).first
+      expect(holding.value_reported).to eq(raw)
+      expect(holding.value_usd).to eq(unit == "unresolved" ? nil : raw)
+      counts = [ InstitutionalReport.count, InstitutionalHolding.count ]
+      ParseForm13fJob.perform_now(accession)
+      expect([ InstitutionalReport.count, InstitutionalHolding.count ]).to eq(counts)
+      expect(a_request(:get, %r{https://www\.sec\.gov/Archives/.*})).to have_been_requested.times(3)
+    end
   end
 end

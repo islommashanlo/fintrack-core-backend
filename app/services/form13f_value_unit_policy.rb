@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-# Explicit per-accession evidence; no date/period or process-wide unit assumption.
+# SEC filing-date convention, with reviewed accession exceptions; never a period/UTC-date guess.
 class Form13fValueUnitPolicy
+  WHOLE_DOLLAR_FILED_ON = Date.new(2023, 1, 3)
   def self.load
     config = YAML.safe_load_file(Rails.root.join("config/form13f_value_units.yml"))
     raise ArgumentError, "Invalid 13F unit policy" unless config.is_a?(Hash) && config.keys == [ "filings" ]
@@ -22,13 +23,19 @@ class Form13fValueUnitPolicy
         raise ArgumentError, "Invalid 13F accession evidence"
       end
       unit = self.class.canonical_unit(entry.fetch("value_unit"))
-      raise ArgumentError, "13F assignments must specify a known unit" if unit == "unresolved"
       [ accession.dup.freeze, unit.freeze ]
     end.freeze
     freeze
   end
 
-  def unit_for(accession)
-    @units.fetch(accession, "unresolved")
+  def unit_for(accession, filed_on: nil)
+    raise ArgumentError, "Invalid 13F accession" unless accession.is_a?(String) && Filing::ACCESSION_FORMAT.match?(accession)
+    unless filed_on.nil? || (filed_on.is_a?(Date) && !filed_on.is_a?(DateTime))
+      raise ArgumentError, "Official 13F filed_on must be a Date"
+    end
+    return @units.fetch(accession) if @units.key?(accession)
+    return "unresolved" if filed_on.nil?
+
+    filed_on >= WHOLE_DOLLAR_FILED_ON ? "whole_dollars" : "thousands"
   end
 end
