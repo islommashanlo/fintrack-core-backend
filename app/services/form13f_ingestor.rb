@@ -10,6 +10,7 @@ class Form13fIngestor
   DEFAULT_STATUS = "parsed"
 
   class MismatchError < StandardError; end
+  class StoredUnitConflict < MismatchError; end
   class NaturalKeyCollisionError < StandardError; end
 
   def self.call(filing:, cover:, holdings:, value_unit:, raw_paths: {})
@@ -35,6 +36,8 @@ class Form13fIngestor
     assert_unique_sequences!(@holdings.map(&:row_seq), "holding")
 
     Filing.transaction do
+      @filing.lock!
+      assert_stored_unit!
       institutional_filer = upsert_institutional_filer
       report = upsert_report(institutional_filer)
       upsert_managers(report)
@@ -175,14 +178,25 @@ class Form13fIngestor
   end
 
   def canonical_unit
-    return nil if @value_unit.nil?
+    return nil if @cover.submission_type == "13F-NT"
 
     Form13fValueNormalizer.normalize(value_reported: 0, value_unit: @value_unit).value_unit
+  end
+
+  def assert_stored_unit!
+    return if @cover.submission_type == "13F-NT"
+    report = InstitutionalReport.find_by(filing_id: @filing.id)
+    return unless report&.status == "parsed"
+
+    if report.cover_value_unit != canonical_unit || report.institutional_holdings.where.not(value_unit: canonical_unit).exists?
+      raise StoredUnitConflict, "Stored 13F unit differs; explicit authorized reprocessing is required"
+    end
   end
 
   def report_suspect_reasons
     @report_suspect_reasons ||= begin
       reasons = []
+      reasons << "unknown_value_unit" if @cover.submission_type != "13F-NT" && !Form13fValueNormalizer::UNIT_MULTIPLIERS.key?(canonical_unit)
       if @cover.table_entry_total && @cover.table_entry_total != @holdings.length
         reasons << "entry_count_mismatch"
       end

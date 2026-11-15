@@ -40,4 +40,12 @@ RSpec.describe FilingRegistrar do
     expect(described_class.register([ other ], source: "daily_index")).to be_empty
     expect(Filing.count).to eq(0)
   end
+  it "rejects broadcasting a unit across holdings accessions before inserting or queuing anything" do
+    mixed = [ "0001172661-22-002493", "0001965819-23-000005" ].map do |accession|
+      Edgar::FilingRef.new(accession_no: accession, cik: "0000000123", form_type: "13F-HR", filed_on: Date.new(2023, 2, 14))
+    end
+    expect { described_class.register(mixed, source: "daily_index", value_unit: "whole_dollars") }.to raise_error(ArgumentError, /per-accession/)
+    expect(Filing.count).to eq(0)
+    expect(enqueued_jobs).to be_empty
+  end
 end

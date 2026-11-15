@@ -269,3 +269,11 @@ API/language checks. Run `bundle exec brakeman --no-pager --ensure-ignore-notes 
 dependency check refreshes the public advisory database. Scanners are development-
 only gems and require no running application services. The initial dependency findings are patched; reviewed SQL false positives have
 fingerprint-specific notes. See [the baseline and remediation notes](docs/security-ci-plan.md).
+
+## 13F unit safety
+
+13F jobs no longer use FORM13F_VALUE_UNIT as a global default. Reviewed accession
+assignments live in config/form13f_value_units.yml (empty by default); unknown
+units retain raw values with null USD and flags. Mixed-era execution needs per-
+accession units, and existing unit changes require authorized reprocessing. See
+[13F value-unit policy](docs/13f-value-unit-policy.md). No automatic cutoff is inferred.

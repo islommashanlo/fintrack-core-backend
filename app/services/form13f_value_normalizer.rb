@@ -61,6 +61,8 @@ class Form13fValueNormalizer
 
   def canonical_unit(value)
     normalized = value.to_s.strip.downcase
+    return "unresolved" if normalized.empty?
+
     UNIT_ALIASES.fetch(normalized, normalized)
   end
 end

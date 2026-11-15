@@ -32,4 +32,9 @@ RSpec.describe Form13fValueNormalizer do
   it "accepts the common dollar unit alias" do
     expect(described_class.normalize(value_reported: 12, value_unit: "dollars").value_unit).to eq("whole_dollars")
   end
+  it "represents a missing unit explicitly rather than inventing normalized dollars" do
+    result = described_class.normalize(value_reported: "78819", value_unit: nil)
+    expect(result).to have_attributes(value_reported: BigDecimal("78819"), value_unit: "unresolved", value_usd: nil,
+      suspect: true, suspect_reason: "unknown_value_unit")
+  end
 end

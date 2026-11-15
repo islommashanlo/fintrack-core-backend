@@ -10,6 +10,7 @@ class Form13fPipeline
 
   def process(filing)
     report = filing.institutional_report
+    value_unit = selected_unit(filing, report)
     if report && @archive.exist?(report.cover_raw_path)
       cover_path = report.cover_raw_path
       information_path = report.information_raw_path
@@ -42,13 +43,12 @@ class Form13fPipeline
     cover = Form13fCoverParser.parse(cover_xml)
     if information_xml
       holdings = Form13fInformationTableParser.parse(information_xml)
-      raise Form13fIngestor::MismatchError, "13F-HR has no configured value unit" if @value_unit.nil?
     else
       holdings = []
     end
 
     Form13fIngestor.call(
-      filing:, cover:, holdings:, value_unit: @value_unit,
+      filing:, cover:, holdings:, value_unit:,
       raw_paths: { cover: cover_path, information: information_path }
     )
     enqueue_position_diff_materialization(filing)
@@ -58,6 +58,14 @@ class Form13fPipeline
   end
 
   private
+
+  def selected_unit(filing, report)
+    return nil if filing.form_type == "13F-NT"
+    return Form13fValueUnitPolicy.canonical_unit(@value_unit) unless @value_unit.nil?
+    return report.cover_value_unit if report&.status == "parsed" && report.cover_value_unit.present?
+
+    Form13fValueUnitPolicy.load.unit_for(filing.accession_no)
+  end
 
   def archive_document(filing, filename, body)
     @archive.store_13f(

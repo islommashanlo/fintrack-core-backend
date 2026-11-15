@@ -123,4 +123,39 @@ RSpec.describe ParseForm13fJob do
     expect(InstitutionalReport.find_by!(filing: old)).to have_attributes(status: "skipped")
     expect(ParseFailure.count).to eq(0)
   end
+  it "ignores a process-wide unit and preserves unresolved reported values without a parse failure" do
+    stub_filing(status: 200, body: form13f_information(:recent_2026_q1))
+    previous = ENV["FORM13F_VALUE_UNIT"]
+    ENV["FORM13F_VALUE_UNIT"] = "thousands"
+    described_class.perform_now(accession_no)
+    report = InstitutionalReport.sole
+    expect(report).to have_attributes(cover_value_unit: "unresolved", suspect: true, suspect_reason: include("unknown_value_unit"))
+    expect(InstitutionalHolding.all).to all(have_attributes(value_unit: "unresolved", value_usd: nil, suspect: true))
+    expect(InstitutionalHolding.first.value_reported).to eq(Form13fInformationTableParser.parse(form13f_information(:recent_2026_q1)).first.value_reported)
+    expect(filing.reload.parse_status).to eq("parsed")
+    expect(ParseFailure.count).to eq(0)
+  ensure
+    ENV["FORM13F_VALUE_UNIT"] = previous
+  end
+
+  it "refuses a changed unit without modifying an already parsed filing or its holdings" do
+    stub_filing(status: 200, body: form13f_information(:recent_2026_q1))
+    described_class.perform_now(accession_no, value_unit: "whole_dollars")
+    old_values = InstitutionalHolding.order(:row_seq).pluck(:value_reported, :value_unit, :value_usd)
+    old_report = InstitutionalReport.sole.attributes
+    described_class.perform_now(accession_no, value_unit: "thousands")
+    expect(InstitutionalHolding.order(:row_seq).pluck(:value_reported, :value_unit, :value_usd)).to eq(old_values)
+    expect(InstitutionalReport.sole.attributes).to eq(old_report)
+    expect(filing.reload.parse_status).to eq("parsed")
+    expect(ParseFailure.sole.error).to include("StoredUnitConflict")
+  end
+
+  it "keeps a stored unit on ordinary replay even when no new policy assignment exists" do
+    stub_filing(status: 200, body: form13f_information(:recent_2026_q1))
+    described_class.perform_now(accession_no, value_unit: "whole_dollars")
+    described_class.perform_now(accession_no)
+    expect(InstitutionalReport.sole.cover_value_unit).to eq("whole_dollars")
+    expect(InstitutionalHolding.count).to eq(146)
+    expect(ParseFailure.count).to eq(0)
+  end
 end

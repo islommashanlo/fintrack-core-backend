@@ -41,21 +41,25 @@ class Form13fBackfill
     )
   end
 
-  def execute(plan, value_unit:)
-    needs_unit = plan.refs.any? { |ref| ref.form_type != "13F-NT" }
-    raise ArgumentError, "value_unit is required for 13F holdings reports" if needs_unit && value_unit.blank?
-
-    plan.refs_by_day.map do |day, refs|
-      run_day(day, refs, value_unit:)
+  def execute(plan, value_unit: nil, value_units: {})
+    holdings = plan.refs.reject { |ref| ref.form_type == "13F-NT" }
+    if value_unit.present? && holdings.size > 1
+      raise ArgumentError, "Multiple holdings filings require per-accession value_units"
     end
+    units = holdings.to_h do |ref|
+      unit = Form13fValueUnitPolicy.canonical_unit(value_units.fetch(ref.accession_no, value_unit))
+      raise ArgumentError, "value_unit is required for each 13F holdings accession" if unit == "unresolved"
+      [ ref.accession_no, unit ]
+    end
+    plan.refs_by_day.map { |day, refs| run_day(day, refs, value_unit:, value_units: units) }
   end
 
   private
 
-  def run_day(day, refs, value_unit:)
+  def run_day(day, refs, value_unit:, value_units:)
     run = BackfillRun.create_or_find_by!(day:)
     run.update!(status: "running", started_at: Time.current, finished_at: nil, error: nil)
-    added = FilingRegistrar.register(refs, source: "daily_index", value_unit:)
+    added = FilingRegistrar.register(refs, source: "daily_index", value_unit:, value_units:)
     run.update!(status: "done", filings_found: refs.size, filings_new: added.size, finished_at: Time.current)
     run
   rescue StandardError => e
