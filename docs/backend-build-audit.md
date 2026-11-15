@@ -89,7 +89,7 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Market source/revision selection policy | Define explicit authority, revision and identity-conflict policies before input selection; keep instrument, currency and liquidity applicability explicit. |
+| Next | Issuer-scale candidate policy | Define explicit source, currency, basis and freshness constraints for conservative scale selection; do not infer authority or activate scoring. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Security gate verification | Local checks pass with reviewed SQL exceptions; verify hosted security jobs and branch protection separately. |
 | High | Score input storage and point-in-time coverage | Methodology 1.5-draft publishes unevaluated market-input prerequisites (docs/score-input-coverage.md); dated issuer-scale storage exists, but source population/selection, historical identity verification/resolution and liquidity policy remain missing. Historical identity source assertion storage now exists (docs/historical-identity-evidence.md). |
@@ -97,3 +97,8 @@ The current transport must not be described as activated browser/push delivery.
 | Later | Additional filing forms | Real evidence first, then isolated ingestion/schema/read/alert increments. |
 | Later | Vendor adapters and refresh orchestration | Provider selection/rights, authoritative calendars/identity and explicit request authorization. |
 | Separate | Production rollout/performance validation | Approved configuration/deployment, realistic load tests, monitoring and delivery evidence. |
+
+An internal historical identity candidate selector now defaults to no sources,
+refuses repeated known source-record keys before effective-date filtering and
+withholds multiple applicable assertions. It selects no configured real source
+and does not verify identity or feed scoring; see docs/identity-candidate-policy.md.

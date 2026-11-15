@@ -97,3 +97,8 @@ checked 710 files without offenses; the 91-operation API contract, language-poli
 and whitespace checks passed. Brakeman passed with the existing 25 reviewed
 exceptions and no new warnings/errors; the refreshed dependency audit passed.
 No dependency versions changed. Hosted CI results are not claimed.
+
+The internal [identity candidate policy](identity-candidate-policy.md) now provides
+a conservative, deny-by-default selector. It checks all related known source
+revisions before interval filtering. The storage scope remains unchanged; no
+source assertion is automatically verified or made available to scoring.
