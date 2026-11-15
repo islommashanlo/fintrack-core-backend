@@ -1,0 +1,3 @@
+# Raw SEC evidence retains source line endings and intentional trailing whitespace.
+spec/fixtures/13f/unit_transition/*_submission.txt -text -whitespace
+spec/fixtures/13f/unit_transition/on_boundary_index.html -text -whitespace

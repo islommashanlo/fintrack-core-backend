@@ -1,0 +1,21 @@
+Question 36 (Updated: January 3, 2023)
+
+Q: What is the "value total"?
+
+A: This is the total fair market value of all of your Section 13(f) securities.
+
+The Form 13F's inclusion of “(round to nearest dollar)” under the Summary Page entry "Form 13F Information Table Value Total" specifies that the entry is required to be rounded to the nearest U.S. dollar amount. For example, an entry of "$150,000,000" represents $150,000,000. This approach is consistent with the Form 13F Information Table's method of reporting individual security positions. See Special Instruction 8 of Form 13F. Accordingly, you must round the "value total" to the nearest U.S. dollar. The requirement starting January 3, 2023 to round to the nearest dollar represents a change from the prior requirement to round such values to the nearest thousand dollars. See SEC Release No. 34- 95148 (June 23, 2022). 
+
+Question 61 (Updated: April 12, 2023)
+
+Q: When were the updated Form 13F EDGAR technical specifications that include the Form 13F amendments that were adopted on June 23, 2022 made available?
+
+A: The updated Form 13F EDGAR technical specifications were made available on January 3, 2023 in EDGAR Release 22.4.1 that was preceded by a draft version of the EDGAR Form 13F XML Technical Specifications (Version 1.7) (Dec. 2, 2022).
+
+For information about EDGAR developments, please monitor the EDGAR News & Announcements webpage, SEC.gov | EDGAR News & Announcements (you may sign up to receive the latest EDGAR news and announcements by entering your e-mail address in the “Stay Informed” sign-up box located on the right-hand side of the webpage).
+
+Question 62 (Updated: December 9, 2022)
+
+Q: When must filers use the updated Form 13F that includes the amendments that were adopted on June 23, 2022?   
+
+A: The compliance date for the form amendments to Form 13F is January 3, 2023.  All Form 13F reports that are filed on or after January 3, 2023, whether public or confidential (including all Form 13F reports for the quarter ending December 31, 2022, and for any other preceding or succeeding calendar quarter), must use the updated Form 13F.  For example, an amendment to a Form 13F for the quarter that ended March 31, 2022 that is filed on or after January 3, 2023 must use the updated Form 13F that includes the amendments that were adopted on June 23, 2022.

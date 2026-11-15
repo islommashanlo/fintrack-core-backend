@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xsi:schemaLocation="http://www.sec.gov/edgar/thirteenffiler eis_13F_Filer.xsd" xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:ns1="http://www.sec.gov/edgar/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags>
+        <confirmingCopyFlag>false</confirmingCopyFlag>
+        <overrideInternetFlag>false</overrideInternetFlag>
+      </flags>
+      <filer>
+        <credentials>
+          <cik>0001898282</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>06-30-2022</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>06-30-2022</reportCalendarOrQuarter>
+      <isAmendment>false</isAmendment>
+      <filingManager>
+        <name>VIRGINIA WEALTH MANAGEMENT GROUP, INC.</name>
+        <address>
+          <ns1:street1>4460 CORPORATION LANE</ns1:street1>
+          <ns1:street2>SUITE 180</ns1:street2>
+          <ns1:city>VIRGINIA BEACH</ns1:city>
+          <ns1:stateOrCountry>VA</ns1:stateOrCountry>
+          <ns1:zipCode>23462</ns1:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F HOLDINGS REPORT</reportType>
+      <form13FFileNumber>028-21452</form13FFileNumber>
+      <provideInfoForInstruction5>N</provideInfoForInstruction5>
+    </coverPage>
+    <signatureBlock>
+      <name>Scott Saal</name>
+      <title>President, Chief Compliance Officer</title>
+      <phone>(757) 963-1823</phone>
+      <signature>Scott Saal</signature>
+      <city>Virginia Beach</city>
+      <stateOrCountry>VA</stateOrCountry>
+      <signatureDate>08-09-2022</signatureDate>
+    </signatureBlock>
+    <summaryPage>
+      <otherIncludedManagersCount>0</otherIncludedManagersCount>
+      <tableEntryTotal>124</tableEntryTotal>
+      <tableValueTotal>172863</tableValueTotal>
+      <isConfidentialOmitted>false</isConfidentialOmitted>
+    </summaryPage>
+  </formData>
+</edgarSubmission>

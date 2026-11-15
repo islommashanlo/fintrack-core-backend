@@ -1,0 +1,74 @@
+[
+  {
+    "number": 1,
+    "url": "https://www.sec.gov/rules-regulations/staff-guidance/frequently-asked-questions-about-form-13f",
+    "attempted_at": "2026-11-15T18:06:35Z",
+    "status": 200
+  },
+  {
+    "number": 2,
+    "url": "https://www.sec.gov/filergroup/announcements-old/edgar-release-2241",
+    "attempted_at": "2026-11-15T18:07:24Z",
+    "status": 200
+  },
+  {
+    "number": 3,
+    "url": "https://efts.sec.gov/LATEST/search-index?q=&forms=13F-HR%2FA&dateRange=custom&startdt=2023-01-03&enddt=2023-01-06&size=100",
+    "attempted_at": "2026-11-15T18:07:50Z",
+    "status": 200
+  },
+  {
+    "number": 4,
+    "url": "https://efts.sec.gov/LATEST/search-index?q=&forms=13F-HR%2FA&dateRange=custom&startdt=2022-12-29&enddt=2022-12-30&size=100",
+    "attempted_at": "2026-11-15T18:08:14Z",
+    "status": 200
+  },
+  {
+    "number": 5,
+    "url": "https://www.sec.gov/Archives/edgar/data/1898282/0001725547-23-000003.txt",
+    "attempted_at": "2026-11-15T18:08:27Z",
+    "status": 200
+  },
+  {
+    "number": 6,
+    "url": "https://efts.sec.gov/LATEST/search-index?q=&forms=13F-HR&dateRange=custom&startdt=2022-12-30&enddt=2022-12-30&size=100",
+    "attempted_at": "2026-11-15T18:08:45Z",
+    "status": 200
+  },
+  {
+    "number": 7,
+    "url": "https://www.sec.gov/Archives/edgar/data/1954551/0001954551-22-000008.txt",
+    "attempted_at": "2026-11-15T18:09:35Z",
+    "status": 200
+  },
+  {
+    "number": 8,
+    "url": "https://www.sec.gov/Archives/edgar/data/1452208/0001104659-23-000314.txt",
+    "attempted_at": "2026-11-15T18:09:59Z",
+    "status": 200
+  },
+  {
+    "number": 9,
+    "url": "https://efts.sec.gov/LATEST/search-index?q=&forms=13F-HR&ciks=0001898282&dateRange=custom&startdt=2022-07-01&enddt=2022-09-30&size=100",
+    "attempted_at": "2026-11-15T18:10:20Z",
+    "status": 200
+  },
+  {
+    "number": 10,
+    "url": "https://www.sec.gov/files/rules/final/2022/34-95148.pdf",
+    "attempted_at": "2026-11-15T18:10:38Z",
+    "status": 200
+  },
+  {
+    "number": 11,
+    "url": "https://www.sec.gov/Archives/edgar/data/1898282/0001725547-22-000140.txt",
+    "attempted_at": "2026-11-15T18:11:09Z",
+    "status": 200
+  },
+  {
+    "number": 12,
+    "url": "https://www.sec.gov/Archives/edgar/data/1452208/000110465923000314/index.html",
+    "attempted_at": "2026-11-15T18:12:55Z",
+    "status": 200
+  }
+]
