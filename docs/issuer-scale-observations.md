@@ -77,3 +77,8 @@ and language/diff checks passed. Brakeman passed with the existing 25 reviewed
 exceptions and no new warnings/errors. The refreshed dependency audit passed.
 Only the local test database received this migration; development/production
 migration and hosted CI results are not claimed.
+
+The internal [scale candidate policy](scale-candidate-policy.md) now provides
+a deny-by-default selection boundary. It preserves source revisions and rejects
+ambiguity rather than ranking observations. The storage scope is unchanged, and
+no observation is automatically accepted as a scoring denominator.

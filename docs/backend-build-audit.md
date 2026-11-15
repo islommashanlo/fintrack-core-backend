@@ -89,7 +89,7 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Issuer-scale candidate policy | Define explicit source, currency, basis and freshness constraints for conservative scale selection; do not infer authority or activate scoring. |
+| Next | Paired market-candidate diagnostics | Preserve independent identity/scale policy and time evidence when auditing candidate compatibility, while keeping authority/applicability unverified and scoring inactive. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Security gate verification | Local checks pass with reviewed SQL exceptions; verify hosted security jobs and branch protection separately. |
 | High | Score input storage and point-in-time coverage | Methodology 1.5-draft publishes unevaluated market-input prerequisites (docs/score-input-coverage.md); dated issuer-scale storage exists, but source population/selection, historical identity verification/resolution and liquidity policy remain missing. Historical identity source assertion storage now exists (docs/historical-identity-evidence.md). |
@@ -102,3 +102,7 @@ An internal historical identity candidate selector now defaults to no sources,
 refuses repeated known source-record keys before effective-date filtering and
 withholds multiple applicable assertions. It selects no configured real source
 and does not verify identity or feed scoring; see docs/identity-candidate-policy.md.
+
+Issuer-scale candidate selection now requires explicit source/currency/basis/
+freshness settings, rejects known revisions before filtering and withholds
+competing or zero observations. No source is enabled; see docs/scale-candidate-policy.md.
