@@ -99,3 +99,7 @@ Brakeman passed with the existing 25 reviewed exceptions and no new findings;
 the refreshed dependency audit passed after patching the newly reported versions.
 No schema, source configuration, deployment, real data population, provider call
 or scoring activation was performed. Hosted CI results are not claimed.
+
+The internal [paired diagnostics](paired-market-candidates.md) now coordinates
+identity and scale candidates at one evaluation time, preserving both results
+and requested policy identities. It does not verify the identity or activate scoring.

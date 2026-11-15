@@ -107,3 +107,7 @@ passed with the existing 25 reviewed exceptions; the refreshed dependency audit
 passed with zero findings. No schema/dependency change, source configuration,
 provider call, real data population or deployment occurred. Hosted CI results
 are not claimed.
+
+The internal [paired diagnostics](paired-market-candidates.md) derives the scale
+issuer from identity and checks stage contexts before reporting a matching pair.
+No application route or scoring caller uses either selector.

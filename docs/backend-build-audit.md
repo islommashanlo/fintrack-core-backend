@@ -89,7 +89,7 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Paired market-candidate diagnostics | Preserve independent identity/scale policy and time evidence when auditing candidate compatibility, while keeping authority/applicability unverified and scoring inactive. |
+| Next | Operator candidate preview | Expose paired diagnostics only through explicitly scoped operator access; keep source policy operator-owned and preserve unavailable/unverified results without scoring activation. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Security gate verification | Local checks pass with reviewed SQL exceptions; verify hosted security jobs and branch protection separately. |
 | High | Score input storage and point-in-time coverage | Methodology 1.5-draft publishes unevaluated market-input prerequisites (docs/score-input-coverage.md); dated issuer-scale storage exists, but source population/selection, historical identity verification/resolution and liquidity policy remain missing. Historical identity source assertion storage now exists (docs/historical-identity-evidence.md). |
@@ -106,3 +106,7 @@ and does not verify identity or feed scoring; see docs/identity-candidate-policy
 Issuer-scale candidate selection now requires explicit source/currency/basis/
 freshness settings, rejects known revisions before filtering and withholds
 competing or zero observations. No source is enabled; see docs/scale-candidate-policy.md.
+
+Paired candidate diagnostics now bind both stage contexts, derive scale issuer
+from identity, preserve independent evidence and withhold mismatches. Sources
+remain unconfigured; see docs/paired-market-candidates.md.
