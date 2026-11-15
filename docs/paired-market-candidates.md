@@ -94,3 +94,7 @@ passed. Brakeman passed with the existing 25 reviewed exceptions; the refreshed
 dependency audit passed. No schema/dependency changes, actual source configuration,
 provider calls, data population, deployment or scoring activation occurred.
 Hosted CI results are not claimed.
+
+The [operator preview](operator-market-input-preview.md) now serializes the
+coordinator explicitly behind ops Basic auth. It accepts no request-side policy
+overrides; checked-in source allowlists remain empty and scoring inactive.

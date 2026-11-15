@@ -89,7 +89,7 @@ The current transport must not be described as activated browser/push delivery.
 
 | Priority | Work | Boundary |
 | --- | --- | --- |
-| Next | Operator candidate preview | Expose paired diagnostics only through explicitly scoped operator access; keep source policy operator-owned and preserve unavailable/unverified results without scoring activation. |
+| Next | Operator preview execution limits | Review query plans/indexes and bounded execution before high-volume use; retain operator-owned source policy and unverified diagnostics without scoring activation. |
 | High | Historical 13F unit policy and missing real fixtures | Evidence-based decision and separately scoped SEC inspection; no guessed dates, reported-value rewrites or mixed-era execution under one global unit. |
 | High | Security gate verification | Local checks pass with reviewed SQL exceptions; verify hosted security jobs and branch protection separately. |
 | High | Score input storage and point-in-time coverage | Methodology 1.5-draft publishes unevaluated market-input prerequisites (docs/score-input-coverage.md); dated issuer-scale storage exists, but source population/selection, historical identity verification/resolution and liquidity policy remain missing. Historical identity source assertion storage now exists (docs/historical-identity-evidence.md). |
@@ -110,3 +110,7 @@ competing or zero observations. No source is enabled; see docs/scale-candidate-p
 Paired candidate diagnostics now bind both stage contexts, derive scale issuer
 from identity, preserve independent evidence and withhold mismatches. Sources
 remain unconfigured; see docs/paired-market-candidates.md.
+
+The paired preview is now available only behind ops Basic auth with strict
+CUSIP/as-of parameters and a fixed server policy defaulting to no sources. It
+returns private/no-store JSON and exact decimal strings; see docs/operator-market-input-preview.md.

@@ -128,6 +128,7 @@ Rails.application.routes.draw do
 
   namespace :ops do
     get "metrics" => "metrics#show"
+    get "market-inputs/preview" => "market_inputs#preview"
     get "validation" => "validation#show"
   end
 
