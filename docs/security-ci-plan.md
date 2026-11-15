@@ -164,3 +164,18 @@ versions did not change. Hosted CI security success is not claimed.
 Hosted CI uses Ruby 3.4 and has not been verified by these local checks. Deployment,
 provider/SEC requests, data seeding, backfills and real deliveries were not run.
 Only gem/advisory sources were contacted for the dependency update and audit.
+
+## Advisory refresh on 2026-11-15
+
+Refreshing ruby-advisory-db to 5755673fdd52efd87217e72b9a2e0619ceeee889
+reported eight matches in the previously locked bundle: seven for Puma 8.0.2 and
+one for msgpack 1.8.5. These were newly surfaced matches, not new application
+features or an assertion that every advisory path was reachable in this app.
+
+Patch-only updates now lock Puma 8.0.3 and msgpack 1.8.7. No other locked gem
+version, dependency constraint, server configuration or deployment setting changed.
+The native gems load successfully under the local Ruby. Auditing the updated
+lockfile against that refreshed database exits 0 with zero findings. Nothing is
+ignored or frozen to an older advisory database to obtain the passing result.
+Application regression verification is recorded with the concurrent identity
+candidate increment; no production deployment or live-server activation occurred.
